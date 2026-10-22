@@ -57,3 +57,7 @@ go build -o bin/cost-api ./cmd/api
 `COST_ENV=production` 禁止开发令牌和内存存储。生产 HTTPS、域名、小程序备案/隐私说明/审核、云端备份及部署属于后续阶段，尚未上线。发布前还需要配置小程序正式 HTTPS API 地址并启用域名校验；当前项目保留本地联调配置。
 
 更多说明：[微信登录与 API](docs/AUTH.md)、[小程序联调](docs/MINIPROGRAM.md)、[验证记录](docs/VALIDATION.md)。
+
+## 开发规范
+
+开发遵循 [Superpowers 流程](docs/DEVELOPMENT.md)，仓库约定见 [AGENTS.md](AGENTS.md)。本次登录改造的 [设计补录](docs/superpowers/specs/2026-10-22-monorepo-wechat-auth-design.md) 明确记录既有流程缺口，不作为事前设计或 TDD 证据。
