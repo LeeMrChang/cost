@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+**/bin/
+*.log
+.DS_Store
+**/project.private.config.json
+**/node_modules/
+**/coverage/
+**/.DS_Store
+*.sql.gz
+*.dump

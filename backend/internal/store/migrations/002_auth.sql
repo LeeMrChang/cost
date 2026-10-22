@@ -1,0 +1,32 @@
+CREATE TABLE IF NOT EXISTS users (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ openid VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+ created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS sessions (
+ token_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
+ user_id BIGINT NOT NULL,
+ expires_at DATETIME(6) NOT NULL,
+ KEY idx_session_expiry (expires_at),
+ FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS family_setup (
+ id TINYINT PRIMARY KEY,
+ owner_id BIGINT NULL,
+ FOREIGN KEY (owner_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+INSERT IGNORE INTO family_setup(id,owner_id) VALUES(1,NULL);
+CREATE TABLE IF NOT EXISTS family_members (
+ user_id BIGINT PRIMARY KEY,
+ role VARCHAR(16) NOT NULL,
+ FOREIGN KEY (user_id) REFERENCES users(id),
+ CHECK (role IN ('admin','member'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS family_invites (
+ token_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
+ created_by BIGINT NOT NULL,
+ expires_at DATETIME(6) NOT NULL,
+ used_by BIGINT NULL,
+ FOREIGN KEY (created_by) REFERENCES users(id),
+ FOREIGN KEY (used_by) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

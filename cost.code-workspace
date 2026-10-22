@@ -1,0 +1,4 @@
+{
+ "folders": [{"name":"backend","path":"backend"},{"name":"miniprogram","path":"miniprogram"}],
+ "settings": {"files.exclude":{"**/bin":true}}
+}

@@ -1,0 +1,4 @@
+.result{margin-top:24rpx;color:#1687ff;font-size:25rpx}
+.invite {word-break:break-all;padding:24rpx 0;font-family:monospace;}
+.member {display:flex;align-items:center;justify-content:space-between;margin-top:20rpx;}
+.error {color:#c33;}
