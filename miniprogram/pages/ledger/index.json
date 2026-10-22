@@ -1,1 +1,5 @@
-{}
+{
+  "usingComponents": {
+    "calendar-popup": "../../components/calendar-popup/index"
+  }
+}

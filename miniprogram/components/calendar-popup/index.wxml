@@ -1,0 +1,28 @@
+<view wx:if="{{visible}}" class="mask" bindtap="cancel">
+ <view class="popup" catchtap="noop">
+  <view class="header">
+   <text class="title">{{title}}</text>
+   <view class="nav">
+    <view class="arrow" bindtap="prev">‹</view>
+    <view class="arrow" bindtap="next">›</view>
+   </view>
+  </view>
+  <block wx:if="{{mode === 'date'}}">
+   <view class="weekdays"><text wx:for="{{weekdays}}" wx:key="*this">{{item}}</text></view>
+   <view class="grid">
+    <view wx:for="{{cells}}" wx:key="key" class="cell" data-date="{{item.date}}" bindtap="pickDay"><view class="day {{item.date === draftDate ? 'selected' : ''}}">{{item.date ? item.day : ''}}</view></view>
+   </view>
+   <view class="time-row">
+    <text class="time-label">时间</text>
+    <picker mode="time" value="{{draftTime}}" bindchange="pickTime"><view class="time-value">{{draftTime}}</view></picker>
+   </view>
+  </block>
+  <view wx:else class="month-grid">
+   <view wx:for="{{monthCells}}" wx:key="value" class="month-cell {{item.value === draftMonth ? 'selected' : ''}}" data-value="{{item.value}}" bindtap="pickMonth">{{item.label}}</view>
+  </view>
+  <view class="actions">
+   <view class="action-btn cancel" bindtap="cancel">取消</view>
+   <view class="action-btn confirm" bindtap="confirm">确定</view>
+  </view>
+ </view>
+</view>

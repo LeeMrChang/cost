@@ -159,6 +159,7 @@ COST_TEST_MYSQL_ADMIN_DSN='root@unix(/tmp/mysql.sock)/' go test -race ./...
 
 ```sh
 node miniprogram/tests/money.test.js
+node miniprogram/tests/calendar.test.js
 node miniprogram/tests/auth.test.js
 node miniprogram/tests/validate.js
 ```
