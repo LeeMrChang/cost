@@ -7,6 +7,7 @@
   <view class="section">家庭成员</view>
   <view wx:for="{{members}}" wx:key="id" class="member"><text>成员 {{item.id}} · {{item.role === 'admin' ? '管理员' : '家庭成员'}}</text><button wx:if="{{item.role !== 'admin'}}" size="mini" data-id="{{item.id}}" bindtap="removeMember">移除</button></view>
  </view>
- <view wx:if="{{user.role === 'admin'}}" class="card"><view class="section">月预算</view><view class="field"><picker mode="date" fields="month" value="{{month}}" data-field="month" bindchange="input">{{month}}　⌄</picker></view><view class="field"><input type="digit" value="{{budget}}" placeholder="预算金额（元）" data-field="budget" bindinput="input" /></view><button class="button" style="margin-top:28rpx" bindtap="saveBudget">设置预算</button></view>
+ <view wx:if="{{user.role === 'admin'}}" class="card"><view class="section">月预算</view><view class="field"><view bindtap="openMonth">{{month}}　⌄</view></view><view class="field"><input type="digit" value="{{budget}}" placeholder="预算金额（元）" data-field="budget" bindinput="input" /></view><button class="button" style="margin-top:28rpx" bindtap="saveBudget">设置预算</button></view>
  <view wx:if="{{error}}" class="error">{{error}}</view>
 </view>
+<calendar-popup mode="month" visible="{{monthOpen}}" month="{{month}}" bind:confirm="onMonthConfirm" bind:cancel="closeMonth" />

@@ -1,0 +1,22 @@
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:30;padding:0 40rpx}
+.popup{width:100%;box-sizing:border-box;background:#fff;border-radius:36rpx;padding:40rpx 32rpx 32rpx}
+.header{display:flex;align-items:center;justify-content:space-between}
+.title{font-size:40rpx;font-weight:700}
+.nav{display:flex;gap:8rpx}
+.arrow{width:64rpx;height:64rpx;line-height:58rpx;text-align:center;color:#1687ff;font-size:48rpx;font-weight:600}
+.weekdays{display:flex;margin:28rpx 0 8rpx}
+.weekdays text{width:14.2857%;text-align:center;color:#b3b3bb;font-size:26rpx;font-weight:600}
+.grid{display:flex;flex-wrap:wrap}
+.cell{width:14.2857%;height:88rpx;display:flex;align-items:center;justify-content:center}
+.day{width:72rpx;height:72rpx;line-height:72rpx;text-align:center;border-radius:50%;font-size:32rpx}
+.day.selected{background:#1687ff;color:#fff;font-weight:600}
+.time-row{display:flex;align-items:center;justify-content:space-between;margin-top:24rpx}
+.time-label{font-size:32rpx}
+.time-value{background:#f2f2f7;border-radius:14rpx;padding:12rpx 28rpx;font-size:30rpx}
+.month-grid{display:flex;flex-wrap:wrap;margin:32rpx 0 8rpx}
+.month-cell{width:25%;box-sizing:border-box;height:96rpx;line-height:96rpx;text-align:center;border-radius:20rpx;font-size:30rpx}
+.month-cell.selected{background:#1687ff;color:#fff;font-weight:600}
+.actions{display:flex;gap:24rpx;margin-top:36rpx}
+.action-btn{flex:1;height:88rpx;line-height:88rpx;text-align:center;border-radius:20rpx;font-size:32rpx;font-weight:600}
+.action-btn.cancel{background:#f2f2f7;color:#25252b}
+.action-btn.confirm{background:#1687ff;color:#fff}

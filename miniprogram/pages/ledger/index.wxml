@@ -1,6 +1,6 @@
 <view class="container">
  <view class="title">我的账本</view>
- <picker mode="date" fields="month" value="{{month}}" bindchange="monthChange"><view class="section">{{month}}　⌄</view></picker>
+ <view class="section" bindtap="openMonth">{{month}}　⌄</view>
  <view wx:if="{{error}}" class="error" bindtap="load">{{error}}（点击重试）</view>
  <view class="card"><view class="muted">本月支出</view><view class="amount expense">¥{{summary.expense || '0.00'}}</view><view class="row muted"><text>收入 ¥{{summary.income || '0.00'}}</text><text>剩余预算 {{summary.remaining || '未设置'}}</text></view></view>
  <view wx:if="{{loading}}" class="empty">正在读取账本…</view>
@@ -15,8 +15,10 @@
  <view class="row"><text bindtap="close">取消</text><view class="switch"><text data-kind="expense" bindtap="kindChange" class="{{kind === 'expense' ? 'selected expense' : ''}}">支出</text><text data-kind="income" bindtap="kindChange" class="{{kind === 'income' ? 'selected income' : ''}}">收入</text></view><text>{{editID ? '编辑' : '记一笔'}}</text></view>
  <view class="category-grid"><view wx:for="{{visibleCategories}}" wx:key="id" class="category {{categoryID === item.id ? 'active' : ''}}" data-id="{{item.id}}" bindtap="categoryChange"><view class="emoji">{{item.icon}}</view><text>{{item.name}}</text></view></view>
  <view class="field"><view class="label">金额（元）</view><input type="digit" value="{{amount}}" placeholder="0.00" data-field="amount" bindinput="input" class="money-input {{kind}}" /></view>
- <view class="field row"><picker mode="date" value="{{date}}" data-field="date" bindchange="input">{{date}}　⌄</picker><picker mode="time" value="{{time}}" data-field="time" bindchange="input">{{time}}　⌄</picker></view>
+ <view class="field row"><view bindtap="openDate">{{date}} {{time}}　⌄</view></view>
  <view class="field"><input value="{{note}}" placeholder="添加备注" maxlength="500" data-field="note" bindinput="input" /></view>
  <button class="button save {{kind}}" loading="{{saving}}" disabled="{{saving}}" bindtap="save">保存账单</button>
  <button wx:if="{{editID}}" class="delete" disabled="{{saving}}" bindtap="remove">删除这笔账单</button>
 </view></view>
+<calendar-popup mode="date" visible="{{dateOpen}}" date="{{date}}" time="{{time}}" bind:confirm="onDateConfirm" bind:cancel="closeDate" />
+<calendar-popup mode="month" visible="{{monthOpen}}" month="{{month}}" bind:confirm="onMonthConfirm" bind:cancel="closeMonth" />

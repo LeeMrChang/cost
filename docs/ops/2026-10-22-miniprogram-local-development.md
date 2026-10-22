@@ -14,6 +14,7 @@
 
 ```sh
 node miniprogram/tests/money.test.js
+node miniprogram/tests/calendar.test.js
 node miniprogram/tests/auth.test.js
 node miniprogram/tests/validate.js
 ```

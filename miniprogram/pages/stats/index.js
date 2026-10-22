@@ -1,9 +1,11 @@
 const { request } = require('../../utils/api');
 const { money, today } = require('../../utils/money');
 Page({
- data: { month: today().slice(0,7), error: '', summary: {}, rows: [], days: [] },
+ data: { month: today().slice(0,7), monthOpen: false, error: '', summary: {}, rows: [], days: [] },
  onShow() { this.setData({ summary: {}, rows: [], days: [] }); this.load(); },
- monthChange(e) { this.setData({ month:e.detail.value }); this.load(); },
+ openMonth() { this.setData({ monthOpen: true }); },
+ closeMonth() { this.setData({ monthOpen: false }); },
+ onMonthConfirm(e) { this.setData({ monthOpen: false, month: e.detail.month }); this.load(); },
  async load() {
   const month = this.data.month; this.setData({error:''});
   try {

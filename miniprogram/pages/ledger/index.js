@@ -1,7 +1,7 @@
 const { request, session } = require('../../utils/api');
 const { parseCent, money, today } = require('../../utils/money');
 Page({
- data: { month: today().slice(0, 7), groups: [], categories: [], visibleCategories: [], summary: {}, error: '', loading: false, editor: false, kind: 'expense', categoryID: 2, amount: '', note: '', date: today(), time: '12:00', editID: null, saving: false },
+ data: { month: today().slice(0, 7), groups: [], categories: [], visibleCategories: [], summary: {}, error: '', loading: false, editor: false, kind: 'expense', categoryID: 2, amount: '', note: '', date: today(), time: '12:00', editID: null, saving: false, dateOpen: false, monthOpen: false },
  onShow() { this.setData({ groups: [], summary: {}, editor: false, note: '', amount: '' }); this.load(); },
  async load() {
   this.setData({ loading: true, error: '' });
@@ -22,7 +22,12 @@ Page({
    this.setData({ categories, visibleCategories: categories.filter(c => c.kind === this.data.kind), groups: Object.keys(grouped).sort().reverse().map(k => ({ ...grouped[k], total: money(grouped[k].expense) })), summary: { expense: money(s.expense_cent), income: money(s.income_cent), budget: s.budget_cent === null ? '未设置' : '¥' + money(s.budget_cent), remaining: s.remaining_cent === null ? '未设置' : '¥' + money(s.remaining_cent) } });
   } catch (e) { this.setData({ error: e.message }); } finally { this.setData({ loading: false }); }
  },
- monthChange(e) { this.setData({ month: e.detail.value }); this.load(); },
+ openMonth() { this.setData({ monthOpen: true }); },
+ closeMonth() { this.setData({ monthOpen: false }); },
+ onMonthConfirm(e) { this.setData({ monthOpen: false, month: e.detail.month }); this.load(); },
+ openDate() { this.setData({ dateOpen: true }); },
+ closeDate() { this.setData({ dateOpen: false }); },
+ onDateConfirm(e) { this.setData({ dateOpen: false, date: e.detail.date, time: e.detail.time }); },
  open() { const now = new Date(); this.requestID = 'wx-' + Date.now() + '-' + Math.random().toString(16).slice(2); this.setData({ editor: true, editID: null, kind: 'expense', visibleCategories: this.data.categories.filter(c => c.kind === 'expense'), categoryID: 2, amount: '', note: '', date: today(), time: String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') }); },
  edit(e) { const id = Number(e.currentTarget.dataset.id); const item = this.data.groups.flatMap(g => g.items).find(x => x.id === id); if (!item) return; const current = session(); if (!current || (current.user.role !== 'admin' && current.user.id !== item.created_by)) { wx.showToast({ title: '只能修改自己的账单', icon: 'none' }); return; } this.setData({ editor: true, editID: id, kind: item.kind, visibleCategories: this.data.categories.filter(c => c.kind === item.kind), categoryID: item.category_id, amount: item.display, note: item.note, date: item.date, time: item.time }); },
  close() { if (!this.data.saving) this.setData({ editor: false }); },
