@@ -10,3 +10,6 @@
 **/.DS_Store
 *.sql.gz
 *.dump
+
+# Local database backups must never be tracked.
+/backups/

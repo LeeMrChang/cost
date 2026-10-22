@@ -1,0 +1,95 @@
+name: cost-cloud
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+x-api-env: &api-env
+  COST_ADDR: 0.0.0.0:8080
+  COST_ENV: production
+  COST_STORE: mysql
+  COST_AUTH_MODE: wechat
+  COST_MYSQL_DSN: "cost:${COST_MYSQL_PASSWORD:?required}@tcp(mysql:3306)/cost?parseTime=true&charset=utf8mb4&loc=UTC"
+  WECHAT_APP_ID: ${WECHAT_APP_ID:?required}
+  WECHAT_APP_SECRET: ${WECHAT_APP_SECRET:?required}
+  COST_SETUP_SECRET: ${COST_SETUP_SECRET:-}
+x-app: &app
+  image: cost-api:${COST_IMAGE_TAG:-local}
+  build:
+    context: ../backend
+    args:
+      GO_IMAGE: ${GO_IMAGE:-golang:1.27-bookworm}
+      RUNTIME_IMAGE: ${RUNTIME_IMAGE:-debian:bookworm-slim}
+      GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
+  read_only: true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=16m
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  logging: *logging
+services:
+  mysql:
+    image: ${MYSQL_IMAGE:-mysql:8.4}
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${COST_MYSQL_ROOT_PASSWORD:?required}
+      MYSQL_DATABASE: cost
+      COST_MYSQL_PASSWORD: ${COST_MYSQL_PASSWORD:?required}
+      COST_MIGRATION_PASSWORD: ${COST_MIGRATION_PASSWORD:?required}
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/01-users.sh:/docker-entrypoint-initdb.d/01-users.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD="$${COST_MYSQL_PASSWORD}" mysql --protocol=tcp -h127.0.0.1 -ucost -Dcost --batch --skip-column-names -e "SELECT 1" >/dev/null']
+      interval: 5s
+      timeout: 5s
+      start_period: 60s
+      retries: 30
+    logging: *logging
+  api:
+    <<: *app
+    restart: unless-stopped
+    environment: *api-env
+    ports:
+      - 127.0.0.1:8080:8080
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, --max-time, "3", http://127.0.0.1:8080/health]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+  migrate:
+    <<: *app
+    profiles: [tools]
+    environment:
+      <<: *api-env
+      COST_MYSQL_DSN: "cost_migrator:${COST_MIGRATION_PASSWORD:?required}@tcp(mysql:3306)/cost?parseTime=true&charset=utf8mb4&loc=UTC"
+    command: [-migrate]
+    depends_on:
+      mysql:
+        condition: service_healthy
+  https:
+    image: ${CADDY_IMAGE:-caddy:2}
+    profiles: [https]
+    restart: unless-stopped
+    environment:
+      COST_DOMAIN: ${COST_DOMAIN:-api.xiachen.xyz}
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    logging: *logging
+volumes:
+  mysql_data:
+  caddy_data:
+  caddy_config:

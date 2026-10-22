@@ -32,4 +32,15 @@
 - [2026-10-22：开发流程规范](superpowers/2026-10-22-development-workflow.md)
 - [2026-10-22：统一仓库与微信登录设计补录](superpowers/specs/2026-10-22-monorepo-wechat-auth-design.md)
 
-本次既有实现没有事前实施计划，不补造计划文件或审批记录。后续计划写入 `superpowers/plans/`，并在此添加链接。尚未形成研究或代码地图文档，不创建只有名字的空目录。
+原统一仓库与登录改造没有事前实施计划，不补造计划文件或审批记录。后续计划写入 `superpowers/plans/`，并在此添加链接。尚未形成研究或代码地图文档，不创建只有名字的空目录。
+
+## Docker 云端部署
+
+- [2026-10-22：Docker 空账本部署设计](superpowers/specs/2026-10-22-docker-empty-ledger-deployment-design.md)
+- [2026-10-22：Docker 部署实施计划](superpowers/plans/2026-10-22-docker-empty-ledger-deployment.md)
+
+容器及空账本已部署，域名/HTTPS 暂缓，实际执行与未覆盖项见验证记录。
+
+- [2026-10-22：Docker 云端部署与运维](ops/2026-10-22-docker-cloud-deployment.md)
+
+- [2026-10-22：Docker 云端部署验证](ops/2026-10-22-docker-cloud-validation.md)
