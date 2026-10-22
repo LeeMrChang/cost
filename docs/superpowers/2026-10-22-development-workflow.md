@@ -1,6 +1,6 @@
 # 开发流程：Superpowers
 
-本项目使用 Superpowers 的设计、计划、测试、审查和验证流程。仓库执行入口为 [AGENTS.md](../AGENTS.md)，Claude Code 入口为 [CLAUDE.md](../CLAUDE.md)。
+本项目使用 Superpowers 的设计、计划、测试、审查和验证流程。仓库执行入口为 [AGENTS.md](../../AGENTS.md)，Claude Code 入口为 [CLAUDE.md](../../CLAUDE.md)。
 
 本说明于 2026-10-22 对照本机已安装的 Superpowers 7.0.0 整理。具体工作时读取当前版本技能；此文档是项目约束与操作索引，不代替技能全文。不同客户端的技能安装和启用状态彼此独立。
 
@@ -61,9 +61,9 @@ Node 必须与本机架构兼容。2026-10-22 的测试使用 Codex 随附 Node�
 | 文件 | 职责 |
 |---|---|
 | README.md | 目录、启动和功能边界 |
-| docs/AUTH.md | 登录、会话、家庭权限、接口与数据库升级 |
-| docs/MINIPROGRAM.md | 开发者工具导入和本地联调 |
-| docs/VALIDATION.md | 按日期记录实际验证、环境与未覆盖项 |
+| docs/api/2026-10-22-wechat-auth-and-family-api.md | 登录、会话、家庭权限、接口与数据库升级 |
+| docs/ops/2026-10-22-miniprogram-local-development.md | 开发者工具导入和本地联调 |
+| docs/ops/2026-10-22-monorepo-wechat-auth-validation.md | 按日期记录实际验证、环境与未覆盖项 |
 | docs/superpowers/specs/ | 事前设计或明确标注的事后补录 |
 | docs/superpowers/plans/ | 实施前的任务计划和执行进度 |
 
@@ -73,4 +73,4 @@ Node 必须与本机架构兼容。2026-10-22 的测试使用 Codex 随附 Node�
 
 2026-10-22 的统一仓库与微信登录改造补充了专题文档和测试，但没有事前 Superpowers 设计/计划，也没有完整红灯记录和独立代码审查记录。本次补录不改变这一事实；不能宣称该改造完整遵循了 Superpowers。
 
-已实现行为见 [补录设计说明](superpowers/specs/2026-10-22-monorepo-wechat-auth-design.md)。该文档用于维护和后续复核，不能代替事前设计确认。后续开发必须按上述流程留下相应证据；如需对既有实现补做独立审查，应单独记录实际审查结果。
+已实现行为见 [补录设计说明](specs/2026-10-22-monorepo-wechat-auth-design.md)。该文档用于维护和后续复核，不能代替事前设计确认。后续开发必须按上述流程留下相应证据；如需对既有实现补做独立审查，应单独记录实际审查结果。

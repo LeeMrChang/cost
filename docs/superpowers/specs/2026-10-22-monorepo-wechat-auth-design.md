@@ -52,7 +52,7 @@ schema_migrations 记录迁移版本；命名锁避免同库迁移并发。MySQL
 | 旧结构升级与数据保留、MySQL 权限流程 | backend/internal/api/mysql_integration_test.go |
 | 请求携带会话、401 清理、开发地址隔离 | miniprogram/tests/auth.test.js |
 | 金额转换与页面文件检查 | miniprogram/tests/money.test.js、validate.js |
-| 本机迁移、平台编译、真实微信登录 | docs/VALIDATION.md 中 2026-10-22 实际记录 |
+| 本机迁移、平台编译、真实微信登录 | docs/ops/2026-10-22-monorepo-wechat-auth-validation.md 中 2026-10-22 实际记录 |
 
 原验证记录中的测试结果属于当时执行证据，不等于后续每次变更自动通过。真机多人流程和独立审查未在初次交付记录中完成；不能据此宣称生产发布就绪。
 

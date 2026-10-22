@@ -1,6 +1,6 @@
 # Cost 开发约定
 
-本文件适用于本仓库全部目录。开发流程遵循 Superpowers；详细说明见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。明确的用户指令和当前运行环境的上级规则优先。
+本文件适用于本仓库全部目录。开发流程遵循 Superpowers；详细说明见 [docs/superpowers/2026-10-22-development-workflow.md](docs/superpowers/2026-10-22-development-workflow.md)。明确的用户指令和当前运行环境的上级规则优先。
 
 ## 工作入口
 
@@ -10,6 +10,11 @@
 - 功能、修复、行为性重构遵循 `test-driven-development`：先运行失败测试，最小实现通过，再重构。不能将事后补测称为 TDD。
 - 单纯文档修正只核对内容、链接和差异，不为文档编写虚假的业务测试，也不改变无关功能。
 - 缺少技能或无法完成规定步骤时，报告具体缺口，不声称已完整遵循该流程。
+
+## 文档命名
+
+- 专题文档统一使用 `YYYY-MM-DD-english-topic.md`，英文小写、连字符分隔；README.md 作为目录索引保留固定名称，AGENTS.md/CLAUDE.md 作为工具入口保留固定名称。
+- ADR 放 docs/adr/，接口放 docs/api/，运行和验证放 docs/ops/，开发流程和设计计划放 docs/superpowers/；新增或移动文档同步更新 docs/README.md 和引用。
 
 ## 设计、计划与执行
 
