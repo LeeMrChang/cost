@@ -15,21 +15,21 @@ func (m *MySQL) Login(ctx context.Context, openid, hash string, expires time.Tim
 		return Principal{}, err
 	}
 	defer tx.Rollback()
-	if _, err = tx.ExecContext(ctx, "INSERT INTO users(openid) VALUES(?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)", openid); err != nil {
+	if _, err = tx.ExecContext(ctx, "INSERT INTO t_users(openid) VALUES(?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)", openid); err != nil {
 		return Principal{}, err
 	}
 	var id int64
-	if err = tx.QueryRowContext(ctx, "SELECT id FROM users WHERE openid=?", openid).Scan(&id); err != nil {
+	if err = tx.QueryRowContext(ctx, "SELECT id FROM t_users WHERE openid=?", openid).Scan(&id); err != nil {
 		return Principal{}, err
 	}
-	if _, err = tx.ExecContext(ctx, "DELETE FROM sessions WHERE expires_at<=?", time.Now().UTC()); err != nil {
+	if _, err = tx.ExecContext(ctx, "DELETE FROM t_sessions WHERE expires_at<=?", time.Now().UTC()); err != nil {
 		return Principal{}, err
 	}
-	if _, err = tx.ExecContext(ctx, "INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)", hash, id, expires); err != nil {
+	if _, err = tx.ExecContext(ctx, "INSERT INTO t_sessions(token_hash,user_id,expires_at) VALUES(?,?,?)", hash, id, expires); err != nil {
 		return Principal{}, err
 	}
 	p := Principal{ID: id}
-	err = tx.QueryRowContext(ctx, "SELECT role FROM family_members WHERE user_id=?", id).Scan(&p.Role)
+	err = tx.QueryRowContext(ctx, "SELECT role FROM t_family_members WHERE user_id=?", id).Scan(&p.Role)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return Principal{}, err
 	}
@@ -37,14 +37,14 @@ func (m *MySQL) Login(ctx context.Context, openid, hash string, expires time.Tim
 }
 func (m *MySQL) Resolve(ctx context.Context, hash string, now time.Time) (Principal, error) {
 	var p Principal
-	err := m.DB.QueryRowContext(ctx, "SELECT s.user_id,COALESCE(f.role,'') FROM sessions s LEFT JOIN family_members f ON f.user_id=s.user_id WHERE s.token_hash=? AND s.expires_at>?", hash, now).Scan(&p.ID, &p.Role)
+	err := m.DB.QueryRowContext(ctx, "SELECT s.user_id,COALESCE(f.role,'') FROM t_sessions s LEFT JOIN t_family_members f ON f.user_id=s.user_id WHERE s.token_hash=? AND s.expires_at>?", hash, now).Scan(&p.ID, &p.Role)
 	if errors.Is(err, sql.ErrNoRows) {
 		return p, ErrUnauthorized
 	}
 	return p, err
 }
 func (m *MySQL) Logout(ctx context.Context, hash string) error {
-	_, err := m.DB.ExecContext(ctx, "DELETE FROM sessions WHERE token_hash=?", hash)
+	_, err := m.DB.ExecContext(ctx, "DELETE FROM t_sessions WHERE token_hash=?", hash)
 	return err
 }
 func (m *MySQL) Bootstrap(ctx context.Context, id int64) error {
@@ -53,7 +53,7 @@ func (m *MySQL) Bootstrap(ctx context.Context, id int64) error {
 		return err
 	}
 	defer tx.Rollback()
-	r, err := tx.ExecContext(ctx, "UPDATE family_setup SET owner_id=? WHERE id=1 AND owner_id IS NULL", id)
+	r, err := tx.ExecContext(ctx, "UPDATE t_family_setup SET owner_id=? WHERE id=1 AND owner_id IS NULL", id)
 	if err != nil {
 		return err
 	}
@@ -64,13 +64,13 @@ func (m *MySQL) Bootstrap(ctx context.Context, id int64) error {
 	if n != 1 {
 		return ErrConflict
 	}
-	if _, err = tx.ExecContext(ctx, "INSERT INTO family_members(user_id,role) VALUES(?,'admin')", id); err != nil {
+	if _, err = tx.ExecContext(ctx, "INSERT INTO t_family_members(user_id,role) VALUES(?,'admin')", id); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 func (m *MySQL) Invite(ctx context.Context, id int64, hash string, expires time.Time) error {
-	r, err := m.DB.ExecContext(ctx, "INSERT INTO family_invites(token_hash,created_by,expires_at) SELECT ?,user_id,? FROM family_members WHERE user_id=? AND role='admin'", hash, expires, id)
+	r, err := m.DB.ExecContext(ctx, "INSERT INTO t_family_invites(token_hash,created_by,expires_at) SELECT ?,user_id,? FROM t_family_members WHERE user_id=? AND role='admin'", hash, expires, id)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (m *MySQL) Join(ctx context.Context, id int64, hash string, now time.Time) 
 	defer tx.Rollback()
 	var expires time.Time
 	var used sql.NullInt64
-	err = tx.QueryRowContext(ctx, "SELECT expires_at,used_by FROM family_invites WHERE token_hash=? FOR UPDATE", hash).Scan(&expires, &used)
+	err = tx.QueryRowContext(ctx, "SELECT expires_at,used_by FROM t_family_invites WHERE token_hash=? FOR UPDATE", hash).Scan(&expires, &used)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrInvite
 	}
@@ -99,22 +99,22 @@ func (m *MySQL) Join(ctx context.Context, id int64, hash string, now time.Time) 
 		return ErrInvite
 	}
 	var exists int
-	if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM family_members WHERE user_id=?", id).Scan(&exists); err != nil {
+	if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM t_family_members WHERE user_id=?", id).Scan(&exists); err != nil {
 		return err
 	}
 	if exists != 0 {
 		return ErrConflict
 	}
-	if _, err = tx.ExecContext(ctx, "INSERT INTO family_members(user_id,role) VALUES(?,'member')", id); err != nil {
+	if _, err = tx.ExecContext(ctx, "INSERT INTO t_family_members(user_id,role) VALUES(?,'member')", id); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, "UPDATE family_invites SET used_by=? WHERE token_hash=?", id, hash); err != nil {
+	if _, err = tx.ExecContext(ctx, "UPDATE t_family_invites SET used_by=? WHERE token_hash=?", id, hash); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 func (m *MySQL) Members(ctx context.Context) ([]Principal, error) {
-	rows, err := m.DB.QueryContext(ctx, "SELECT user_id,role FROM family_members ORDER BY user_id")
+	rows, err := m.DB.QueryContext(ctx, "SELECT user_id,role FROM t_family_members ORDER BY user_id")
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +130,7 @@ func (m *MySQL) Members(ctx context.Context) ([]Principal, error) {
 	return out, rows.Err()
 }
 func (m *MySQL) Remove(ctx context.Context, id int64) error {
-	r, err := m.DB.ExecContext(ctx, "DELETE FROM family_members WHERE user_id=? AND role='member'", id)
+	r, err := m.DB.ExecContext(ctx, "DELETE FROM t_family_members WHERE user_id=? AND role='member'", id)
 	if err != nil {
 		return err
 	}

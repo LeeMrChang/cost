@@ -44,3 +44,9 @@
 - [2026-10-22：Docker 云端部署与运维](ops/2026-10-22-docker-cloud-deployment.md)
 
 - [2026-10-22：Docker 云端部署验证](ops/2026-10-22-docker-cloud-validation.md)
+
+## 数据库表前缀与数据迁移
+
+- [2026-10-22：MySQL 前缀与注释设计](superpowers/specs/2026-10-22-mysql-table-prefix-comments-design.md)
+- [2026-10-22：MySQL 前缀与迁移实施计划](superpowers/plans/2026-10-22-mysql-table-prefix-comments.md)
+- [2026-10-22：两端升级及本地数据合并云端记录](ops/2026-10-22-mysql-prefix-data-migration.md)

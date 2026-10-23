@@ -1,0 +1,68 @@
+ALTER TABLE t_ledgers
+ MODIFY COLUMN `id` BIGINT NOT NULL COMMENT '账本编号，当前固定为1',
+ MODIFY COLUMN `name` VARCHAR(100) NOT NULL COMMENT '账本名称',
+ MODIFY COLUMN `currency` CHAR(3) NOT NULL DEFAULT 'CNY' COMMENT '币种代码，默认CNY',
+ MODIFY COLUMN `timezone` VARCHAR(64) NOT NULL DEFAULT 'Asia/Shanghai' COMMENT '账本统计时区，默认Asia/Shanghai',
+ COMMENT = '家庭账本配置';
+
+ALTER TABLE t_categories
+ MODIFY COLUMN `id` BIGINT NOT NULL COMMENT '分类编号',
+ MODIFY COLUMN `ledger_id` BIGINT NOT NULL COMMENT '所属账本编号',
+ MODIFY COLUMN `name` VARCHAR(100) NOT NULL COMMENT '分类名称',
+ MODIFY COLUMN `kind` VARCHAR(10) NOT NULL COMMENT '分类类型：income收入、expense支出',
+ MODIFY COLUMN `icon` VARCHAR(32) NOT NULL COMMENT '分类图标',
+ COMMENT = '收支分类';
+
+ALTER TABLE t_entries
+ MODIFY COLUMN `id` BIGINT AUTO_INCREMENT NOT NULL COMMENT '账目编号',
+ MODIFY COLUMN `ledger_id` BIGINT NOT NULL COMMENT '所属账本编号',
+ MODIFY COLUMN `category_id` BIGINT NOT NULL COMMENT '所属分类编号',
+ MODIFY COLUMN `kind` VARCHAR(10) NOT NULL COMMENT '收支类型：income收入、expense支出',
+ MODIFY COLUMN `amount_cent` BIGINT NOT NULL COMMENT '金额，单位分，必须大于0',
+ MODIFY COLUMN `occurred_at` DATETIME(6) NOT NULL COMMENT '账目发生时间，UTC',
+ MODIFY COLUMN `note` VARCHAR(500) NOT NULL DEFAULT '' COMMENT '账目备注',
+ MODIFY COLUMN `client_request_id` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '客户端幂等请求标识，账本内区分大小写唯一',
+ MODIFY COLUMN `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '记录创建时间',
+ MODIFY COLUMN `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '记录最后更新时间',
+ MODIFY COLUMN `created_by` BIGINT NULL COMMENT '创建用户编号，历史数据可为空',
+ COMMENT = '家庭收支账目';
+
+ALTER TABLE t_budgets
+ MODIFY COLUMN `ledger_id` BIGINT NOT NULL COMMENT '所属账本编号',
+ MODIFY COLUMN `month` CHAR(7) NOT NULL COMMENT '预算月份，格式YYYY-MM，按账本时区划分',
+ MODIFY COLUMN `amount_cent` BIGINT NOT NULL COMMENT '预算金额，单位分，可为0',
+ COMMENT = '账本月预算';
+
+ALTER TABLE t_users
+ MODIFY COLUMN `id` BIGINT AUTO_INCREMENT NOT NULL COMMENT '用户编号',
+ MODIFY COLUMN `openid` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '微信小程序范围的用户身份标识，区分大小写',
+ MODIFY COLUMN `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '用户创建时间',
+ COMMENT = '微信身份用户';
+
+ALTER TABLE t_sessions
+ MODIFY COLUMN `token_hash` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '会话令牌的SHA-256十六进制摘要，不是原始令牌',
+ MODIFY COLUMN `user_id` BIGINT NOT NULL COMMENT '登录用户编号',
+ MODIFY COLUMN `expires_at` DATETIME(6) NOT NULL COMMENT '会话到期时间，UTC',
+ COMMENT = '用户登录会话，仅保存令牌摘要';
+
+ALTER TABLE t_family_setup
+ MODIFY COLUMN `id` TINYINT NOT NULL COMMENT '初始化记录编号，固定为1',
+ MODIFY COLUMN `owner_id` BIGINT NULL COMMENT '首次管理员用户编号，未初始化为空',
+ COMMENT = '单家庭首次管理员初始化状态';
+
+ALTER TABLE t_family_members
+ MODIFY COLUMN `user_id` BIGINT NOT NULL COMMENT '成员用户编号',
+ MODIFY COLUMN `role` VARCHAR(16) NOT NULL COMMENT '家庭角色：admin管理员、member普通成员',
+ COMMENT = '家庭成员及角色';
+
+ALTER TABLE t_family_invites
+ MODIFY COLUMN `token_hash` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '邀请码的SHA-256十六进制摘要，不是原始邀请码',
+ MODIFY COLUMN `created_by` BIGINT NOT NULL COMMENT '生成邀请的管理员用户编号',
+ MODIFY COLUMN `expires_at` DATETIME(6) NOT NULL COMMENT '邀请到期时间，UTC',
+ MODIFY COLUMN `used_by` BIGINT NULL COMMENT '使用邀请的用户编号，未使用为空',
+ COMMENT = '一次性家庭邀请';
+
+ALTER TABLE t_schema_migrations
+ MODIFY COLUMN `version` VARCHAR(64) NOT NULL COMMENT '已成功执行的迁移文件名称',
+ MODIFY COLUMN `applied_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '迁移完成记录时间',
+ COMMENT = '已完成的数据库版本迁移';

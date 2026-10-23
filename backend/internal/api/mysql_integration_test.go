@@ -15,7 +15,7 @@ import (
 
 // The optional admin DSN is used only to create and drop randomly named test databases.
 // The configured application database is never selected or modified.
-func testMySQL(t *testing.T, legacy bool) *store.MySQL {
+func rawTestMySQL(t *testing.T) *store.MySQL {
 	t.Helper()
 	dsn := os.Getenv("COST_TEST_MYSQL_ADMIN_DSN")
 	if dsn == "" {
@@ -49,6 +49,13 @@ func testMySQL(t *testing.T, legacy bool) *store.MySQL {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { db.Close() })
+	return db
+}
+
+func testMySQL(t *testing.T, legacy bool) *store.MySQL {
+	t.Helper()
+	db := rawTestMySQL(t)
+	ctx := context.Background()
 	if legacy {
 		raw, err := os.ReadFile("../store/migrations/001_init.sql")
 		if err != nil {
@@ -67,10 +74,10 @@ func testMySQL(t *testing.T, legacy bool) *store.MySQL {
 			}
 		}
 	}
-	if err = db.Migrate(ctx); err != nil {
+	if err := db.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if err = db.Migrate(ctx); err != nil {
+	if err := db.Migrate(ctx); err != nil {
 		t.Fatalf("migration not idempotent: %v", err)
 	}
 	return db
@@ -86,7 +93,7 @@ func TestMySQLLegacyUpgrade(t *testing.T) {
 		t.Fatalf("legacy entry changed: %+v %v", e, err)
 	}
 	var versions int
-	if err = db.DB().QueryRow("SELECT COUNT(*) FROM schema_migrations").Scan(&versions); err != nil || versions != 2 {
+	if err = db.DB().QueryRow("SELECT COUNT(*) FROM t_schema_migrations").Scan(&versions); err != nil || versions != 3 {
 		t.Fatal("migration versions missing", err)
 	}
 }

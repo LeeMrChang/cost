@@ -32,7 +32,11 @@ func main() {
 func run() error {
 	migrate := flag.Bool("migrate", false, "initialize MySQL schema and exit")
 	flag.Parse()
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	timeout := 15 * time.Second
+	if *migrate {
+		timeout = 5 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	var s store.Store
 	var identities auth.Repository
