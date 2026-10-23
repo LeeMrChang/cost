@@ -86,6 +86,9 @@ compose config --quiet
 mysql_id=$(compose ps --status running -q mysql)
 old_api=$(compose ps --status running -q api)
 test -n "$mysql_id" && test -n "$old_api"
+# Match the existing healthcheck's TCP transport, and check root access before downtime.
+compose exec -T mysql sh -c \
+  'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql --protocol=tcp -h127.0.0.1 -uroot -e "SELECT 1"' >/dev/null
 mysql_image=$("${DOCKER[@]}" inspect --format '{{.Image}}' "$mysql_id")
 old_image=$("${DOCKER[@]}" inspect --format '{{.Image}}' "$old_api")
 printf '%s\n' "$old_image" > "$release/PREVIOUS_IMAGE"
@@ -97,7 +100,7 @@ stopped=1
 compose stop api
 backup="$root/backups/ci-$release_id.sql"
 compose exec -T mysql sh -c \
-  'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump -uroot --single-transaction --no-tablespaces --set-gtid-purged=OFF --hex-blob cost' > "$backup"
+  'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump --protocol=tcp -h127.0.0.1 -uroot --single-transaction --no-tablespaces --set-gtid-purged=OFF --hex-blob cost' > "$backup"
 test -s "$backup"
 
 # Restore on the identical MySQL image with no network and an isolated anonymous volume.
@@ -106,15 +109,15 @@ verify_created=1
   -e MYSQL_ALLOW_EMPTY_PASSWORD=yes "$mysql_image" >/dev/null
 ready=0
 for ((attempt=0; attempt<60; attempt++)); do
-  if "${DOCKER[@]}" exec "$verify_container" mysql -uroot -e 'SELECT 1' >/dev/null 2>&1; then
+  if "${DOCKER[@]}" exec "$verify_container" mysql --protocol=tcp -h127.0.0.1 -uroot -e 'SELECT 1' >/dev/null 2>&1; then
     ready=1
     break
   fi
   sleep 2
 done
 test "$ready" == 1
-"${DOCKER[@]}" exec "$verify_container" mysql -uroot -e 'CREATE DATABASE cost CHARACTER SET utf8mb4'
-"${DOCKER[@]}" exec -i "$verify_container" mysql -uroot cost < "$backup"
+"${DOCKER[@]}" exec "$verify_container" mysql --protocol=tcp -h127.0.0.1 -uroot -e 'CREATE DATABASE cost CHARACTER SET utf8mb4'
+"${DOCKER[@]}" exec -i "$verify_container" mysql --protocol=tcp -h127.0.0.1 -uroot cost < "$backup"
 hash_stream() {
   python3 -c 'import hashlib,sys
 h = hashlib.sha256()
@@ -124,8 +127,8 @@ print(h.hexdigest())'
 }
 dump_args='--no-create-info --skip-comments --compact --skip-extended-insert --order-by-primary --skip-add-locks --skip-disable-keys --no-tablespaces --set-gtid-purged=OFF --hex-blob cost'
 source_hash=$(compose exec -T mysql sh -c \
-  'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump -uroot '"$dump_args" | hash_stream)
-restore_hash=$("${DOCKER[@]}" exec "$verify_container" sh -c "exec mysqldump -uroot $dump_args" | hash_stream)
+  'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump --protocol=tcp -h127.0.0.1 -uroot '"$dump_args" | hash_stream)
+restore_hash=$("${DOCKER[@]}" exec "$verify_container" sh -c "exec mysqldump --protocol=tcp -h127.0.0.1 -uroot $dump_args" | hash_stream)
 [[ "$source_hash" == "$restore_hash" ]] || { echo 'Restored backup data mismatch' >&2; exit 1; }
 "${DOCKER[@]}" rm -fv "$verify_container" >/dev/null
 verify_created=0
