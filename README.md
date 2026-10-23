@@ -176,6 +176,8 @@ node miniprogram/tests/validate.js
 
 ## 发布状态
 
+GitHub Actions 自动 CI/CD 配置见 [接入与操作说明](docs/ops/2026-10-23-automatic-cicd.md)：PR 运行检查，main push 检查成功后自动部署后端。首次需要配置服务器专用 SSH 密钥和仓库 Secrets；是否已启用及最近部署结果以 GitHub Actions 为准。小程序仍需单独上传审核发布。
+
 后端和 MySQL 已部署云端，手动备份恢复已验证；本地及云端数据库均完成 `t_` 前缀和注释升级，本地 21 笔账目与月预算已合并至云端，云端原有 2 笔保留。操作与回退边界见 [迁移记录](docs/ops/2026-10-22-mysql-prefix-data-migration.md)。HTTPS/域名、自动备份、入口限流、真机多人验证以及小程序备案、隐私说明和审核尚待完成，不能据此确认正式上线就绪。
 
 后端默认微信认证；显式的 development 令牌模式只供本地后端测试，新小程序不使用该令牌。设置 COST_ENV=production 后，程序禁止开发令牌认证及内存存储，但这些检查不代替部署和发布验收。

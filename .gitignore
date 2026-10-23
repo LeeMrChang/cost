@@ -13,3 +13,6 @@
 
 # Local database backups must never be tracked.
 /backups/
+
+# Python verification caches.
+__pycache__/
