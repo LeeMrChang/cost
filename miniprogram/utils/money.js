@@ -7,5 +7,9 @@ function parseCent(value) {
  return n;
 }
 function money(n) { return (n / 100).toFixed(2); }
+// Allow incomplete decimal input while typing; reject invalid edits without changing the amount.
+function acceptAmountInput(value, previous = '') {
+ return /^(?:\d{1,9}(?:\.\d{0,2})?)?$/.test(value) ? value : previous;
+}
 function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
-module.exports = { parseCent, money, today };
+module.exports = { parseCent, money, today, acceptAmountInput };

@@ -1,5 +1,5 @@
 const { request, session } = require('../../utils/api');
-const { parseCent, money, today } = require('../../utils/money');
+const { parseCent, money, today, acceptAmountInput } = require('../../utils/money');
 Page({
  data: { month: today().slice(0, 7), groups: [], categories: [], visibleCategories: [], summary: {}, error: '', loading: false, editor: false, kind: 'expense', categoryID: 2, amount: '', note: '', date: today(), time: '12:00', editID: null, saving: false, dateOpen: false, monthOpen: false },
  onShow() { this.setData({ groups: [], summary: {}, editor: false, note: '', amount: '' }); this.load(); },
@@ -34,7 +34,12 @@ Page({
  noop() {},
  kindChange(e) { const kind = e.currentTarget.dataset.kind; const visible = this.data.categories.filter(c => c.kind === kind); this.setData({ kind, visibleCategories: visible, categoryID: visible.length ? visible[0].id : 0 }); },
  categoryChange(e) { this.setData({ categoryID: Number(e.currentTarget.dataset.id) }); },
- input(e) { this.setData({ [e.currentTarget.dataset.field]: e.detail.value }); },
+ input(e) {
+  const field = e.currentTarget.dataset.field;
+  const value = field === 'amount' ? acceptAmountInput(e.detail.value, this.data.amount) : e.detail.value;
+  this.setData({ [field]: value });
+  return value;
+ },
  async save() {
   if (this.data.saving) return;
   try {

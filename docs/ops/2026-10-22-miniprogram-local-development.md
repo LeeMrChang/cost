@@ -13,8 +13,16 @@
 验证命令：
 
 ```sh
-node miniprogram/tests/money.test.js
-node miniprogram/tests/calendar.test.js
-node miniprogram/tests/auth.test.js
+node --test miniprogram/tests/*.test.js
 node miniprogram/tests/validate.js
 ```
+
+## 2026-10-23 金额输入修复与验证
+
+账单和月预算的 input 虽然声明 type=digit，但原输入事件仍直接保存输入内容，电脑输入法或粘贴可将文字显示在金额框。保存时 parseCent 已拒绝这些文字，缺少的是输入阶段约束。
+
+修复共用金额输入校验：只接受 ASCII 数字和一个小数点，整数部分最多 9 位、小数部分最多 2 位；允许清空及 `12.` 这样的输入中间状态，保存时仍执行完整金额校验。非法输入退回上一次合法值，不把 `1a2` 静默转换为 `12`；处理函数返回合法字符串，替换输入框显示值。备注仍可填写中文。
+
+先添加实际页面输入事件及保存事件测试，观察修复前 6 项失败；实现后完整前端测试 12 项全部通过，页面/JSON/JavaScript 检查及 git diff --check 通过。自动化测试覆盖中文、粘贴混合文本、空白、全角数字、负数、多小数点、超精度、清空及删除、备注和非法值不提交请求。
+
+开发者工具交互和真机本次尚未复验：重新编译 miniprogram，打开新增或编辑账单，输入中文/字母应保留此前金额；输入 `12.34` 应正常，追加第三位小数应拒绝；设置页预算使用同一规则。不需要重启 Go 后端。
