@@ -23,6 +23,12 @@ if 'compose' in a and ('exec' in a or 'run' in a):
 with open(os.environ['CALL_LOG'], 'a') as f:
     f.write(json.dumps(a) + '\n')
 fail = os.environ.get('FAIL_STAGE', '')
+client = ' -uroot' in ' '.join(a)
+if client and os.environ.get('MISSING_SOCKET') == '1':
+    if '--protocol=tcp' not in ' '.join(a) or '-h127.0.0.1' not in ' '.join(a):
+        sys.exit("Can't connect to local MySQL server through default socket (2002)")
+if client and 'compose' in a and any('SELECT 1' in x for x in a) and fail == 'preflight':
+    sys.exit('MySQL root TCP authentication failed')
 if 'build' in a and fail == 'build': sys.exit(1)
 if any('mysqldump' in x and '--no-create-info' not in x for x in a):
     if fail == 'backup': sys.exit(1)
@@ -66,10 +72,11 @@ class DeploymentTests(unittest.TestCase):
                 info.size = len(data)
                 tf.addfile(info, io.BytesIO(data))
 
-    def run_deploy(self, fail='', release=RELEASE, sudo=False):
+    def run_deploy(self, fail='', release=RELEASE, sudo=False, missing_socket=False):
         env = dict(os.environ, PATH=str(self.bin) + ':' + os.environ['PATH'],
                    CALL_LOG=str(self.log), FAIL_STAGE=fail, RELEASE_ID=release,
-                   FORCE_SUDO='1' if sudo else '0')
+                   FORCE_SUDO='1' if sudo else '0',
+                   MISSING_SOCKET='1' if missing_socket else '0')
         return subprocess.run(['bash', '-s', '--', release, str(self.root)],
                               input=SCRIPT.read_text(), env=env, capture_output=True, text=True)
 
@@ -96,6 +103,17 @@ class DeploymentTests(unittest.TestCase):
         result = self.run_deploy(sudo=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue((self.root / 'current/SUCCESS').exists())
+
+    def test_missing_default_socket_uses_tcp_for_backup_and_restore(self):
+        result = self.run_deploy(missing_socket=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.root / 'current/SUCCESS').exists())
+        clients = [c for c in self.calls() if ' -uroot' in ' '.join(c)]
+        self.assertGreaterEqual(len(clients), 7)
+
+    def test_mysql_preflight_failure_does_not_stop_api(self):
+        self.assertNotEqual(self.run_deploy('preflight').returncode, 0)
+        self.assertFalse(any('stop' in c or 'migrate' in c for c in self.calls()))
 
     def test_backup_failure_restarts_original_container(self):
         self.assertNotEqual(self.run_deploy('backup').returncode, 0)

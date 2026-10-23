@@ -89,3 +89,13 @@ git push origin feature/automatic-cicd:main
 ```
 
 参考：[GitHub workflow 语法](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax)、[部署并发控制](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/control-deployments)。
+
+## 首轮云端运行：默认 socket 连接失败
+
+2026-10-23 手动运行 [39909557544](https://github.com/LeeMrChang/cost/actions/runs/39909557544)：CI、SSH、镜像构建成功；停止 API 后，mysqldump 报错 2002，无法连接 `/var/run/mysqld/mysqld.sock`。失败发生在备份阶段，尚未迁移；失败处理已请求重启原 API，实际健康状态仍需服务器检查。
+
+原因：部署脚本的客户端省略 host/protocol，默认查找 Unix socket；既有 MySQL healthcheck 使用 TCP，健康检查通过并不能保证客户端默认 socket 可用。修复将生产和临时恢复容器的 mysql/mysqldump 统一指定 `--protocol=tcp -h127.0.0.1`。临时容器的 TCP 就绪检查也避免误连初始化期间的临时 socket 服务。停止 API 前增加 root TCP 查询预检，连接或认证失败即退出，不进入停服阶段。
+
+新增“默认 socket 不存在仍完成备份与恢复”和“预检失败不停止 API”测试，修改前两项均失败；修复后总计 13 项部署测试通过。Bash 语法、差异检查通过。测试使用隔离 Docker 替身，本机没有 Docker，真实生产验证以修复合并后的新 Actions 运行为准；重跑旧提交不会加载本修复。
+
+连接行为参考：[MySQL 8.4 连接协议说明](https://dev.mysql.com/doc/refman/8.4/en/transport-protocols.html)。
