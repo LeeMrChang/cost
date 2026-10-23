@@ -50,3 +50,9 @@
 - [2026-10-22：MySQL 前缀与注释设计](superpowers/specs/2026-10-22-mysql-table-prefix-comments-design.md)
 - [2026-10-22：MySQL 前缀与迁移实施计划](superpowers/plans/2026-10-22-mysql-table-prefix-comments.md)
 - [2026-10-22：两端升级及本地数据合并云端记录](ops/2026-10-22-mysql-prefix-data-migration.md)
+
+## 自动 CI/CD
+
+- [2026-10-23：设计](superpowers/specs/2026-10-23-automatic-cicd-design.md)
+- [2026-10-23：实施计划](superpowers/plans/2026-10-23-automatic-cicd.md)
+- [2026-10-23：初始化、自动部署和故障处理](ops/2026-10-23-automatic-cicd.md)

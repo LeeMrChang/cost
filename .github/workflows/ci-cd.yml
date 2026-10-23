@@ -1,0 +1,124 @@
+name: Cost CI/CD
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Tests and checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    concurrency:
+      group: cost-checks-${{ github.ref }}
+      cancel-in-progress: true
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci-test-only-password
+          MYSQL_ROOT_HOST: '%'
+        ports:
+          - 3306/tcp
+        options: >-
+          --health-cmd="mysqladmin ping -h127.0.0.1 -uroot -pci-test-only-password --silent"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: '1.27.x'
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Backend including isolated MySQL integration tests
+        working-directory: backend
+        env:
+          COST_TEST_MYSQL_ADMIN_DSN: root:ci-test-only-password@tcp(127.0.0.1:${{ job.services.mysql.ports['3306'] }})/
+        run: |
+          go test -race -count=1 ./...
+          go vet ./...
+          go build ./...
+      - name: Mini program checks
+        run: |
+          node --test miniprogram/tests/*.test.js
+          node miniprogram/tests/validate.js
+      - name: Deployment failure tests and shell syntax
+        run: |
+          python3 -m unittest discover -s scripts/tests -v
+          bash -n scripts/deploy-cloud.sh scripts/setup-cicd.sh
+      - name: Workflow lint
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          actionlint
+
+  deploy:
+    name: Deploy production
+    needs: checks
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    concurrency:
+      group: cost-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Skip an obsolete commit waiting in the deployment queue
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          if [[ "$latest" == "$GITHUB_SHA" ]]; then
+            echo 'deploy=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'A newer main commit exists; skipping this release.'
+          fi
+      - name: Package and deploy over verified SSH
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          DEPLOY_HOST: ${{ secrets.COST_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.COST_DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.COST_DEPLOY_PORT }}
+          DEPLOY_KEY: ${{ secrets.COST_DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.COST_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          : "${DEPLOY_HOST:?Run scripts/setup-cicd.sh first}"
+          : "${DEPLOY_USER:?Missing deployment user}"
+          : "${DEPLOY_KEY:?Missing deployment SSH key}"
+          : "${DEPLOY_KNOWN_HOSTS:?Missing verified host key}"
+          DEPLOY_PORT=${DEPLOY_PORT:-22}
+          [[ "$DEPLOY_HOST" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          [[ "$DEPLOY_PORT" =~ ^[0-9]{1,5}$ ]] && ((10#$DEPLOY_PORT > 0 && 10#$DEPLOY_PORT <= 65535))
+          umask 077
+          scratch=$(mktemp -d "$RUNNER_TEMP/cost-ssh.XXXXXX")
+          trap 'rm -rf "$scratch"' EXIT
+          printf '%s\n' "$DEPLOY_KEY" > "$scratch/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$scratch/known_hosts"
+          release="$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          python3 scripts/package-cloud.py --output "$scratch/source.tar.gz"
+          options=(-i "$scratch/key" -o IdentitiesOnly=yes -o BatchMode=yes
+            -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$scratch/known_hosts"
+            -o GlobalKnownHostsFile=/dev/null -o ConnectTimeout=10
+            -o ServerAliveInterval=15 -o ServerAliveCountMax=4)
+          remote="$DEPLOY_USER@$DEPLOY_HOST"
+          ssh "${options[@]}" -p "$DEPLOY_PORT" "$remote" 'umask 077; mkdir -p /home/ubuntu/cost/incoming'
+          scp "${options[@]}" -P "$DEPLOY_PORT" "$scratch/source.tar.gz" \
+            "$remote:/home/ubuntu/cost/incoming/$release.tar.gz"
+          ssh "${options[@]}" -p "$DEPLOY_PORT" "$remote" \
+            "bash -s -- '$release' /home/ubuntu/cost" < scripts/deploy-cloud.sh
+          echo "Deployed commit $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
