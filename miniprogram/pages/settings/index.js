@@ -1,12 +1,17 @@
 const api = require('../../utils/api');
-const { parseCent, today } = require('../../utils/money');
+const { parseCent, today, acceptAmountInput } = require('../../utils/money');
 Page({
  data: { user: null, members: [], invite: '', expires: '', budget: '', month: today().slice(0,7), monthOpen: false, error: '', busy: false },
  onShow() { this.load(); },
  openMonth() { this.setData({ monthOpen: true }); },
  closeMonth() { this.setData({ monthOpen: false }); },
  onMonthConfirm(e) { this.setData({ monthOpen: false, month: e.detail.month }); },
- input(e) { this.setData({ [e.currentTarget.dataset.field]: e.detail.value }); },
+ input(e) {
+  const field = e.currentTarget.dataset.field;
+  const value = field === 'budget' ? acceptAmountInput(e.detail.value, this.data.budget) : e.detail.value;
+  this.setData({ [field]: value });
+  return value;
+ },
  async load() {
   // Clear data from a previously logged-in account before fetching new permissions.
   this.setData({ user: null, members: [], invite: '', expires: '', error: '' });
