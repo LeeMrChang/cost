@@ -32,6 +32,36 @@ func (m *MySQL) MergeLedger(ctx context.Context, source string) (int64, error) {
 		return 0, err
 	}
 	src := "`" + source + "`."
+	// This importer predates payment accounts and transfers. Reject an upgraded
+	// source carrying these features rather than silently losing financial data.
+	for _, table := range []string{"t_accounts", "t_transfers"} {
+		var present, count int
+		if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=? AND table_name=?", source, table).Scan(&present); err != nil {
+			return 0, err
+		}
+		if present > 0 {
+			if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+src+table).Scan(&count); err != nil {
+				return 0, err
+			}
+			if count > 0 {
+				return 0, fmt.Errorf("ledger merge stopped: source has payment accounts or transfers; use full backup restore instead")
+			}
+		}
+	}
+	var extended int
+	if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=? AND table_name='t_categories' AND column_name='disabled'", source).Scan(&extended); err != nil {
+		return 0, err
+	}
+	if extended > 0 {
+		var changed int
+		if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+src+"t_categories WHERE disabled<>0 OR sort_order<>0").Scan(&changed); err != nil {
+			return 0, err
+		}
+		if changed > 0 {
+			return 0, fmt.Errorf("ledger merge stopped: source has extended category settings; use full backup restore instead")
+		}
+	}
+
 	checks := []struct{ label, query string }{
 		{"source must contain exactly the single family ledger", "SELECT IF(COUNT(*)=1 AND MIN(id)=1,0,1) FROM " + src + "t_ledgers"},
 		{"ledger currency/timezone conflict", "SELECT COUNT(*) FROM " + src + "t_ledgers s JOIN t_ledgers t ON s.id=t.id WHERE NOT(BINARY s.currency <=> BINARY t.currency) OR NOT(BINARY s.timezone <=> BINARY t.timezone)"},

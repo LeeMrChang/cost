@@ -3,6 +3,9 @@ const { parseCent, today, acceptAmountInput } = require('../../utils/money');
 Page({
  data: { user: null, members: [], invite: '', expires: '', budget: '', month: today().slice(0,7), monthOpen: false, error: '', busy: false },
  onShow() { this.load(); },
+ openCategories() { wx.navigateTo({url: '/pages/categories/index'}); },
+ openAccounts() { wx.navigateTo({url: '/pages/accounts/index'}); },
+ openExport() { wx.switchTab({url: '/pages/ledger/index'}); wx.showToast({title: '在账本页筛选后点击导出 CSV', icon: 'none'}); },
  openMonth() { this.setData({ monthOpen: true }); },
  closeMonth() { this.setData({ monthOpen: false }); },
  onMonthConfirm(e) { this.setData({ monthOpen: false, month: e.detail.month }); },

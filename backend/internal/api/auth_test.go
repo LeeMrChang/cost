@@ -117,6 +117,44 @@ func testFamilyWorkflow(t *testing.T, data store.Store, repo auth.Repository) {
 	legacyPath := fmt.Sprintf("/api/v1/entries/%d", legacy.ID)
 	expect(call("DELETE", legacyPath, member, ""), 403)
 	expect(call("DELETE", legacyPath, admin, ""), 204)
+
+	// P0 metadata writes require administrator privileges; all members can query,
+	// export and move funds, but may only delete their own transfer records.
+	for _, path := range []string{"/api/v1/accounts", "/api/v1/categories", "/api/v1/transfers", "/api/v1/entry-authors", "/api/v1/entries/export?month=2026-10"} {
+		expect(call("GET", path, member, ""), 200)
+		expect(call("GET", path, stranger, ""), 403)
+	}
+	for _, path := range []string{"/api/v1/accounts", "/api/v1/categories"} {
+		expect(call("POST", path, member, `{}`), 403)
+		expect(call("PATCH", path+"/1", member, `{}`), 403)
+	}
+	var cash, bank domain.Account
+	cashResponse := call("POST", "/api/v1/accounts", admin, `{"name":"现金","type":"cash","opening_balance_cent":10000}`)
+	expect(cashResponse, 201)
+	json.Unmarshal(cashResponse.Body.Bytes(), &cash)
+	bankResponse := call("POST", "/api/v1/accounts", admin, `{"name":"银行","type":"bank"}`)
+	expect(bankResponse, 201)
+	json.Unmarshal(bankResponse.Body.Bytes(), &bank)
+	transferBody := fmt.Sprintf(`{"from_account_id":%d,"to_account_id":%d,"amount_cent":100,"occurred_at":"2026-10-13T12:00:00+08:00","client_request_id":"owner-transfer","created_by":%d}`, cash.ID, bank.ID, memberID)
+	tw := call("POST", "/api/v1/transfers", admin, transferBody)
+	expect(tw, 201)
+	var ownerTransfer domain.Transfer
+	json.Unmarshal(tw.Body.Bytes(), &ownerTransfer)
+	if ownerTransfer.CreatedBy == memberID {
+		t.Fatal("forged transfer creator")
+	}
+	transferPath := fmt.Sprintf("/api/v1/transfers/%d", ownerTransfer.ID)
+	expect(call("DELETE", transferPath, member, ""), 403)
+	expect(call("DELETE", transferPath, admin, ""), 204)
+	transferBody = strings.Replace(transferBody, "owner-transfer", "member-transfer", 1)
+	tw = call("POST", "/api/v1/transfers", member, transferBody)
+	expect(tw, 201)
+	var memberTransfer domain.Transfer
+	json.Unmarshal(tw.Body.Bytes(), &memberTransfer)
+	if memberTransfer.CreatedBy != memberID {
+		t.Fatal("member transfer creator missing")
+	}
+	expect(call("DELETE", fmt.Sprintf("/api/v1/transfers/%d", memberTransfer.ID), member, ""), 204)
 	expect(call("DELETE", fmt.Sprintf("/api/v1/family/members/%d", memberID), admin, ""), 204)
 	expect(call("GET", "/api/v1/entries", member, ""), 403)
 	expect(call("POST", "/api/v1/auth/logout", admin, ""), 204)

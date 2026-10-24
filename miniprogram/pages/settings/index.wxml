@@ -1,4 +1,5 @@
 <view class="container"><view class="title">家庭设置</view>
+ <view wx:if="{{user}}" class="card"><view class="section">账本管理</view><view class="management-link row" bindtap="openAccounts"><view><view>👛 账户与转账</view><view class="muted">查看余额，记录账户之间的资金流转</view></view><text>›</text></view><view class="management-link row" bindtap="openCategories"><view><view>🏷️ 分类管理</view><view class="muted">新增、排序和停用家庭收支分类</view></view><text>›</text></view><view class="management-link row" bindtap="openExport"><view><view>↗ 导出账单</view><view class="muted">按日期和筛选条件分享 CSV 文件</view></view><text>›</text></view></view>
  <view wx:if="{{user}}" class="card"><view class="section">成员 {{user.id}} · {{user.role === 'admin' ? '管理员' : '家庭成员'}}</view><button bindtap="signOut">退出登录</button></view>
  <view wx:if="{{user.role === 'admin'}}" class="card">
   <view class="section">邀请家人</view><view class="muted">每个邀请码仅可使用一次，24 小时内有效。只分享给你要邀请的家人。</view>

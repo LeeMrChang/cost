@@ -42,7 +42,17 @@ func newHandler(s store.Store, token string, service *auth.Service) http.Handler
 		}()})
 	})
 	mux.HandleFunc("GET /api/v1/categories", a.categories)
-	mux.HandleFunc("GET /api/v1/entries", a.list)
+	mux.HandleFunc("POST /api/v1/categories", a.createCategory)
+	mux.HandleFunc("PATCH /api/v1/categories/{id}", a.updateCategory)
+	mux.HandleFunc("GET /api/v1/accounts", a.accounts)
+	mux.HandleFunc("POST /api/v1/accounts", a.createAccount)
+	mux.HandleFunc("PATCH /api/v1/accounts/{id}", a.updateAccount)
+	mux.HandleFunc("GET /api/v1/transfers", a.transfers)
+	mux.HandleFunc("POST /api/v1/transfers", a.createTransfer)
+	mux.HandleFunc("DELETE /api/v1/transfers/{id}", a.deleteTransfer)
+	mux.HandleFunc("GET /api/v1/entry-authors", a.authors)
+	mux.HandleFunc("GET /api/v1/entries/export", a.exportEntries)
+	mux.HandleFunc("GET /api/v1/entries", a.filteredList)
 	mux.HandleFunc("POST /api/v1/entries", a.create)
 	mux.HandleFunc("PATCH /api/v1/entries/{id}", a.update)
 	mux.HandleFunc("DELETE /api/v1/entries/{id}", a.delete)
@@ -143,14 +153,6 @@ func (a *API) monthEntries(w http.ResponseWriter, r *http.Request) ([]domain.Ent
 	}
 	e, err := a.store.List(r.Context(), start, end)
 	return e, month, err
-}
-func (a *API) list(w http.ResponseWriter, r *http.Request) {
-	entries, month, err := a.monthEntries(w, r)
-	if err != nil {
-		fail(w, err)
-		return
-	}
-	respond(w, 200, map[string]any{"month": month, "items": entries})
 }
 func (a *API) valid(r *http.Request, e domain.Entry) error {
 	c, err := a.store.Categories(r.Context())

@@ -3,7 +3,9 @@
     "pages/login/index",
     "pages/ledger/index",
     "pages/stats/index",
-    "pages/settings/index"
+    "pages/settings/index",
+    "pages/categories/index",
+    "pages/accounts/index"
   ],
   "window": {
     "navigationBarTitleText": "Cost 记账",

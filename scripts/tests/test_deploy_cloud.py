@@ -95,6 +95,15 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual((self.root / 'deploy/.env').read_text(), 'server-only-secret\n')
         self.assertTrue(list((self.root / 'backups').glob('*.sql')))
 
+    def test_success_restarts_backup_services_after_migration(self):
+        result = self.run_deploy()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.calls()
+        migration = next(i for i, c in enumerate(calls) if 'migrate' in c)
+        starts = [i for i, c in enumerate(calls) if 'up' in c and 'backup' in c and 'backup-verify' in c]
+        self.assertEqual(len(starts), 1, 'deployment must apply the released backup workers')
+        self.assertLess(migration, starts[0])
+
     def test_build_failure_keeps_old_api_running(self):
         self.assertNotEqual(self.run_deploy('build').returncode, 0)
         self.assertFalse(any('stop' in c or 'migrate' in c for c in self.calls()))

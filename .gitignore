@@ -16,3 +16,8 @@
 
 # Python verification caches.
 __pycache__/
+
+# Uncompressed backup copies and temporary restore data (migrations remain tracked).
+/deploy/backups/
+*.sql.bak
+*.backup.sql

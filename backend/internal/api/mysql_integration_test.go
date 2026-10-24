@@ -93,7 +93,7 @@ func TestMySQLLegacyUpgrade(t *testing.T) {
 		t.Fatalf("legacy entry changed: %+v %v", e, err)
 	}
 	var versions int
-	if err = db.DB().QueryRow("SELECT COUNT(*) FROM t_schema_migrations").Scan(&versions); err != nil || versions != 3 {
+	if err = db.DB().QueryRow("SELECT COUNT(*) FROM t_schema_migrations").Scan(&versions); err != nil || versions != 4 {
 		t.Fatal("migration versions missing", err)
 	}
 }

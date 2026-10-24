@@ -23,7 +23,8 @@ import pathlib, shutil, sys, tarfile
 archive, target = sys.argv[1:]
 fixed = {'backend/Dockerfile', 'backend/.dockerignore', 'backend/go.mod', 'backend/go.sum',
          'deploy/compose.cloud.yaml', 'deploy/.env.example', 'deploy/Caddyfile',
-         'deploy/mysql/01-users.sh', 'docs/ops/2026-10-22-docker-cloud-deployment.md'}
+         'deploy/mysql/01-users.sh', 'docs/ops/2026-10-22-docker-cloud-deployment.md',
+         'deploy/backup/common.sh', 'deploy/backup/backup.sh', 'deploy/backup/verify.sh'}
 with tarfile.open(archive, 'r:gz') as tf:
     members, seen = tf.getmembers(), set()
     for m in members:
@@ -133,11 +134,17 @@ restore_hash=$("${DOCKER[@]}" exec "$verify_container" sh -c "exec mysqldump --p
 "${DOCKER[@]}" rm -fv "$verify_container" >/dev/null
 verify_created=0
 
+# Stop periodic snapshots before any DDL changes. A failed migration leaves
+# them stopped with the API until an operator has inspected the database.
+compose stop backup backup-verify
 migration_started=1
 # Existing MySQL stays running: do not recreate it or apply unrelated database-image changes.
 compose --profile tools run --rm --no-deps -T migrate
 compose up -d --no-deps --wait --wait-timeout 120 api
 curl --fail --silent --show-error --max-time 10 http://127.0.0.1:8080/health >/dev/null
+# Recreate workers from this release so new bind-mounted scripts are applied.
+# Their health checks report initial backup/restore results asynchronously.
+compose up -d --no-deps backup backup-verify
 printf 'COST_IMAGE_TAG=%s\n' "$COST_IMAGE_TAG" > "$release/image.env"
 python3 - "$root" "$release" <<'PY'
 import os, sys

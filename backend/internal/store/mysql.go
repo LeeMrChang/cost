@@ -118,12 +118,15 @@ func (m *MySQL) Migrate(ctx context.Context) error {
 			return err
 		}
 	}
-	return applyTableComments(ctx, conn)
+	if err := applyTableComments(ctx, conn); err != nil {
+		return err
+	}
+	return applyLedgerFeatures(ctx, conn)
 }
 func (m *MySQL) DB() *sql.DB { return m.db }
 
 func (m *MySQL) Categories(ctx context.Context) ([]domain.Category, error) {
-	rows, err := m.db.QueryContext(ctx, "SELECT id,name,kind,icon FROM t_categories WHERE ledger_id=1 ORDER BY id")
+	rows, err := m.db.QueryContext(ctx, "SELECT id,name,kind,icon,sort_order,disabled FROM t_categories WHERE ledger_id=1 ORDER BY sort_order,id")
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +134,7 @@ func (m *MySQL) Categories(ctx context.Context) ([]domain.Category, error) {
 	out := []domain.Category{}
 	for rows.Next() {
 		var c domain.Category
-		if err = rows.Scan(&c.ID, &c.Name, &c.Kind, &c.Icon); err != nil {
+		if err = rows.Scan(&c.ID, &c.Name, &c.Kind, &c.Icon, &c.SortOrder, &c.Disabled); err != nil {
 			return nil, err
 		}
 		out = append(out, c)
@@ -139,11 +142,11 @@ func (m *MySQL) Categories(ctx context.Context) ([]domain.Category, error) {
 	return out, rows.Err()
 }
 
-const fields = "id,category_id,kind,amount_cent,occurred_at,note,client_request_id,COALESCE(created_by,0)"
+const fields = "id,category_id,kind,amount_cent,occurred_at,note,client_request_id,COALESCE(created_by,0),COALESCE(account_id,0)"
 
 func scan(s interface{ Scan(...any) error }) (domain.Entry, error) {
 	var e domain.Entry
-	err := s.Scan(&e.ID, &e.CategoryID, &e.Kind, &e.Amount, &e.OccurredAt, &e.Note, &e.RequestID, &e.CreatedBy)
+	err := s.Scan(&e.ID, &e.CategoryID, &e.Kind, &e.Amount, &e.OccurredAt, &e.Note, &e.RequestID, &e.CreatedBy, &e.AccountID)
 	return e, err
 }
 func (m *MySQL) List(ctx context.Context, start, end time.Time) ([]domain.Entry, error) {
@@ -163,26 +166,36 @@ func (m *MySQL) List(ctx context.Context, start, end time.Time) ([]domain.Entry,
 	return out, rows.Err()
 }
 func (m *MySQL) Save(ctx context.Context, e domain.Entry) (domain.Entry, bool, error) {
-	result, err := m.db.ExecContext(ctx, "INSERT INTO t_entries(ledger_id,category_id,kind,amount_cent,occurred_at,note,client_request_id,created_by) VALUES(1,?,?,?,?,?,?,NULLIF(?,0))", e.CategoryID, e.Kind, e.Amount, e.OccurredAt.UTC(), e.Note, e.RequestID, e.CreatedBy)
+	tx, err := m.ledgerTx(ctx)
 	if err != nil {
-		var me *mysql.MySQLError
-		if errors.As(err, &me) && me.Number == 1062 {
-			old, readErr := scan(m.db.QueryRowContext(ctx, "SELECT "+fields+" FROM t_entries WHERE ledger_id=1 AND client_request_id=?", e.RequestID))
-			if readErr != nil {
-				return e, false, readErr
-			}
-			if !same(old, e) {
-				return e, false, domain.ErrConflict
-			}
-			return old, false, nil
+		return e, false, err
+	}
+	defer tx.Rollback()
+	old, err := scan(tx.QueryRowContext(ctx, "SELECT "+fields+" FROM t_entries WHERE ledger_id=1 AND client_request_id=?", e.RequestID))
+	if err == nil {
+		if !same(old, e) {
+			return e, false, domain.ErrConflict
 		}
+		return old, false, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return e, false, err
+	}
+	if err = validateSQLReferences(ctx, tx, e, domain.Entry{}); err != nil {
+		return e, false, err
+	}
+	result, err := tx.ExecContext(ctx, "INSERT INTO t_entries(ledger_id,category_id,kind,amount_cent,occurred_at,note,client_request_id,created_by,account_id) VALUES(1,?,?,?,?,?,?,NULLIF(?,0),NULLIF(?,0))", e.CategoryID, e.Kind, e.Amount, e.OccurredAt.UTC(), e.Note, e.RequestID, e.CreatedBy, e.AccountID)
+	if err != nil {
 		return e, false, err
 	}
 	e.ID, err = result.LastInsertId()
-	return e, true, err
+	if err != nil {
+		return e, false, err
+	}
+	return e, true, tx.Commit()
 }
 func (m *MySQL) Update(ctx context.Context, e domain.Entry) (domain.Entry, error) {
-	tx, err := m.db.BeginTx(ctx, nil)
+	tx, err := m.ledgerTx(ctx)
 	if err != nil {
 		return e, err
 	}
@@ -194,7 +207,10 @@ func (m *MySQL) Update(ctx context.Context, e domain.Entry) (domain.Entry, error
 	if err != nil {
 		return e, err
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE t_entries SET category_id=?,kind=?,amount_cent=?,occurred_at=?,note=? WHERE ledger_id=1 AND id=?", e.CategoryID, e.Kind, e.Amount, e.OccurredAt.UTC(), e.Note, e.ID)
+	if err = validateSQLReferences(ctx, tx, e, old); err != nil {
+		return e, err
+	}
+	_, err = tx.ExecContext(ctx, "UPDATE t_entries SET category_id=?,kind=?,amount_cent=?,occurred_at=?,note=?,account_id=NULLIF(?,0) WHERE ledger_id=1 AND id=?", e.CategoryID, e.Kind, e.Amount, e.OccurredAt.UTC(), e.Note, e.AccountID, e.ID)
 	if err != nil {
 		return e, err
 	}

@@ -10,6 +10,7 @@ def build_archive(root: Path, output: Path) -> int:
         'backend/Dockerfile', 'backend/.dockerignore', 'backend/go.mod', 'backend/go.sum',
         'deploy/compose.cloud.yaml', 'deploy/.env.example', 'deploy/Caddyfile',
         'deploy/mysql/01-users.sh',
+        'deploy/backup/common.sh', 'deploy/backup/backup.sh', 'deploy/backup/verify.sh',
         'docs/ops/2026-10-22-docker-cloud-deployment.md',
     ]
     files = [root / name for name in fixed]

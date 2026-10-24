@@ -56,3 +56,15 @@
 - [2026-10-23：设计](superpowers/specs/2026-10-23-automatic-cicd-design.md)
 - [2026-10-23：实施计划](superpowers/plans/2026-10-23-automatic-cicd.md)
 - [2026-10-23：初始化、自动部署和故障处理](ops/2026-10-23-automatic-cicd.md)
+
+## 功能需求清单
+
+- [核心功能待开发清单](../requirements.md)（2026-10-23 需求讨论稿；按用户要求保存在项目根目录）
+
+## P0 核心功能
+
+- [F01–F04 设计](superpowers/specs/2026-10-23-p0-ledger-design.md)
+- [实施计划](superpowers/plans/2026-10-23-p0-ledger.md)
+- [搜索、分类、账户、转账与导出 API](api/2026-10-23-p0-ledger-api.md)
+- [自动备份与恢复检查](ops/2026-10-23-automatic-backups.md)
+- [实现验证与发布检查](ops/2026-10-23-p0-ledger-validation.md)
