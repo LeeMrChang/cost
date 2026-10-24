@@ -54,7 +54,7 @@ func assertPrefixed(t *testing.T, db *store.MySQL) {
 	if err := db.DB().QueryRow("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND LEFT(table_name,2)='t_' AND table_comment<>''").Scan(&tables); err != nil || tables != 12 {
 		t.Fatalf("want 12 commented prefixed tables, got %d: %v", tables, err)
 	}
-	if err := db.DB().QueryRow("SELECT COUNT(*),SUM(column_comment='') FROM information_schema.columns WHERE table_schema=DATABASE() AND LEFT(table_name,2)='t_'").Scan(&columns, &uncommented); err != nil || columns != 57 || uncommented != 0 {
+	if err := db.DB().QueryRow("SELECT COUNT(*),SUM(column_comment='') FROM information_schema.columns WHERE table_schema=DATABASE() AND LEFT(table_name,2)='t_'").Scan(&columns, &uncommented); err != nil || columns != 58 || uncommented != 0 {
 		t.Fatalf("columns=%d uncommented=%d err=%v", columns, uncommented, err)
 	}
 	for _, name := range legacyNames {

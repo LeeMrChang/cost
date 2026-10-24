@@ -14,6 +14,7 @@ function goLogin() {
  wx.reLaunch({ url: '/pages/login/index', complete() { redirecting = false; } });
 }
 const messages = {
+ invalid_nickname: '昵称最多 20 个字符，不能包含换行或控制字符', member_not_found: '该成员已不在家庭中，请刷新后重试', nickname_permission_denied: '只能修改自己的昵称',
  unauthorized: '登录已过期，请重新登录', family_access_required: '请先加入家庭账本',
  wechat_not_configured: '服务端尚未配置微信登录', wechat_unavailable: '微信登录服务暂不可用，请稍后重试',
  invalid_wechat_code: '登录凭证已失效，请重新点击微信登录', invalid_or_expired_invite: '邀请码无效、已过期或已使用',
@@ -29,6 +30,9 @@ function request(path, method = 'GET', data, publicRequest = false, options = {}
  return new Promise((resolve, reject) => wx.request({
   url: config().baseURL + path, method, data, header, timeout: options.timeout || 12000, dataType: options.dataType || 'json',
   success(res) {
+   // 账号切换后丢弃旧响应，包括旧401/403，避免覆盖新账号资料或清除新会话。
+   if (!publicRequest && (!session() || session().token !== current.token)) {reject(new Error('登录状态已变化，请重新加载')); return;}
+
    if (res.statusCode >= 200 && res.statusCode < 300) { resolve(res.data); return; }
    let body = res.data;
    if (typeof body === 'string') { try { body = JSON.parse(body); } catch (_) { body = {}; } }
@@ -47,7 +51,7 @@ async function login() {
  wx.setStorageSync('cost_session', value);
  return value.user;
 }
-async function me() { const user = await request('/api/v1/auth/me'); const s = session(); if (s) wx.setStorageSync('cost_session', { ...s, user }); return user; }
+async function me() { const before = session(); const user = await request('/api/v1/auth/me'); const s = session(); if (!before || !s || before.token !== s.token) throw new Error('登录状态已变化，请重新加载'); wx.setStorageSync('cost_session', { ...s, user }); return user; }
 async function logout() { if (session()) await request('/api/v1/auth/logout', 'POST'); clearSession(); goLogin(); }
 async function exportCSV(query) {
  if (typeof wx.shareFileMessage !== 'function') throw new Error('请升级微信后使用 CSV 导出分享');

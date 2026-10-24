@@ -350,7 +350,7 @@ func (m *MySQL) Query(ctx context.Context, f domain.EntryFilter) (domain.EntryPa
 	return out, tx.Commit()
 }
 func (m *MySQL) Authors(ctx context.Context) ([]domain.Author, error) {
-	rows, err := m.db.QueryContext(ctx, "SELECT DISTINCT COALESCE(created_by,0) AS id FROM t_entries WHERE ledger_id=1 ORDER BY id")
+	rows, err := m.db.QueryContext(ctx, "SELECT COALESCE(created_by,0) AS id FROM t_entries WHERE ledger_id=1 UNION SELECT COALESCE(created_by,0) AS id FROM t_transfers WHERE ledger_id=1 ORDER BY id")
 	if err != nil {
 		return nil, err
 	}

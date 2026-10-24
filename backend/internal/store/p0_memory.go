@@ -196,6 +196,9 @@ func (m *Memory) Authors(context.Context) ([]domain.Author, error) {
 	for _, e := range m.entries {
 		ids[e.CreatedBy] = true
 	}
+	for _, t := range m.transfers {
+		ids[t.CreatedBy] = true
+	}
 	out := []domain.Author{}
 	for id := range ids {
 		out = append(out, domain.Author{ID: id})

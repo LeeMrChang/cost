@@ -24,11 +24,14 @@ var ErrForbidden = errors.New("forbidden")
 var ErrConflict = errors.New("already initialized or already a member")
 var ErrInvite = errors.New("invalid or expired invite")
 
+// Principal 包含登录成员身份及展示昵称；权限判断只使用 ID 和 Role。
 type Principal struct {
-	ID   int64  `json:"id"`
-	Role string `json:"role"`
+	Nickname string `json:"nickname"`
+	ID       int64  `json:"id"`
+	Role     string `json:"role"`
 }
 type Repository interface {
+	ProfileRepository
 	Login(context.Context, string, string, time.Time) (Principal, error)
 	Resolve(context.Context, string, time.Time) (Principal, error)
 	Logout(context.Context, string) error
@@ -147,6 +150,7 @@ func (s *Service) Authenticate(r *http.Request) (Principal, error) {
 	return s.Repo.Resolve(r.Context(), digest(t), time.Now().UTC())
 }
 func (s *Service) Register(mux *http.ServeMux) {
+	mux.HandleFunc("PATCH /api/v1/family/members/{id}/nickname", s.nickname)
 	mux.HandleFunc("POST /api/v1/auth/wechat", s.login)
 	mux.HandleFunc("GET /api/v1/auth/me", s.me)
 	mux.HandleFunc("POST /api/v1/auth/logout", s.logout)

@@ -1,5 +1,6 @@
 <view class="container">
  <view class="row"><view class="title">我的账本</view><view class="month-chip" bindtap="openMonth">{{month}} ⌄</view></view>
+ <view class="member-scopes"><view class="scope {{memberScopeValue === 'all' ? 'selected' : ''}}" data-scope="all" bindtap="memberScope">全家</view><view class="scope {{memberScopeValue === 'mine' ? 'selected' : ''}}" data-scope="mine" bindtap="memberScope">我的</view><view class="scope {{memberScopeValue === 'specific' ? 'selected' : ''}}" bindtap="openFilters">指定成员⌄</view></view>
  <view class="search-bar"><input value="{{search}}" placeholder="搜索备注，找回每一笔开支" maxlength="200" bindinput="searchInput" confirm-type="search" bindconfirm="searchEntries"/><text bindtap="searchEntries">搜索</text></view>
  <view class="row tools"><view class="tool {{filtered ? 'on' : ''}}" bindtap="openFilters">☷ 筛选{{filtered ? ' · 已应用' : ''}}</view><button class="export" loading="{{exporting}}" disabled="{{exporting}}" bindtap="exportEntries">导出 CSV ↗</button></view>
  <view wx:if="{{filters.start_date}}" class="range-label">{{filters.start_date}} — {{filters.end_date}}（含首尾日期）</view>

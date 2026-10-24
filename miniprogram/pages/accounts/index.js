@@ -1,22 +1,24 @@
+const {memberName} = require('../../utils/members');
 const api = require('../../utils/api');
 const {parseCent, money, acceptAmountInput} = require('../../utils/money');
 const {stamp, requestID} = require('../../utils/ledger');
 const types = [{value: 'cash', label: '现金', icon: '💵'}, {value: 'wechat', label: '微信', icon: '💚'}, {value: 'alipay', label: '支付宝', icon: '💙'}, {value: 'bank', label: '银行卡', icon: '💳'}, {value: 'other', label: '其他', icon: '👛'}];
 Page({
- data: {user: null, accounts: [], activeAccounts: [], transfers: [], types, loading: false, loadingMore: false, total: 0, page: 0, hasMore: false, error: '', saving: false, accountEditor: false, transferEditor: false, editID: null, name: '', opening: '0.00', typeIndex: 0, disabled: false, fromID: 0, toID: 0, fromIndex: 0, toIndex: 1, amount: '', note: '', date: stamp().date, time: stamp().time, dateOpen: false, balance: '0.00'},
+ data: {authors: [], user: null, accounts: [], activeAccounts: [], transfers: [], types, loading: false, loadingMore: false, total: 0, page: 0, hasMore: false, error: '', saving: false, accountEditor: false, transferEditor: false, editID: null, name: '', opening: '0.00', typeIndex: 0, disabled: false, fromID: 0, toID: 0, fromIndex: 0, toIndex: 1, amount: '', note: '', date: stamp().date, time: stamp().time, dateOpen: false, balance: '0.00'},
  onShow() {this.load();},
  onUnload() {this.version = (this.version || 0) + 1;},
  onReachBottom() {this.loadMore();},
- decorateTransfers(items, accounts, user) {
+ decorateTransfers(items, accounts, user, authors = this.data.authors) {
+  const members = {}; authors.forEach(a => {members[a.id] = a;});
   const map = {}; accounts.forEach(a => {map[a.id] = a.name;});
-  return items.map(t => ({...t, fromName: map[t.from_account_id] || '历史账户', toName: map[t.to_account_id] || '历史账户', display: money(t.amount_cent), ...stamp(t.occurred_at), canDelete: user.role === 'admin' || user.id === t.created_by}));
+  return items.map(t => ({...t, authorName: memberName(members[t.created_by] || {id: t.created_by}), fromName: map[t.from_account_id] || '历史账户', toName: map[t.to_account_id] || '历史账户', display: money(t.amount_cent), ...stamp(t.occurred_at), canDelete: user.role === 'admin' || user.id === t.created_by}));
  },
  async load() {
-  const version = this.version = (this.version || 0) + 1; this.setData({loading: true, loadingMore: false, error: '', user: null, accounts: [], activeAccounts: [], transfers: [], total: 0, page: 0, hasMore: false, balance: '0.00'});
+  const version = this.version = (this.version || 0) + 1; this.setData({loading: true, loadingMore: false, error: '', authors: [], user: null, accounts: [], activeAccounts: [], transfers: [], total: 0, page: 0, hasMore: false, balance: '0.00'});
   try {
-   const [user, rows, transfers] = await Promise.all([api.me(), api.request('/api/v1/accounts'), api.request('/api/v1/transfers?page=1&page_size=50')]); if (version !== this.version) return;
+   const [user, rows, transfers, authors] = await Promise.all([api.me(), api.request('/api/v1/accounts'), api.request('/api/v1/transfers?page=1&page_size=50'), api.request('/api/v1/entry-authors')]); if (version !== this.version) return;
    const accounts = rows.map(a => {const type = types.find(t => t.value === a.type) || types[4]; return {...a, icon: type.icon, typeLabel: type.label, balance: money(a.balance_cent), opening: money(a.opening_balance_cent)};});
-   this.setData({user, accounts, activeAccounts: accounts.filter(a => !a.disabled), balance: money(accounts.reduce((sum, a) => sum + a.balance_cent, 0)), transfers: this.decorateTransfers(transfers.items || [], accounts, user), total: transfers.total, page: 1, hasMore: transfers.items.length < transfers.total});
+   this.setData({user, authors, accounts, activeAccounts: accounts.filter(a => !a.disabled), balance: money(accounts.reduce((sum, a) => sum + a.balance_cent, 0)), transfers: this.decorateTransfers(transfers.items || [], accounts, user, authors), total: transfers.total, page: 1, hasMore: transfers.items.length < transfers.total});
   } catch (e) {if (version === this.version) this.setData({error: e.message});} finally {if (version === this.version) this.setData({loading: false});}
  },
  async loadMore() {

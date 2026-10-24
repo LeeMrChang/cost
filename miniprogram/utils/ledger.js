@@ -1,3 +1,4 @@
+const {memberName} = require('./members');
 const { parseCent, money } = require('./money');
 function emptyFilters() { return { q: '', start_date: '', end_date: '', kind: '', category_id: '', created_by: '', account_id: '', min_amount: '', max_amount: '' }; }
 function query(filters, month, page) {
@@ -19,14 +20,15 @@ function stamp(value = new Date()) {
  return {date: iso.slice(0, 10), time: iso.slice(11, 16)};
 }
 function allowed(items, originalID) { return items.filter(i => !i.disabled || i.id === originalID).map(i => ({...i, label: i.name + (i.disabled ? '（已停用）' : '')})); }
-function groups(entries, categories, accounts) {
+function groups(entries, categories, accounts, authors = []) {
+ const members = {}; authors.forEach(a => {members[a.id] = a;});
  const cm = {}, am = {}, days = {};
  categories.forEach(c => { cm[c.id] = c; }); accounts.forEach(a => { am[a.id] = a; });
  entries.forEach(e => {
   const s = stamp(e.occurred_at);
   if (!days[s.date]) days[s.date] = {date: s.date, expense: 0, items: []};
   if (e.kind === 'expense') days[s.date].expense += e.amount_cent;
-  days[s.date].items.push({...e, ...s, category: cm[e.category_id] || {name: '历史分类', icon: '📦'}, accountName: am[e.account_id] ? am[e.account_id].name : '未指定账户', authorName: e.created_by ? '成员 ' + e.created_by : '历史记录', display: money(e.amount_cent)});
+  days[s.date].items.push({...e, ...s, category: cm[e.category_id] || {name: '历史分类', icon: '📦'}, accountName: am[e.account_id] ? am[e.account_id].name : '未指定账户', authorName: memberName(members[e.created_by] || {id: e.created_by}), display: money(e.amount_cent)});
  });
  return Object.keys(days).sort().reverse().map(k => ({...days[k], total: money(days[k].expense)}));
 }

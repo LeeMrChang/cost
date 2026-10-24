@@ -1,22 +1,28 @@
+const {memberLabel} = require('../../utils/members');
 const api = require('../../utils/api');
 const { parseCent, money, acceptAmountInput } = require('../../utils/money');
 const { emptyFilters, query, stamp, allowed, groups, requestID } = require('../../utils/ledger');
 Page({
- data: {month: stamp().date.slice(0, 7), groups: [], entries: [], categories: [], accounts: [], authors: [], visibleCategories: [], visibleAccounts: [], summary: {}, error: '', loading: false, loadingMore: false, total: 0, page: 0, hasMore: false, filters: emptyFilters(), draft: emptyFilters(), search: '', filtered: false, filterOpen: false, filterError: '', exporting: false, editor: false, kind: 'expense', categoryID: 0, accountID: 0, accountIndex: 0, amount: '', note: '', date: stamp().date, time: '12:00', editID: null, saving: false, dateOpen: false, monthOpen: false, filterCategories: [], filterAccounts: [], filterAuthors: [], categoryFilterIndex: 0, accountFilterIndex: 0, authorFilterIndex: 0, kindFilterIndex: 0, kinds: [{label: '全部类型', value: ''}, {label: '支出', value: 'expense'}, {label: '收入', value: 'income'}]},
+ data: {memberScopeValue: 'all', month: stamp().date.slice(0, 7), groups: [], entries: [], categories: [], accounts: [], authors: [], visibleCategories: [], visibleAccounts: [], summary: {}, error: '', loading: false, loadingMore: false, total: 0, page: 0, hasMore: false, filters: emptyFilters(), draft: emptyFilters(), search: '', filtered: false, filterOpen: false, filterError: '', exporting: false, editor: false, kind: 'expense', categoryID: 0, accountID: 0, accountIndex: 0, amount: '', note: '', date: stamp().date, time: '12:00', editID: null, saving: false, dateOpen: false, monthOpen: false, filterCategories: [], filterAccounts: [], filterAuthors: [], categoryFilterIndex: 0, accountFilterIndex: 0, authorFilterIndex: 0, kindFilterIndex: 0, kinds: [{label: '全部类型', value: ''}, {label: '支出', value: 'expense'}, {label: '收入', value: 'income'}]},
  onShow() { this.setData({groups: [], entries: [], summary: {}, editor: false, amount: '', note: ''}); this.load(); },
  onHide() { this.loadVersion = (this.loadVersion || 0) + 1; },
  onUnload() { this.onHide(); },
  onReachBottom() { this.loadMore(); },
  async load() {
   const version = this.loadVersion = (this.loadVersion || 0) + 1;
-  this.setData({loading: true, loadingMore: false, error: '', entries: [], groups: [], total: 0, page: 0, hasMore: false, summary: {}});
+  const current = api.session(), userID = current && current.user && current.user.id;
+  if (this.loadedUserID !== undefined && this.loadedUserID !== userID) this.setData({filters: emptyFilters(), draft: emptyFilters(), search: ''});
+  this.loadedUserID = userID;
+  const selected = this.data.filters.created_by;
+  const memberScopeValue = selected === '' || selected == null ? 'all' : String(selected) === String(userID) ? 'mine' : 'specific';
+  this.setData({memberScopeValue, authors: [], filterAuthors: [], filterOpen: false, loading: true, loadingMore: false, error: '', entries: [], groups: [], total: 0, page: 0, hasMore: false, summary: {}});
   try {
    const q = query(this.data.filters, this.data.month, 1);
    const filtered = Object.keys(this.data.filters).some(k => this.data.filters[k] !== '');
    const [categories, accounts, authors, response, stats] = await Promise.all([api.request('/api/v1/categories'), api.request('/api/v1/accounts'), api.request('/api/v1/entry-authors'), api.request('/api/v1/entries?' + q), filtered ? Promise.resolve(null) : api.request('/api/v1/stats?month=' + this.data.month).catch(() => null)]);
    if (version !== this.loadVersion) return;
    const s = response.summary, entries = response.items || [];
-   this.setData({categories, accounts, authors, entries, groups: groups(entries, categories, accounts), total: response.total, page: 1, hasMore: entries.length < response.total, filtered, summary: {expense: money(s.expense_cent), income: money(s.income_cent), balance: money(s.balance_cent), ...(!filtered ? {budget: !stats ? '读取失败' : stats.budget_cent === null ? '未设置' : '¥' + money(stats.budget_cent), remaining: !stats ? '读取失败' : stats.remaining_cent === null ? '未设置' : '¥' + money(stats.remaining_cent)} : {})}});
+   this.setData({categories, accounts, authors, entries, groups: groups(entries, categories, accounts, authors), total: response.total, page: 1, hasMore: entries.length < response.total, filtered, summary: {expense: money(s.expense_cent), income: money(s.income_cent), balance: money(s.balance_cent), ...(!filtered ? {budget: !stats ? '读取失败' : stats.budget_cent === null ? '未设置' : '¥' + money(stats.budget_cent), remaining: !stats ? '读取失败' : stats.remaining_cent === null ? '未设置' : '¥' + money(stats.remaining_cent)} : {})}});
   } catch (e) { if (version === this.loadVersion) this.setData({error: e.message}); }
   finally { if (version === this.loadVersion) this.setData({loading: false}); }
  },
@@ -29,9 +35,18 @@ Page({
    if (version !== this.loadVersion) return;
    const map = {}; this.data.entries.concat(response.items || []).forEach(e => {map[e.id] = e;});
    const entries = Object.values(map).sort((a, b) => b.occurred_at.localeCompare(a.occurred_at) || b.id - a.id);
-   this.setData({entries, groups: groups(entries, this.data.categories, this.data.accounts), total: response.total, summary: {...this.data.summary, income: money(response.summary.income_cent), expense: money(response.summary.expense_cent), balance: money(response.summary.balance_cent)}, page: next, hasMore: response.items.length > 0 && entries.length < response.total});
+   this.setData({entries, groups: groups(entries, this.data.categories, this.data.accounts, this.data.authors), total: response.total, summary: {...this.data.summary, income: money(response.summary.income_cent), expense: money(response.summary.expense_cent), balance: money(response.summary.balance_cent)}, page: next, hasMore: response.items.length > 0 && entries.length < response.total});
   } catch (e) { if (version === this.loadVersion) this.setData({error: e.message}); }
   finally { if (version === this.loadVersion) this.setData({loadingMore: false}); }
+ },
+ async memberScope(e) {
+  const scope = e.currentTarget.dataset.scope;
+  const current = api.session();
+  if (scope !== 'all' && scope !== 'mine') return;
+  if (!current || !current.user || !current.user.id) {this.setData({error: '请先登录家庭账本'}); return;}
+  const filters = {...this.data.filters, created_by: scope === 'mine' ? current.user.id : ''};
+  this.setData({filters, draft: {...filters}, filterOpen: false});
+  await this.load();
  },
  openMonth() { this.setData({monthOpen: true}); },
  closeMonth() { this.setData({monthOpen: false}); },
@@ -42,7 +57,7 @@ Page({
   const draft = {...emptyFilters(), ...this.data.filters};
   const filterCategories = [{id: '', label: '全部分类'}, ...this.data.categories.map(c => ({...c, label: c.name + (c.kind === 'income' ? ' · 收入' : ' · 支出') + (c.disabled ? '（已停用）' : '')}))];
   const filterAccounts = [{id: '', label: '全部账户'}, {id: 0, label: '未指定账户'}, ...this.data.accounts.map(a => ({...a, label: a.name + (a.disabled ? '（已停用）' : '')}))];
-  const filterAuthors = [{id: '', label: '全部成员'}, ...this.data.authors.map(a => ({id: a.id, label: a.id ? '成员 ' + a.id : '历史未指定成员'}))];
+  const filterAuthors = [{id: '', label: '全部成员'}, ...this.data.authors.map(a => ({id: a.id, label: memberLabel(a)}))];
   const index = (items, value, key = 'id') => Math.max(0, items.findIndex(i => String(i[key]) === String(value)));
   this.setData({filterOpen: true, filterError: '', draft, filterCategories, filterAccounts, filterAuthors, categoryFilterIndex: index(filterCategories, draft.category_id), accountFilterIndex: index(filterAccounts, draft.account_id), authorFilterIndex: index(filterAuthors, draft.created_by), kindFilterIndex: index(this.data.kinds, draft.kind, 'value')});
  },

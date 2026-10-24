@@ -31,5 +31,17 @@ const api = require('../utils/api');
  wx.setStorageSync('cost_session', { token: 'session', expires_at: new Date(Date.now()+3600000).toISOString() });
  handler = options => { assert.ok(options.url.endsWith('/api/v1/auth/logout')); options.success({ statusCode: 204 }); };
  await api.logout(); assert.equal(api.session(), null);
+ // 旧账号延迟返回的昵称或401不能覆盖/清除新账号会话。
+ const sessionA = {token: 'account-a', expires_at: new Date(Date.now()+3600000).toISOString(), user: {id: 1, nickname: '甲'}};
+ const sessionB = {token: 'account-b', expires_at: sessionA.expires_at, user: {id: 2, nickname: '乙'}};
+ for (const statusCode of [200, 401, 403]) {
+  wx.setStorageSync('cost_session', sessionA);
+  let pending; handler = options => {pending = options;};
+  const first = api.me();
+  wx.setStorageSync('cost_session', sessionB);
+  pending.success({statusCode, data: statusCode === 200 ? sessionA.user : {error: statusCode === 401 ? 'unauthorized' : 'family_access_required'}});
+  await assert.rejects(first, /登录状态已变化/);
+  assert.equal(api.session().token, 'account-b'); assert.equal(api.session().user.nickname, '乙');
+ }
  console.log('auth request/session tests passed');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -13,6 +13,7 @@ type session struct {
 }
 type invitation struct{ expires time.Time }
 type Memory struct {
+	nicknames   map[int64]string
 	mu          sync.Mutex
 	next        int64
 	users       map[string]int64
@@ -23,7 +24,7 @@ type Memory struct {
 }
 
 func NewMemory() *Memory {
-	return &Memory{next: 1, users: map[string]int64{}, members: map[int64]string{}, sessions: map[string]session{}, invites: map[string]invitation{}}
+	return &Memory{nicknames: map[int64]string{}, next: 1, users: map[string]int64{}, members: map[int64]string{}, sessions: map[string]session{}, invites: map[string]invitation{}}
 }
 func (m *Memory) Login(_ context.Context, openid, hash string, expires time.Time) (Principal, error) {
 	m.mu.Lock()
@@ -40,7 +41,7 @@ func (m *Memory) Login(_ context.Context, openid, hash string, expires time.Time
 		}
 	}
 	m.sessions[hash] = session{id, expires}
-	return Principal{id, m.members[id]}, nil
+	return Principal{ID: id, Role: m.members[id], Nickname: m.nicknames[id]}, nil
 }
 func (m *Memory) Resolve(_ context.Context, hash string, now time.Time) (Principal, error) {
 	m.mu.Lock()
@@ -49,7 +50,7 @@ func (m *Memory) Resolve(_ context.Context, hash string, now time.Time) (Princip
 	if !ok || !s.expires.After(now) {
 		return Principal{}, ErrUnauthorized
 	}
-	return Principal{s.user, m.members[s.user]}, nil
+	return Principal{ID: s.user, Role: m.members[s.user], Nickname: m.nicknames[s.user]}, nil
 }
 func (m *Memory) Logout(_ context.Context, hash string) error {
 	m.mu.Lock()
@@ -95,7 +96,7 @@ func (m *Memory) Members(context.Context) ([]Principal, error) {
 	defer m.mu.Unlock()
 	out := []Principal{}
 	for id, role := range m.members {
-		out = append(out, Principal{id, role})
+		out = append(out, Principal{ID: id, Role: role, Nickname: m.nicknames[id]})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out, nil

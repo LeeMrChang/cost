@@ -198,7 +198,9 @@ type TransferPage struct {
 
 // Author 表示记账记录中出现过的创建者，用于创建者筛选选项。
 type Author struct {
-	ID int64 `json:"id"` // 成员 ID；0 表示历史无创建者记录。
+	Nickname string `json:"nickname"` // 最新昵称，空字符串时回退显示编号。
+	Status   string `json:"status"`   // active 当前成员、removed 已移除、unspecified 历史未指定。
+	ID       int64  `json:"id"`       // 成员 ID；0 表示历史无创建者记录。
 }
 
 // ValidateCategory 校验分类名称、图标长度、排序值和收支类型。

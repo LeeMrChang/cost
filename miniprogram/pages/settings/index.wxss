@@ -1,6 +1,9 @@
+@import "../../styles/manage.wxss";
 .result{margin-top:24rpx;color:#1687ff;font-size:25rpx}
 .invite {word-break:break-all;padding:24rpx 0;font-family:monospace;}
 .member {display:flex;align-items:center;justify-content:space-between;margin-top:20rpx;}
 .error {color:#c33;}
 
 .management-link{padding:26rpx 0;border-bottom:1rpx solid #f0f0f3;gap:20rpx}.management-link:last-child{border:0}.management-link .muted{margin-top:12rpx;font-size:23rpx}.management-link>text{font-size:42rpx;color:#b1b1bb}
+
+.member{flex-wrap:wrap;gap:12rpx}.member>text{flex:1;min-width:200rpx;overflow-wrap:anywhere}.member button{margin:0}.sheet .button{margin-top:28rpx}.sheet .error{margin-top:20rpx}

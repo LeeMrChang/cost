@@ -121,7 +121,10 @@ func (m *MySQL) Migrate(ctx context.Context) error {
 	if err := applyTableComments(ctx, conn); err != nil {
 		return err
 	}
-	return applyLedgerFeatures(ctx, conn)
+	if err := applyLedgerFeatures(ctx, conn); err != nil {
+		return err
+	}
+	return applyMemberNicknames(ctx, conn)
 }
 func (m *MySQL) DB() *sql.DB { return m.db }
 

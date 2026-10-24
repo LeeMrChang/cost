@@ -34,7 +34,9 @@ elif name in ('mysql', 'mysqlcheck', 'mysqladmin'):
     if name == 'mysql' and any('t_schema_migrations' in x for x in a):
         if os.environ.get('REPORT_FAIL') == '1': sys.exit(1)
         if os.environ.get('MISSING_CATEGORY') == '1' and any('FROM t_categories' in x for x in a): sys.exit(1)
-        print('schema_versions\t004_ledger_features.sql\nentries_count\t1\nincome_count\t1\nincome_cent\t42\nexpense_count\t0\nexpense_cent\t0\nfamily_members_count\t1\naccounts_count\t2\ntransfers_count\t0')
+        if os.environ.get('MISSING_NICKNAME') == '1' and any('nickname' in x for x in a): sys.exit(1)
+        versions = '004_ledger_features.sql' + ('' if os.environ.get('MISSING_F05') == '1' else ',005_member_nicknames.sql')
+        print('schema_versions\t' + versions + '\nentries_count\t1\nincome_count\t1\nincome_cent\t42\nexpense_count\t0\nexpense_cent\t0\nfamily_members_count\t1\naccounts_count\t2\ntransfers_count\t0')
     if name == 'mysql' and '-e' not in a:
         data = sys.stdin.read()
         if os.environ.get('RESTORE_FAIL') == '1': sys.exit(1)
@@ -161,6 +163,14 @@ class BackupTests(unittest.TestCase):
         self.seed('cost-example.sql.gz')
         result = self.run_script(VERIFY, MISSING_CATEGORY='1')
         self.assertNotEqual(result.returncode, 0)
+
+    def test_missing_nickname_column_is_not_a_successful_restore(self):
+        self.seed('cost-example.sql.gz')
+        self.assertNotEqual(self.run_script(VERIFY, MISSING_NICKNAME='1').returncode, 0)
+
+    def test_missing_f05_migration_is_not_a_successful_restore(self):
+        self.seed('cost-example.sql.gz')
+        self.assertNotEqual(self.run_script(VERIFY, MISSING_F05='1').returncode, 0)
 
     def test_restore_import_failure_preserves_backup_and_is_unhealthy(self):
         source = self.seed('cost-example.sql.gz')

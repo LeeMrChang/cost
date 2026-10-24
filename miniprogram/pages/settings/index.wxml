@@ -1,14 +1,16 @@
 <view class="container"><view class="title">家庭设置</view>
  <view wx:if="{{user}}" class="card"><view class="section">账本管理</view><view class="management-link row" bindtap="openAccounts"><view><view>👛 账户与转账</view><view class="muted">查看余额，记录账户之间的资金流转</view></view><text>›</text></view><view class="management-link row" bindtap="openCategories"><view><view>🏷️ 分类管理</view><view class="muted">新增、排序和停用家庭收支分类</view></view><text>›</text></view><view class="management-link row" bindtap="openExport"><view><view>↗ 导出账单</view><view class="muted">按日期和筛选条件分享 CSV 文件</view></view><text>›</text></view></view>
- <view wx:if="{{user}}" class="card"><view class="section">成员 {{user.id}} · {{user.role === 'admin' ? '管理员' : '家庭成员'}}</view><button bindtap="signOut">退出登录</button></view>
+ <view wx:if="{{user}}" class="card"><view class="section">{{user.label}} · {{user.role === 'admin' ? '管理员' : '家庭成员'}}</view><button data-id="{{user.id}}" bindtap="editNickname">设置我的昵称</button><button bindtap="signOut">退出登录</button></view>
  <view wx:if="{{user.role === 'admin'}}" class="card">
   <view class="section">邀请家人</view><view class="muted">每个邀请码仅可使用一次，24 小时内有效。只分享给你要邀请的家人。</view>
   <button class="button" loading="{{busy}}" disabled="{{busy}}" bindtap="generateInvite">生成邀请码</button>
   <view wx:if="{{invite}}"><view class="invite">{{invite}}</view><button bindtap="copyInvite">复制邀请码</button></view>
   <view class="section">家庭成员</view>
-  <view wx:for="{{members}}" wx:key="id" class="member"><text>成员 {{item.id}} · {{item.role === 'admin' ? '管理员' : '家庭成员'}}</text><button wx:if="{{item.role !== 'admin'}}" size="mini" data-id="{{item.id}}" bindtap="removeMember">移除</button></view>
+  <view wx:for="{{members}}" wx:key="id" class="member"><text>{{item.label}} · {{item.role === 'admin' ? '管理员' : '家庭成员'}}</text><button size="mini" data-id="{{item.id}}" bindtap="editNickname">改昵称</button><button wx:if="{{item.role !== 'admin'}}" size="mini" data-id="{{item.id}}" bindtap="removeMember">移除</button></view>
  </view>
  <view wx:if="{{user.role === 'admin'}}" class="card"><view class="section">月预算</view><view class="field"><view bindtap="openMonth">{{month}}　⌄</view></view><view class="field"><input type="digit" value="{{budget}}" placeholder="预算金额（元）" data-field="budget" bindinput="input" /></view><button class="button" style="margin-top:28rpx" bindtap="saveBudget">设置预算</button></view>
  <view wx:if="{{error}}" class="error">{{error}}</view>
 </view>
 <calendar-popup mode="month" visible="{{monthOpen}}" month="{{month}}" bind:confirm="onMonthConfirm" bind:cancel="closeMonth" />
+
+<view wx:if="{{nicknameEditor}}" class="mask" bindtap="closeNickname"><view class="sheet" catchtap="noop"><view class="row"><text bindtap="closeNickname">取消</text><text class="section">成员昵称</text><text bindtap="clearNickname">清除</text></view><view class="field"><input value="{{nickname}}" maxlength="80" disabled="{{nicknameSaving}}" placeholder="最多 20 个字符" bindinput="nicknameInput"/></view><view class="muted">昵称用于识别记录人；清除后显示成员编号，修改后历史账单同步显示。</view><view wx:if="{{nicknameError}}" class="error">{{nicknameError}}</view><button class="button" loading="{{nicknameSaving}}" disabled="{{nicknameSaving}}" bindtap="saveNickname">保存昵称</button></view></view>

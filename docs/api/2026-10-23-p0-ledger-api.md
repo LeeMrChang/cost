@@ -24,7 +24,7 @@
 
 返回 `items`、`total`、`page`、`page_size` 和 `summary`；summary 含 `income_cent`、`expense_cent`、`balance_cent`，按全部匹配结果统计，不限于当前页。
 
-`GET /api/v1/entry-authors` 返回可用于筛选的历史记录人 `{id}` 数组。返回记录人编号，不暴露微信 OpenID 或会话。
+`GET /api/v1/entry-authors` 已由 F05 扩展为当前成员与历史创建人 `{id,nickname,status}` 数组，包含收支和转账引用。详见 [成员接口](2026-10-24-family-member-api.md)；不暴露微信 OpenID 或会话。
 
 账单创建和修改沿用原端点，增加可选 `account_id`。更新时保留原停用分类/账户允许，切换到另一个停用项不允许。
 

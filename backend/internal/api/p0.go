@@ -254,7 +254,7 @@ func (a *API) filteredList(w http.ResponseWriter, r *http.Request) {
 	respond(w, 200, out)
 }
 func (a *API) authors(w http.ResponseWriter, r *http.Request) {
-	out, err := a.store.Authors(r.Context())
+	out, err := a.authorDirectory(r.Context())
 	if err != nil {
 		fail(w, err)
 		return
@@ -306,18 +306,32 @@ func (a *API) exportEntries(w http.ResponseWriter, r *http.Request) {
 	for _, ac := range accounts {
 		accountNames[ac.ID] = ac.Name
 	}
+	profiles, err := a.authorDirectory(r.Context())
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	authors := map[int64]domain.Author{}
+	for _, p := range profiles {
+		authors[p.ID] = p
+	}
 	var b bytes.Buffer
 	b.WriteString("\ufeff")
 	writer := csv.NewWriter(&b)
 	writer.UseCRLF = true
-	writer.Write([]string{"账单编号", "时间（北京时间）", "类型", "分类", "金额（元）", "账户", "记录人编号", "备注"})
+	writer.Write([]string{"账单编号", "时间（北京时间）", "类型", "分类", "金额（元）", "账户", "记录人编号", "备注", "记录人名称", "成员状态"})
 	loc, _ := time.LoadLocation("Asia/Shanghai")
 	for _, e := range page.Items {
+		p, ok := authors[e.CreatedBy]
+		if !ok {
+			p = domain.Author{ID: e.CreatedBy, Status: "removed"}
+		}
+		authorName, authorStatus := authorDisplay(p)
 		kind := "支出"
 		if e.Kind == "income" {
 			kind = "收入"
 		}
-		writer.Write([]string{strconv.FormatInt(e.ID, 10), e.OccurredAt.In(loc).Format("2006-01-02 15:04:05"), kind, csvText(names[e.CategoryID]), fmt.Sprintf("%d.%02d", e.Amount/100, e.Amount%100), csvText(accountNames[e.AccountID]), strconv.FormatInt(e.CreatedBy, 10), csvText(e.Note)})
+		writer.Write([]string{strconv.FormatInt(e.ID, 10), e.OccurredAt.In(loc).Format("2006-01-02 15:04:05"), kind, csvText(names[e.CategoryID]), fmt.Sprintf("%d.%02d", e.Amount/100, e.Amount%100), csvText(accountNames[e.AccountID]), strconv.FormatInt(e.CreatedBy, 10), csvText(e.Note), csvText(authorName), authorStatus})
 	}
 	writer.Flush()
 	if err = writer.Error(); err != nil {

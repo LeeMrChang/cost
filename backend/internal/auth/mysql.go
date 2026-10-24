@@ -19,7 +19,8 @@ func (m *MySQL) Login(ctx context.Context, openid, hash string, expires time.Tim
 		return Principal{}, err
 	}
 	var id int64
-	if err = tx.QueryRowContext(ctx, "SELECT id FROM t_users WHERE openid=?", openid).Scan(&id); err != nil {
+	var nickname string
+	if err = tx.QueryRowContext(ctx, "SELECT id,nickname FROM t_users WHERE openid=?", openid).Scan(&id, &nickname); err != nil {
 		return Principal{}, err
 	}
 	if _, err = tx.ExecContext(ctx, "DELETE FROM t_sessions WHERE expires_at<=?", time.Now().UTC()); err != nil {
@@ -28,7 +29,7 @@ func (m *MySQL) Login(ctx context.Context, openid, hash string, expires time.Tim
 	if _, err = tx.ExecContext(ctx, "INSERT INTO t_sessions(token_hash,user_id,expires_at) VALUES(?,?,?)", hash, id, expires); err != nil {
 		return Principal{}, err
 	}
-	p := Principal{ID: id}
+	p := Principal{ID: id, Nickname: nickname}
 	err = tx.QueryRowContext(ctx, "SELECT role FROM t_family_members WHERE user_id=?", id).Scan(&p.Role)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return Principal{}, err
@@ -37,7 +38,7 @@ func (m *MySQL) Login(ctx context.Context, openid, hash string, expires time.Tim
 }
 func (m *MySQL) Resolve(ctx context.Context, hash string, now time.Time) (Principal, error) {
 	var p Principal
-	err := m.DB.QueryRowContext(ctx, "SELECT s.user_id,COALESCE(f.role,'') FROM t_sessions s LEFT JOIN t_family_members f ON f.user_id=s.user_id WHERE s.token_hash=? AND s.expires_at>?", hash, now).Scan(&p.ID, &p.Role)
+	err := m.DB.QueryRowContext(ctx, "SELECT s.user_id,COALESCE(f.role,''),u.nickname FROM t_sessions s JOIN t_users u ON u.id=s.user_id LEFT JOIN t_family_members f ON f.user_id=s.user_id WHERE s.token_hash=? AND s.expires_at>?", hash, now).Scan(&p.ID, &p.Role, &p.Nickname)
 	if errors.Is(err, sql.ErrNoRows) {
 		return p, ErrUnauthorized
 	}
@@ -114,7 +115,7 @@ func (m *MySQL) Join(ctx context.Context, id int64, hash string, now time.Time) 
 	return tx.Commit()
 }
 func (m *MySQL) Members(ctx context.Context) ([]Principal, error) {
-	rows, err := m.DB.QueryContext(ctx, "SELECT user_id,role FROM t_family_members ORDER BY user_id")
+	rows, err := m.DB.QueryContext(ctx, "SELECT f.user_id,f.role,u.nickname FROM t_family_members f JOIN t_users u ON u.id=f.user_id ORDER BY f.user_id")
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +123,7 @@ func (m *MySQL) Members(ctx context.Context) ([]Principal, error) {
 	out := []Principal{}
 	for rows.Next() {
 		var p Principal
-		if err = rows.Scan(&p.ID, &p.Role); err != nil {
+		if err = rows.Scan(&p.ID, &p.Role, &p.Nickname); err != nil {
 			return nil, err
 		}
 		out = append(out, p)

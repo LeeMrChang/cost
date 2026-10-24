@@ -18,8 +18,9 @@ import (
 )
 
 type API struct {
-	store store.Store
-	token string
+	profiles auth.ProfileRepository
+	store    store.Store
+	token    string
 }
 
 // New enables the explicit local-development token used by existing tests.
@@ -28,7 +29,10 @@ func NewWithAuth(s store.Store, service *auth.Service) http.Handler {
 	return newHandler(s, "", service)
 }
 func newHandler(s store.Store, token string, service *auth.Service) http.Handler {
-	a := &API{s, token}
+	a := &API{store: s, token: token}
+	if service != nil {
+		a.profiles = service.Repo
+	}
 	mux := http.NewServeMux()
 	if service != nil {
 		service.Register(mux)

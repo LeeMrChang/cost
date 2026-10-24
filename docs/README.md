@@ -68,3 +68,10 @@
 - [搜索、分类、账户、转账与导出 API](api/2026-10-23-p0-ledger-api.md)
 - [自动备份与恢复检查](ops/2026-10-23-automatic-backups.md)
 - [实现验证与发布检查](ops/2026-10-23-p0-ledger-validation.md)
+
+## F05 家庭成员维度
+
+- [2026-10-24：成员昵称、筛选与历史展示设计](superpowers/specs/2026-10-24-family-member-dimension-design.md)（已实现，待部署及真机验收）
+- [2026-10-24：F05 实施计划](superpowers/plans/2026-10-24-family-member-dimension.md)
+- [2026-10-24：F05 成员接口](api/2026-10-24-family-member-api.md)
+- [2026-10-24：F05 实现验证与启用](ops/2026-10-24-family-member-validation.md)
