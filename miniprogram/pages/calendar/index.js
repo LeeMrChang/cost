@@ -7,8 +7,8 @@ const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 function todayKey() { return new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10); }
 function buildGrid(month, series) {
 	const [y, m] = month.split('-').map(Number);
-	const offset = new Date(y, m - 1, 1).getDay();
-	const daysInMonth = new Date(y, m, 0).getDate();
+	const offset = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+	const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
 	const cells = [];
 	for (let i = 0; i < offset; i++) cells.push({day: 0});
 	for (let d = 1; d <= daysInMonth; d++) {
@@ -74,8 +74,8 @@ Page({
 		if (!key) return;
 		const version = this.loadVersion, dayVersion=this.dayVersion=(this.dayVersion||0)+1;
 		this.setData({selected: key, dayGroups: [], dayLoading: true});
-		const d = new Date(key + 'T00:00:00+08:00');
-		const display = (d.getMonth() + 1) + '月' + d.getDate() + '日 星期' + WEEKDAYS[d.getDay()];
+		const d = new Date(key + 'T00:00:00Z');
+		const display = (d.getUTCMonth() + 1) + '月' + d.getUTCDate() + '日 星期' + WEEKDAYS[d.getUTCDay()];
 		try {
 			let response = await api.request('/api/v1/entries?' + query({start_date: key, end_date: key}, '', 1));
 			if (version !== this.loadVersion || dayVersion !== this.dayVersion) return;
