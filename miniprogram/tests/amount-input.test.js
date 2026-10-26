@@ -23,7 +23,11 @@ function input(page, field, value) {
  return page.input({ currentTarget: { dataset: { field } }, detail: { value } });
 }
 
-for (const [name, field, save] of [['ledger', 'amount', 'save'], ['settings', 'budget', 'saveBudget']]) {
+// 记账金额统一走 utils/money.acceptAmountInput 校验，覆盖转账金额与预算编辑两处输入框。
+for (const [name, field, save, prepare] of [
+ ['accounts', 'amount', 'saveTransfer', () => {}],
+ ['budget', 'totalInput', 'save', page => page.editTotal()]
+]) {
  test(`${name}: rejects typed or pasted text and returns the previous display value`, () => {
   const { page } = loadPage(name);
   for (const previous of ['', '12.34']) {
@@ -54,6 +58,7 @@ for (const [name, field, save] of [['ledger', 'amount', 'save'], ['settings', 'b
 
  test(`${name}: invalid stored values are still rejected before making a request`, async () => {
   const { page, requests, toasts } = loadPage(name);
+  prepare(page);
   for (const value of ['中文', '1a2', '1.234', '']) {
    page.data[field] = value;
    await page[save]();
@@ -63,8 +68,8 @@ for (const [name, field, save] of [['ledger', 'amount', 'save'], ['settings', 'b
  });
 }
 
-test('ledger: notes still accept Chinese text', () => {
- const { page } = loadPage('ledger');
+test('accounts: notes still accept Chinese text', () => {
+ const { page } = loadPage('accounts');
  input(page, 'note', '午餐和朋友一起吃饭');
  assert.equal(page.data.note, '午餐和朋友一起吃饭');
 });

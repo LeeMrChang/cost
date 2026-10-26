@@ -14,17 +14,7 @@ import (
 	"unicode"
 )
 
-func adminOnly(w http.ResponseWriter, r *http.Request) bool {
-	if auth.Current(r.Context()).Role != "admin" {
-		respond(w, 403, map[string]string{"error": "admin_required"})
-		return false
-	}
-	return true
-}
 func (a *API) createCategory(w http.ResponseWriter, r *http.Request) {
-	if !adminOnly(w, r) {
-		return
-	}
 	var c domain.Category
 	if !decode(w, r, &c) {
 		return
@@ -39,9 +29,6 @@ func (a *API) createCategory(w http.ResponseWriter, r *http.Request) {
 	respond(w, 201, out)
 }
 func (a *API) updateCategory(w http.ResponseWriter, r *http.Request) {
-	if !adminOnly(w, r) {
-		return
-	}
 	n, err := id(r)
 	if err != nil {
 		fail(w, err)
@@ -67,9 +54,6 @@ func (a *API) accounts(w http.ResponseWriter, r *http.Request) {
 	respond(w, 200, out)
 }
 func (a *API) createAccount(w http.ResponseWriter, r *http.Request) {
-	if !adminOnly(w, r) {
-		return
-	}
 	var ac domain.Account
 	if !decode(w, r, &ac) {
 		return
@@ -84,9 +68,6 @@ func (a *API) createAccount(w http.ResponseWriter, r *http.Request) {
 	respond(w, 201, out)
 }
 func (a *API) updateAccount(w http.ResponseWriter, r *http.Request) {
-	if !adminOnly(w, r) {
-		return
-	}
 	n, err := id(r)
 	if err != nil {
 		fail(w, err)
@@ -158,14 +139,8 @@ func (a *API) deleteTransfer(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	t, err := a.store.GetTransfer(r.Context(), n)
-	if err != nil {
+	if _, err = a.store.GetTransfer(r.Context(), n); err != nil {
 		fail(w, err)
-		return
-	}
-	p := auth.Current(r.Context())
-	if p.Role != "admin" && (p.ID == 0 || p.ID != t.CreatedBy) {
-		respond(w, 403, map[string]string{"error": "entry_permission_denied"})
 		return
 	}
 	if err = a.store.DeleteTransfer(r.Context(), n); err != nil {

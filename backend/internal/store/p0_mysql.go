@@ -16,7 +16,7 @@ func (m *MySQL) ledgerTx(ctx context.Context) (*sql.Tx, error) {
 		return nil, err
 	}
 	var id int64
-	err = tx.QueryRowContext(ctx, "SELECT id FROM t_ledgers WHERE id=1 FOR UPDATE").Scan(&id)
+	err = tx.QueryRowContext(ctx, "SELECT id FROM t_ledgers WHERE id=? FOR UPDATE", LedgerID(ctx)).Scan(&id)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
@@ -86,14 +86,15 @@ func (m *MySQL) SaveCategory(ctx context.Context, c domain.Category) (domain.Cat
 		return c, err
 	}
 	defer tx.Rollback()
+	ledgerID := LedgerID(ctx)
 	if c.ID == 0 {
 		if err = tx.QueryRowContext(ctx, "SELECT COALESCE(MAX(id),0)+1 FROM t_categories").Scan(&c.ID); err != nil {
 			return c, err
 		}
-		_, err = tx.ExecContext(ctx, "INSERT INTO t_categories(id,ledger_id,name,kind,icon,sort_order,disabled) VALUES(?,1,?,?,?,?,?)", c.ID, c.Name, c.Kind, c.Icon, c.SortOrder, c.Disabled)
+		_, err = tx.ExecContext(ctx, "INSERT INTO t_categories(id,ledger_id,name,kind,icon,sort_order,disabled) VALUES(?,?,?,?,?,?,?)", c.ID, ledgerID, c.Name, c.Kind, c.Icon, c.SortOrder, c.Disabled)
 	} else {
 		var kind string
-		err = tx.QueryRowContext(ctx, "SELECT kind FROM t_categories WHERE ledger_id=1 AND id=?", c.ID).Scan(&kind)
+		err = tx.QueryRowContext(ctx, "SELECT kind FROM t_categories WHERE ledger_id=? AND id=?", ledgerID, c.ID).Scan(&kind)
 		if errors.Is(err, sql.ErrNoRows) {
 			return c, domain.ErrNotFound
 		}
@@ -103,7 +104,7 @@ func (m *MySQL) SaveCategory(ctx context.Context, c domain.Category) (domain.Cat
 		if kind != c.Kind {
 			return c, domain.ErrInvalid
 		}
-		_, err = tx.ExecContext(ctx, "UPDATE t_categories SET name=?,icon=?,sort_order=?,disabled=? WHERE ledger_id=1 AND id=?", c.Name, c.Icon, c.SortOrder, c.Disabled, c.ID)
+		_, err = tx.ExecContext(ctx, "UPDATE t_categories SET name=?,icon=?,sort_order=?,disabled=? WHERE ledger_id=? AND id=?", c.Name, c.Icon, c.SortOrder, c.Disabled, ledgerID, c.ID)
 	}
 	if err != nil {
 		return c, err
@@ -119,20 +120,21 @@ func (m *MySQL) SaveAccount(ctx context.Context, a domain.Account) (domain.Accou
 		return a, err
 	}
 	defer tx.Rollback()
+	ledgerID := LedgerID(ctx)
 	if a.ID == 0 {
-		r, e := tx.ExecContext(ctx, "INSERT INTO t_accounts(ledger_id,name,type,opening_balance_cent,disabled) VALUES(1,?,?,?,?)", a.Name, a.Type, a.OpeningBalance, a.Disabled)
+		r, e := tx.ExecContext(ctx, "INSERT INTO t_accounts(ledger_id,name,type,opening_balance_cent,disabled) VALUES(?,?,?,?,?)", ledgerID, a.Name, a.Type, a.OpeningBalance, a.Disabled)
 		err = e
 		if err == nil {
 			a.ID, err = r.LastInsertId()
 		}
 	} else {
 		var id int64
-		err = tx.QueryRowContext(ctx, "SELECT id FROM t_accounts WHERE ledger_id=1 AND id=?", a.ID).Scan(&id)
+		err = tx.QueryRowContext(ctx, "SELECT id FROM t_accounts WHERE ledger_id=? AND id=?", ledgerID, a.ID).Scan(&id)
 		if errors.Is(err, sql.ErrNoRows) {
 			return a, domain.ErrNotFound
 		}
 		if err == nil {
-			_, err = tx.ExecContext(ctx, "UPDATE t_accounts SET name=?,type=?,opening_balance_cent=?,disabled=? WHERE ledger_id=1 AND id=?", a.Name, a.Type, a.OpeningBalance, a.Disabled, a.ID)
+			_, err = tx.ExecContext(ctx, "UPDATE t_accounts SET name=?,type=?,opening_balance_cent=?,disabled=? WHERE ledger_id=? AND id=?", a.Name, a.Type, a.OpeningBalance, a.Disabled, ledgerID, a.ID)
 		}
 	}
 	if err != nil {
@@ -151,10 +153,10 @@ func (m *MySQL) SaveAccount(ctx context.Context, a domain.Account) (domain.Accou
 }
 func (m *MySQL) Accounts(ctx context.Context) ([]domain.Account, error) {
 	rows, err := m.db.QueryContext(ctx, `SELECT a.id,a.name,a.type,a.opening_balance_cent,a.disabled,
- a.opening_balance_cent+COALESCE((SELECT SUM(CASE e.kind WHEN 'income' THEN e.amount_cent ELSE -e.amount_cent END) FROM t_entries e WHERE e.ledger_id=1 AND e.account_id=a.id),0)
- +COALESCE((SELECT SUM(t.amount_cent) FROM t_transfers t WHERE t.ledger_id=1 AND t.to_account_id=a.id),0)
- -COALESCE((SELECT SUM(t.amount_cent) FROM t_transfers t WHERE t.ledger_id=1 AND t.from_account_id=a.id),0)
- FROM t_accounts a WHERE a.ledger_id=1 ORDER BY a.id`)
+ a.opening_balance_cent+COALESCE((SELECT SUM(CASE e.kind WHEN 'income' THEN e.amount_cent ELSE -e.amount_cent END) FROM t_entries e WHERE e.ledger_id=a.ledger_id AND e.account_id=a.id AND e.deleted_at IS NULL),0)
+ +COALESCE((SELECT SUM(t.amount_cent) FROM t_transfers t WHERE t.ledger_id=a.ledger_id AND t.to_account_id=a.id),0)
+ -COALESCE((SELECT SUM(t.amount_cent) FROM t_transfers t WHERE t.ledger_id=a.ledger_id AND t.from_account_id=a.id),0)
+ FROM t_accounts a WHERE a.ledger_id=? ORDER BY a.id`, LedgerID(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -170,8 +172,9 @@ func (m *MySQL) Accounts(ctx context.Context) ([]domain.Account, error) {
 	return out, rows.Err()
 }
 func validateSQLReferences(ctx context.Context, tx *sql.Tx, e, old domain.Entry) error {
+	ledgerID := LedgerID(ctx)
 	var c domain.Category
-	err := tx.QueryRowContext(ctx, "SELECT id,kind,disabled FROM t_categories WHERE ledger_id=1 AND id=?", e.CategoryID).Scan(&c.ID, &c.Kind, &c.Disabled)
+	err := tx.QueryRowContext(ctx, "SELECT id,kind,disabled FROM t_categories WHERE ledger_id=? AND id=?", ledgerID, e.CategoryID).Scan(&c.ID, &c.Kind, &c.Disabled)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.ErrInvalid
 	}
@@ -189,7 +192,7 @@ func validateSQLReferences(ctx context.Context, tx *sql.Tx, e, old domain.Entry)
 	}
 	if e.AccountID != 0 {
 		var disabled bool
-		err = tx.QueryRowContext(ctx, "SELECT disabled FROM t_accounts WHERE ledger_id=1 AND id=?", e.AccountID).Scan(&disabled)
+		err = tx.QueryRowContext(ctx, "SELECT disabled FROM t_accounts WHERE ledger_id=? AND id=?", ledgerID, e.AccountID).Scan(&disabled)
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.ErrInvalid
 		}
@@ -219,7 +222,8 @@ func (m *MySQL) SaveTransfer(ctx context.Context, t domain.Transfer) (domain.Tra
 		return t, false, err
 	}
 	defer tx.Rollback()
-	old, err := scanTransfer(tx.QueryRowContext(ctx, "SELECT "+transferFields+" FROM t_transfers WHERE ledger_id=1 AND client_request_id=?", t.RequestID))
+	ledgerID := LedgerID(ctx)
+	old, err := scanTransfer(tx.QueryRowContext(ctx, "SELECT "+transferFields+" FROM t_transfers WHERE ledger_id=? AND client_request_id=?", ledgerID, t.RequestID))
 	if err == nil {
 		if !sameTransfer(old, t) {
 			return t, false, domain.ErrConflict
@@ -231,7 +235,7 @@ func (m *MySQL) SaveTransfer(ctx context.Context, t domain.Transfer) (domain.Tra
 	}
 	for _, id := range []int64{t.FromAccountID, t.ToAccountID} {
 		var disabled bool
-		err = tx.QueryRowContext(ctx, "SELECT disabled FROM t_accounts WHERE ledger_id=1 AND id=?", id).Scan(&disabled)
+		err = tx.QueryRowContext(ctx, "SELECT disabled FROM t_accounts WHERE ledger_id=? AND id=?", ledgerID, id).Scan(&disabled)
 		if errors.Is(err, sql.ErrNoRows) || disabled {
 			return t, false, domain.ErrInvalid
 		}
@@ -239,7 +243,7 @@ func (m *MySQL) SaveTransfer(ctx context.Context, t domain.Transfer) (domain.Tra
 			return t, false, err
 		}
 	}
-	r, err := tx.ExecContext(ctx, "INSERT INTO t_transfers(ledger_id,from_account_id,to_account_id,amount_cent,occurred_at,note,client_request_id,created_by) VALUES(1,?,?,?,?,?,?,NULLIF(?,0))", t.FromAccountID, t.ToAccountID, t.Amount, t.OccurredAt.UTC(), t.Note, t.RequestID, t.CreatedBy)
+	r, err := tx.ExecContext(ctx, "INSERT INTO t_transfers(ledger_id,from_account_id,to_account_id,amount_cent,occurred_at,note,client_request_id,created_by) VALUES(?,?,?,?,?,?,?,NULLIF(?,0))", ledgerID, t.FromAccountID, t.ToAccountID, t.Amount, t.OccurredAt.UTC(), t.Note, t.RequestID, t.CreatedBy)
 	if err != nil {
 		return t, false, err
 	}
@@ -250,14 +254,14 @@ func (m *MySQL) SaveTransfer(ctx context.Context, t domain.Transfer) (domain.Tra
 	return t, true, tx.Commit()
 }
 func (m *MySQL) GetTransfer(ctx context.Context, id int64) (domain.Transfer, error) {
-	t, err := scanTransfer(m.db.QueryRowContext(ctx, "SELECT "+transferFields+" FROM t_transfers WHERE ledger_id=1 AND id=?", id))
+	t, err := scanTransfer(m.db.QueryRowContext(ctx, "SELECT "+transferFields+" FROM t_transfers WHERE ledger_id=? AND id=?", LedgerID(ctx), id))
 	if errors.Is(err, sql.ErrNoRows) {
 		err = domain.ErrNotFound
 	}
 	return t, err
 }
 func (m *MySQL) DeleteTransfer(ctx context.Context, id int64) error {
-	r, err := m.db.ExecContext(ctx, "DELETE FROM t_transfers WHERE ledger_id=1 AND id=?", id)
+	r, err := m.db.ExecContext(ctx, "DELETE FROM t_transfers WHERE ledger_id=? AND id=?", LedgerID(ctx), id)
 	if err != nil {
 		return err
 	}
@@ -274,10 +278,11 @@ func (m *MySQL) Transfers(ctx context.Context, page, size int) (domain.TransferP
 		return out, err
 	}
 	defer tx.Rollback()
-	if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM t_transfers WHERE ledger_id=1").Scan(&out.Total); err != nil {
+	ledgerID := LedgerID(ctx)
+	if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM t_transfers WHERE ledger_id=?", ledgerID).Scan(&out.Total); err != nil {
 		return out, err
 	}
-	rows, err := tx.QueryContext(ctx, "SELECT "+transferFields+" FROM t_transfers WHERE ledger_id=1 ORDER BY occurred_at DESC,id DESC LIMIT ? OFFSET ?", size, (page-1)*size)
+	rows, err := tx.QueryContext(ctx, "SELECT "+transferFields+" FROM t_transfers WHERE ledger_id=? ORDER BY occurred_at DESC,id DESC LIMIT ? OFFSET ?", ledgerID, size, (page-1)*size)
 	if err != nil {
 		return out, err
 	}
@@ -297,9 +302,9 @@ func (m *MySQL) Transfers(ctx context.Context, page, size int) (domain.TransferP
 }
 func (m *MySQL) Query(ctx context.Context, f domain.EntryFilter) (domain.EntryPage, error) {
 	out := domain.EntryPage{Items: []domain.Entry{}, Page: f.Page, PageSize: f.PageSize}
-	where := "ledger_id=1"
-	args := []any{}
-	add := func(q string, v any) { where += " AND " + q; args = append(args, v) }
+	where := "ledger_id=? AND deleted_at IS NULL"
+	args := []any{LedgerID(ctx)}
+	add := func(q string, v ...any) { where += " AND " + q; args = append(args, v...) }
 	if !f.Start.IsZero() {
 		add("occurred_at>=?", f.Start.UTC())
 	}
@@ -307,7 +312,7 @@ func (m *MySQL) Query(ctx context.Context, f domain.EntryFilter) (domain.EntryPa
 		add("occurred_at<?", f.End.UTC())
 	}
 	if f.Query != "" {
-		add("LOCATE(BINARY ?,BINARY note)>0", f.Query)
+		add("(LOCATE(BINARY ?,BINARY note)>0 OR category_id IN (SELECT id FROM t_categories WHERE ledger_id=? AND LOCATE(BINARY ?,BINARY name)>0))", f.Query, LedgerID(ctx), f.Query)
 	}
 	if f.Kind != "" {
 		add("kind=?", f.Kind)
@@ -350,7 +355,7 @@ func (m *MySQL) Query(ctx context.Context, f domain.EntryFilter) (domain.EntryPa
 	return out, tx.Commit()
 }
 func (m *MySQL) Authors(ctx context.Context) ([]domain.Author, error) {
-	rows, err := m.db.QueryContext(ctx, "SELECT DISTINCT COALESCE(created_by,0) AS id FROM t_entries WHERE ledger_id=1 ORDER BY id")
+	rows, err := m.db.QueryContext(ctx, "SELECT DISTINCT COALESCE(created_by,0) AS id FROM t_entries WHERE ledger_id=? AND deleted_at IS NULL ORDER BY id", LedgerID(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -373,7 +378,8 @@ func (m *MySQL) PatchCategory(ctx context.Context, id int64, p domain.CategoryPa
 		return c, err
 	}
 	defer tx.Rollback()
-	err = tx.QueryRowContext(ctx, "SELECT id,name,kind,icon,sort_order,disabled FROM t_categories WHERE ledger_id=1 AND id=?", id).Scan(&c.ID, &c.Name, &c.Kind, &c.Icon, &c.SortOrder, &c.Disabled)
+	ledgerID := LedgerID(ctx)
+	err = tx.QueryRowContext(ctx, "SELECT id,name,kind,icon,sort_order,disabled FROM t_categories WHERE ledger_id=? AND id=?", ledgerID, id).Scan(&c.ID, &c.Name, &c.Kind, &c.Icon, &c.SortOrder, &c.Disabled)
 	if errors.Is(err, sql.ErrNoRows) {
 		return c, domain.ErrNotFound
 	}
@@ -388,7 +394,7 @@ func (m *MySQL) PatchCategory(ctx context.Context, id int64, p domain.CategoryPa
 	if err = domain.ValidateCategory(c); err != nil {
 		return c, err
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE t_categories SET name=?,icon=?,sort_order=?,disabled=? WHERE ledger_id=1 AND id=?", c.Name, c.Icon, c.SortOrder, c.Disabled, c.ID)
+	_, err = tx.ExecContext(ctx, "UPDATE t_categories SET name=?,icon=?,sort_order=?,disabled=? WHERE ledger_id=? AND id=?", c.Name, c.Icon, c.SortOrder, c.Disabled, ledgerID, c.ID)
 	if err != nil {
 		return c, err
 	}
@@ -401,7 +407,8 @@ func (m *MySQL) PatchAccount(ctx context.Context, id int64, p domain.AccountPatc
 		return a, err
 	}
 	defer tx.Rollback()
-	err = tx.QueryRowContext(ctx, "SELECT id,name,type,opening_balance_cent,disabled FROM t_accounts WHERE ledger_id=1 AND id=?", id).Scan(&a.ID, &a.Name, &a.Type, &a.OpeningBalance, &a.Disabled)
+	ledgerID := LedgerID(ctx)
+	err = tx.QueryRowContext(ctx, "SELECT id,name,type,opening_balance_cent,disabled FROM t_accounts WHERE ledger_id=? AND id=?", ledgerID, id).Scan(&a.ID, &a.Name, &a.Type, &a.OpeningBalance, &a.Disabled)
 	if errors.Is(err, sql.ErrNoRows) {
 		return a, domain.ErrNotFound
 	}
@@ -412,7 +419,7 @@ func (m *MySQL) PatchAccount(ctx context.Context, id int64, p domain.AccountPatc
 	if err = domain.ValidateAccount(a); err != nil {
 		return a, err
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE t_accounts SET name=?,type=?,opening_balance_cent=?,disabled=? WHERE ledger_id=1 AND id=?", a.Name, a.Type, a.OpeningBalance, a.Disabled, a.ID)
+	_, err = tx.ExecContext(ctx, "UPDATE t_accounts SET name=?,type=?,opening_balance_cent=?,disabled=? WHERE ledger_id=? AND id=?", a.Name, a.Type, a.OpeningBalance, a.Disabled, ledgerID, a.ID)
 	if err != nil {
 		return a, err
 	}

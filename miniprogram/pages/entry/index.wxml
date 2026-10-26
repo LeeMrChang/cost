@@ -1,0 +1,20 @@
+<view class="page {{kind}}" style="padding-top:{{statusBarHeight + 44}}px">
+ <view class="head">
+  <view class="cancel" bindtap="close">取消</view>
+  <view class="kind-switch"><view class="kind {{kind === 'expense' ? 'on' : ''}}" bindtap="switchKind" data-kind="expense">支出</view><view class="kind {{kind === 'income' ? 'on' : ''}}" bindtap="switchKind" data-kind="income">收入</view></view>
+  <view class="book">{{ledgerName}}</view>
+ </view>
+ <view wx:if="{{editID}}" class="edit-label">编辑账单</view>
+ <view wx:if="{{loadingEntry || editError}}" class="edit-label">{{editError || '正在读取账单…'}}</view>
+ <scroll-view scroll-y class="category-area"><view class="grid"><view wx:for="{{grid}}" wx:key="id" class="cell {{item.selected ? 'cell-on' : ''}}" bindtap="pickCategory" data-id="{{item.id}}" data-more="{{item.more}}"><view class="cell-icon">{{item.more ? '⚙' : item.icon}}</view><view class="cell-name">{{item.more ? '设置' : item.name}}</view></view></view></scroll-view>
+ <view class="foot">
+  <view class="chips"><view wx:if="{{kind === 'expense'}}" class="chip" bindtap="later">◯ 报销</view><view wx:if="{{kind === 'expense'}}" class="chip" bindtap="later">🎟 优惠</view><view class="chip" bindtap="later">▧ 图片</view><view class="chip" bindtap="later">♧ 标签</view><view class="chip" bindtap="later">⚑ 标记 ⚙</view></view>
+  <view class="amount-card"><view class="amount">¥{{result}}</view><view class="note-row"><picker mode="date" value="{{date}}" bindchange="onDate"><view>🕐 {{date}}</view></picker><picker mode="time" value="{{time}}" bindchange="onTime"><view>{{time}}</view></picker><view class="note-hint" bindtap="toggleNote">{{note || '点击填写备注'}}</view><view bindtap="toggleNote">{{noteOpen ? '⌄' : '⌃'}}</view></view><textarea wx:if="{{noteOpen}}" class="note" value="{{note}}" bindinput="onNote" maxlength="500" placeholder="填写备注" auto-height /></view>
+  <view class="pad"><block wx:for="{{keys}}" wx:key="index">
+   <view wx:if="{{item.op}}" class="key opkey"><view data-v="{{item.left}}" bindtap="press">{{item.left}}</view><view data-v="{{item.right}}" bindtap="press">{{item.right}}</view></view>
+   <button wx:elif="{{item.action === 'again'}}" class="key again" disabled="{{saving || loadingEntry || editError}}" bindtap="saveAgain">保存再记</button>
+   <button wx:elif="{{item.action === 'done'}}" class="key done" loading="{{saving}}" disabled="{{saving || loadingEntry || editError || resultCents <= 0}}" bindtap="save">完成</button>
+   <view wx:else class="key" data-v="{{item.v}}" bindtap="press">{{item.v}}</view>
+  </block></view>
+ </view>
+</view>

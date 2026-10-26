@@ -12,7 +12,7 @@ Page({
  },
  refresh() { this.setData({visible: this.data.categories.filter(c => c.kind === this.data.kind).sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)}); },
  changeKind(e) { if (this.data.saving) return; this.setData({kind: e.currentTarget.dataset.kind}); this.refresh(); },
- canManage() { if (!this.data.user || this.data.user.role !== 'admin') {wx.showToast({title: '仅管理员可管理分类', icon: 'none'}); return false;} return true; },
+ canManage() { if (!this.data.user) {wx.showToast({title: '账本数据尚未加载', icon: 'none'}); return false;} return true; },
  open() {
   if (!this.canManage() || this.data.saving) return;
   const order = this.data.visible.reduce((max, c) => Math.max(max, c.sort_order), 0) + 10;

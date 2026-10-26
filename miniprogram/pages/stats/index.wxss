@@ -1,1 +1,31 @@
-.metrics{display:flex;gap:48rpx;margin:30rpx 0}.metric{font-size:40rpx;font-weight:700;margin:14rpx 0}.track{height:12rpx;background:#f4f4f7;border-radius:8rpx;margin-top:16rpx;overflow:hidden}.bar{height:100%;background:#f3695c;border-radius:8rpx}.category-row,.trend{margin:30rpx 0}.category-row .muted{margin-top:12rpx}
+.head{display:flex;align-items:center;justify-content:space-between}
+.budget-entry{font-size:28rpx;color:#3B82F6;font-weight:600}
+.segments{display:flex;background:#fff;border-radius:20rpx;padding:8rpx;margin:24rpx 0;box-shadow:0 2rpx 8rpx rgba(26,29,33,0.04)}
+.segment{flex:1;text-align:center;font-size:28rpx;color:#8B9199;padding:16rpx 0;border-radius:14rpx}
+.segment.on{background:#3B82F6;color:#fff;font-weight:600}
+.range-bar{display:flex;align-items:center;justify-content:space-between;margin:8rpx 0 24rpx}
+.arrow{width:64rpx;height:64rpx;line-height:60rpx;text-align:center;font-size:48rpx;color:#3B82F6;font-weight:700;background:#fff;border-radius:50%;box-shadow:0 2rpx 8rpx rgba(26,29,33,0.06)}
+.arrow.off{color:#B6BBC2}
+.range-label{font-size:32rpx;font-weight:700;color:#1A1D21}
+.tilde{color:#8B9199;margin:0 8rpx}
+.metrics{display:flex;flex-wrap:wrap;padding:8rpx 0}
+.metric{width:50%;margin:16rpx 0}
+.metric .muted{font-size:24rpx}
+.value{font-size:40rpx;font-weight:700;margin-top:8rpx}
+.value.expense{color:#E5484D}
+.value.income{color:#17A34A}
+.bars{display:flex;align-items:flex-end;gap:6rpx;height:260rpx;overflow-x:auto;padding-top:40rpx}
+.bar-col{flex:1;min-width:28rpx;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.bar-value{font-size:18rpx;color:#8B9199;margin-bottom:6rpx;white-space:nowrap}
+.bar-value.hot{color:#E5484D;font-weight:600}
+.bar{width:100%;max-width:36rpx;background:#3B82F6;border-radius:8rpx 8rpx 0 0;min-height:4rpx}
+.bar.hot{background:#E5484D}
+.bar-label{font-size:18rpx;color:#B6BBC2;margin-top:8rpx;white-space:nowrap}
+.category-row{margin:28rpx 0}
+.cat-name{font-size:30rpx;font-weight:600}
+.cat-amount{font-size:30rpx;font-weight:700}
+.track{height:12rpx;background:#ECEEF1;border-radius:8rpx;margin-top:14rpx;overflow:hidden}
+.fill{height:100%;background:#3B82F6;border-radius:8rpx}
+.budget-num{font-size:48rpx;font-weight:800;color:#1A1D21;margin:12rpx 0 8rpx}
+.budget-num.over{color:#E5484D}
+.budget-hint{color:#3B82F6;font-size:28rpx;padding:8rpx 0}

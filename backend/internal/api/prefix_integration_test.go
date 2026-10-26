@@ -51,10 +51,10 @@ func legacySchema(t *testing.T) *store.MySQL {
 func assertPrefixed(t *testing.T, db *store.MySQL) {
 	t.Helper()
 	var tables, columns, uncommented, old int
-	if err := db.DB().QueryRow("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND LEFT(table_name,2)='t_' AND table_comment<>''").Scan(&tables); err != nil || tables != 12 {
-		t.Fatalf("want 12 commented prefixed tables, got %d: %v", tables, err)
+	if err := db.DB().QueryRow("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND LEFT(table_name,2)='t_' AND table_comment<>''").Scan(&tables); err != nil || tables != 9 {
+		t.Fatalf("want 9 commented prefixed tables, got %d: %v", tables, err)
 	}
-	if err := db.DB().QueryRow("SELECT COUNT(*),SUM(column_comment='') FROM information_schema.columns WHERE table_schema=DATABASE() AND LEFT(table_name,2)='t_'").Scan(&columns, &uncommented); err != nil || columns != 57 || uncommented != 0 {
+	if err := db.DB().QueryRow("SELECT COUNT(*),SUM(column_comment='') FROM information_schema.columns WHERE table_schema=DATABASE() AND LEFT(table_name,2)='t_'").Scan(&columns, &uncommented); err != nil || columns != 60 || uncommented != 0 {
 		t.Fatalf("columns=%d uncommented=%d err=%v", columns, uncommented, err)
 	}
 	for _, name := range legacyNames {
@@ -81,15 +81,12 @@ func TestMySQLPrefixPreservesLegacy(t *testing.T) {
 	}
 	a := &auth.MySQL{DB: db.DB()}
 	p, err := a.Resolve(ctx, strings.Repeat("a", 64), time.Now())
-	if err != nil || p.ID != 7 || p.Role != "admin" {
+	if err != nil || p.ID != 7 {
 		t.Fatalf("lost session %+v %v", p, err)
 	}
-	if err = a.Join(ctx, 7, strings.Repeat("b", 64), time.Now()); err != auth.ErrConflict {
-		t.Fatalf("invite/membership lost: %v", err)
-	}
-	n, err := db.Budget(ctx, "2026-10")
-	if err != nil || n == nil || *n != 300000 {
-		t.Fatalf("lost budget %v %v", n, err)
+	rows, err := db.Budgets(ctx, "month", "2026-10")
+	if err != nil || len(rows) != 1 || rows[0].CategoryID != 0 || rows[0].Amount != 300000 {
+		t.Fatalf("lost budget %+v %v", rows, err)
 	}
 	var auto string
 	db.DB().QueryRow("SELECT extra FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='t_entries' AND column_name='id'").Scan(&auto)

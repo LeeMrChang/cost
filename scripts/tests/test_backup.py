@@ -34,7 +34,7 @@ elif name in ('mysql', 'mysqlcheck', 'mysqladmin'):
     if name == 'mysql' and any('t_schema_migrations' in x for x in a):
         if os.environ.get('REPORT_FAIL') == '1': sys.exit(1)
         if os.environ.get('MISSING_CATEGORY') == '1' and any('FROM t_categories' in x for x in a): sys.exit(1)
-        print('schema_versions\t004_ledger_features.sql\nentries_count\t1\nincome_count\t1\nincome_cent\t42\nexpense_count\t0\nexpense_cent\t0\nfamily_members_count\t1\naccounts_count\t2\ntransfers_count\t0')
+        print('schema_versions\t005_icost_realignment.sql\nentries_count\t1\nincome_count\t1\nincome_cent\t42\nexpense_count\t0\nexpense_cent\t0\naccounts_count\t2\ntransfers_count\t0')
     if name == 'mysql' and '-e' not in a:
         data = sys.stdin.read()
         if os.environ.get('RESTORE_FAIL') == '1': sys.exit(1)
@@ -145,7 +145,7 @@ class BackupTests(unittest.TestCase):
         report = self.backups / 'verify-report.tsv'
         self.assertTrue(report.exists(), 'restore must provide a reconciliation report')
         self.assertIn('income_cent\t42', report.read_text())
-        self.assertIn('family_members_count\t1', report.read_text())
+        self.assertIn('schema_versions\t005_icost_realignment.sql', report.read_text())
         self.assertEqual(report.stat().st_mode & 0o777, 0o600)
         self.assertNotIn('income_cent', result.stdout + result.stderr)
 

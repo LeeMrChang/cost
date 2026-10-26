@@ -45,23 +45,6 @@ ALTER TABLE t_sessions
  MODIFY COLUMN `expires_at` DATETIME(6) NOT NULL COMMENT '会话到期时间，UTC',
  COMMENT = '用户登录会话，仅保存令牌摘要';
 
-ALTER TABLE t_family_setup
- MODIFY COLUMN `id` TINYINT NOT NULL COMMENT '初始化记录编号，固定为1',
- MODIFY COLUMN `owner_id` BIGINT NULL COMMENT '首次管理员用户编号，未初始化为空',
- COMMENT = '单家庭首次管理员初始化状态';
-
-ALTER TABLE t_family_members
- MODIFY COLUMN `user_id` BIGINT NOT NULL COMMENT '成员用户编号',
- MODIFY COLUMN `role` VARCHAR(16) NOT NULL COMMENT '家庭角色：admin管理员、member普通成员',
- COMMENT = '家庭成员及角色';
-
-ALTER TABLE t_family_invites
- MODIFY COLUMN `token_hash` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '邀请码的SHA-256十六进制摘要，不是原始邀请码',
- MODIFY COLUMN `created_by` BIGINT NOT NULL COMMENT '生成邀请的管理员用户编号',
- MODIFY COLUMN `expires_at` DATETIME(6) NOT NULL COMMENT '邀请到期时间，UTC',
- MODIFY COLUMN `used_by` BIGINT NULL COMMENT '使用邀请的用户编号，未使用为空',
- COMMENT = '一次性家庭邀请';
-
 ALTER TABLE t_schema_migrations
  MODIFY COLUMN `version` VARCHAR(64) NOT NULL COMMENT '已成功执行的迁移文件名称',
  MODIFY COLUMN `applied_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '迁移完成记录时间',

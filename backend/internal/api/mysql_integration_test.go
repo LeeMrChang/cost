@@ -82,9 +82,9 @@ func testMySQL(t *testing.T, legacy bool) *store.MySQL {
 	}
 	return db
 }
-func TestMySQLFamilyWorkflow(t *testing.T) {
+func TestMySQLLoginWorkflow(t *testing.T) {
 	db := testMySQL(t, false)
-	testFamilyWorkflow(t, db, &auth.MySQL{DB: db.DB()})
+	testWorkflow(t, db, &auth.MySQL{DB: db.DB()})
 }
 func TestMySQLLegacyUpgrade(t *testing.T) {
 	db := testMySQL(t, true)
@@ -93,7 +93,7 @@ func TestMySQLLegacyUpgrade(t *testing.T) {
 		t.Fatalf("legacy entry changed: %+v %v", e, err)
 	}
 	var versions int
-	if err = db.DB().QueryRow("SELECT COUNT(*) FROM t_schema_migrations").Scan(&versions); err != nil || versions != 4 {
+	if err = db.DB().QueryRow("SELECT COUNT(*) FROM t_schema_migrations").Scan(&versions); err != nil || versions != 5 {
 		t.Fatal("migration versions missing", err)
 	}
 }

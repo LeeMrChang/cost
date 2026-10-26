@@ -1,43 +1,25 @@
 const api = require('../../utils/api');
-const { parseCent, today, acceptAmountInput } = require('../../utils/money');
+const { today } = require('../../utils/money');
 Page({
- data: { user: null, members: [], invite: '', expires: '', budget: '', month: today().slice(0,7), monthOpen: false, error: '', busy: false },
+ data: { user: null, ledger: null, error: '', busy: false },
  onShow() { this.load(); },
- openCategories() { wx.navigateTo({url: '/pages/categories/index'}); },
- openAccounts() { wx.navigateTo({url: '/pages/accounts/index'}); },
- openExport() { wx.switchTab({url: '/pages/ledger/index'}); wx.showToast({title: '在账本页筛选后点击导出 CSV', icon: 'none'}); },
- openMonth() { this.setData({ monthOpen: true }); },
- closeMonth() { this.setData({ monthOpen: false }); },
- onMonthConfirm(e) { this.setData({ monthOpen: false, month: e.detail.month }); },
- input(e) {
-  const field = e.currentTarget.dataset.field;
-  const value = field === 'budget' ? acceptAmountInput(e.detail.value, this.data.budget) : e.detail.value;
-  this.setData({ [field]: value });
-  return value;
- },
+ openCategories() { wx.navigateTo({ url: '/pages/categories/index' }); },
+ openAccounts() { wx.navigateTo({ url: '/pages/accounts/index' }); },
+ openBudget() { wx.navigateTo({ url: '/pages/budget/index' }); },
  async load() {
   // Clear data from a previously logged-in account before fetching new permissions.
-  this.setData({ user: null, members: [], invite: '', expires: '', error: '' });
-  try { const user = await api.me(); this.setData({ user }); if (user.role === 'admin') this.setData({ members: await api.request('/api/v1/family/members') }); }
+  this.setData({ user: null, ledger: null, error: '' });
+  try {
+   const [user, ledger] = await Promise.all([api.me(), api.request('/api/v1/ledgers/me')]);
+   this.setData({ user, ledger });
+  } catch (e) { this.setData({ error: e.message }); }
+ },
+ async signOut() { try { await api.logout(); this.setData({ user: null, ledger: null }); } catch (e) { this.setData({ error: e.message }); } },
+ async exportCSV() {
+  if (this.data.busy) return;
+  this.setData({ busy: true, error: '' });
+  try { await api.exportCSV('month=' + today().slice(0, 7)); }
   catch (e) { this.setData({ error: e.message }); }
- },
- async generateInvite() {
-  if (this.data.busy) return; this.setData({ busy: true, error: '' });
-  try { const i = await api.request('/api/v1/family/invites', 'POST'); this.setData({ invite: i.token, expires: i.expires_at }); }
-  catch (e) { this.setData({ error: e.message }); } finally { this.setData({ busy: false }); }
- },
- copyInvite() { if (this.data.invite) wx.setClipboardData({ data: this.data.invite }); },
- removeMember(e) {
-  const id = e.currentTarget.dataset.id;
-  wx.showModal({ title: '移除家庭成员', content: '移除后，该成员将无法访问账本；已有账单会保留。', success: async res => {
-   if (!res.confirm) return;
-   try { await api.request('/api/v1/family/members/' + id, 'DELETE'); await this.load(); }
-   catch (err) { this.setData({ error: err.message }); }
-  }});
- },
- async signOut() { try { await api.logout(); this.setData({ user: null, members: [], invite: '', budget: '' }); } catch (e) { this.setData({ error: e.message }); } },
- async saveBudget() {
-  try { const amount = parseCent(this.data.budget); await api.request('/api/v1/budgets/' + this.data.month, 'PUT', { amount_cent: amount }); wx.showToast({ title: '预算已保存' }); }
-  catch (e) { wx.showToast({ title: e.message, icon: 'none' }); }
+  finally { this.setData({ busy: false }); }
  }
 });

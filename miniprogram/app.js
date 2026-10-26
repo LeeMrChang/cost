@@ -1,1 +1,1 @@
-App({});
+App({ globalData: { pendingEdit: null } });

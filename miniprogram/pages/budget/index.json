@@ -1,0 +1,6 @@
+{
+ "navigationBarTitleText": "月预算",
+ "navigationBarBackgroundColor": "#F4F5F7",
+ "navigationBarTextStyle": "black",
+ "usingComponents": { "calendar-popup": "/components/calendar-popup/index" }
+}

@@ -1,14 +1,11 @@
-<view class="container"><view class="title">家庭设置</view>
- <view wx:if="{{user}}" class="card"><view class="section">账本管理</view><view class="management-link row" bindtap="openAccounts"><view><view>👛 账户与转账</view><view class="muted">查看余额，记录账户之间的资金流转</view></view><text>›</text></view><view class="management-link row" bindtap="openCategories"><view><view>🏷️ 分类管理</view><view class="muted">新增、排序和停用家庭收支分类</view></view><text>›</text></view><view class="management-link row" bindtap="openExport"><view><view>↗ 导出账单</view><view class="muted">按日期和筛选条件分享 CSV 文件</view></view><text>›</text></view></view>
- <view wx:if="{{user}}" class="card"><view class="section">成员 {{user.id}} · {{user.role === 'admin' ? '管理员' : '家庭成员'}}</view><button bindtap="signOut">退出登录</button></view>
- <view wx:if="{{user.role === 'admin'}}" class="card">
-  <view class="section">邀请家人</view><view class="muted">每个邀请码仅可使用一次，24 小时内有效。只分享给你要邀请的家人。</view>
-  <button class="button" loading="{{busy}}" disabled="{{busy}}" bindtap="generateInvite">生成邀请码</button>
-  <view wx:if="{{invite}}"><view class="invite">{{invite}}</view><button bindtap="copyInvite">复制邀请码</button></view>
-  <view class="section">家庭成员</view>
-  <view wx:for="{{members}}" wx:key="id" class="member"><text>成员 {{item.id}} · {{item.role === 'admin' ? '管理员' : '家庭成员'}}</text><button wx:if="{{item.role !== 'admin'}}" size="mini" data-id="{{item.id}}" bindtap="removeMember">移除</button></view>
+<view class="container"><view class="title">设置</view>
+ <view wx:if="{{ledger}}" class="card"><view class="ledger-head"><text class="ledger-icon">{{ledger.icon}}</text><view><view class="ledger-name">{{ledger.name}}</view><view class="muted">用户 {{user.id}}</view></view></view></view>
+ <view wx:if="{{user}}" class="card"><view class="section">账本管理</view>
+  <view class="management-link row" bindtap="openBudget"><view><view>🎯 月预算</view><view class="muted">设置每月总预算与分类预算</view></view><text>›</text></view>
+  <view class="management-link row" bindtap="openCategories"><view><view>🏷️ 分类管理</view><view class="muted">新增、排序和停用收支分类</view></view><text>›</text></view>
+  <view class="management-link row" bindtap="openAccounts"><view><view>👛 账户与转账</view><view class="muted">查看余额，记录账户之间的资金流转</view></view><text>›</text></view>
+  <view class="management-link row" bindtap="exportCSV"><view><view>↗ 导出账单</view><view class="muted">导出本月账单为 CSV 文件并分享</view></view><text>›</text></view>
  </view>
- <view wx:if="{{user.role === 'admin'}}" class="card"><view class="section">月预算</view><view class="field"><view bindtap="openMonth">{{month}}　⌄</view></view><view class="field"><input type="digit" value="{{budget}}" placeholder="预算金额（元）" data-field="budget" bindinput="input" /></view><button class="button" style="margin-top:28rpx" bindtap="saveBudget">设置预算</button></view>
+ <view wx:if="{{user}}" class="card"><button bindtap="signOut" loading="{{busy}}" disabled="{{busy}}">退出登录</button></view>
  <view wx:if="{{error}}" class="error">{{error}}</view>
 </view>
-<calendar-popup mode="month" visible="{{monthOpen}}" month="{{month}}" bind:confirm="onMonthConfirm" bind:cancel="closeMonth" />

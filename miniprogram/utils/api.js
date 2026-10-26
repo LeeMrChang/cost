@@ -14,11 +14,13 @@ function goLogin() {
  wx.reLaunch({ url: '/pages/login/index', complete() { redirecting = false; } });
 }
 const messages = {
- unauthorized: '登录已过期，请重新登录', family_access_required: '请先加入家庭账本',
+ unauthorized: '登录已过期，请重新登录',
  wechat_not_configured: '服务端尚未配置微信登录', wechat_unavailable: '微信登录服务暂不可用，请稍后重试',
- invalid_wechat_code: '登录凭证已失效，请重新点击微信登录', invalid_or_expired_invite: '邀请码无效、已过期或已使用',
- family_already_initialized_or_member: '家庭已初始化，或你已是家庭成员',
- entry_permission_denied: '只能修改或删除自己记录的账单', export_too_large: '导出数据过多，请缩小日期或筛选范围', transfer_permission_denied: '只能删除自己记录的转账', category_disabled: '该分类已停用，请重新选择', account_disabled: '该账户已停用，请重新选择', admin_required: '此操作需要管理员权限',
+ invalid_wechat_code: '登录凭证已失效，请重新点击微信登录',
+ invalid_json: '请求格式有误，请重试', invalid_entry: '记账内容有误，请检查后重试',
+ not_found: '内容不存在或已被删除', request_conflict: '操作冲突，请刷新后重试',
+ invalid_range: '日期范围无效，请重新选择', invalid_budget: '预算参数无效，请检查后重试',
+ entry_permission_denied: '只能修改或删除自己记录的账单', export_too_large: '导出数据过多，请缩小日期或筛选范围', transfer_permission_denied: '只能删除自己记录的转账', category_disabled: '该分类已停用，请重新选择', account_disabled: '该账户已停用，请重新选择',
  too_many_login_attempts: '操作太频繁，请稍后重试', authentication_unavailable: '登录验证暂不可用，请稍后重试'
 };
 function request(path, method = 'GET', data, publicRequest = false, options = {}) {
@@ -34,7 +36,6 @@ function request(path, method = 'GET', data, publicRequest = false, options = {}
    if (typeof body === 'string') { try { body = JSON.parse(body); } catch (_) { body = {}; } }
    const code = body && body.error;
    if (!publicRequest && res.statusCode === 401) { clearSession(); goLogin(); }
-   if (res.statusCode === 403 && code === 'family_access_required') goLogin();
    reject(new Error(messages[code] || code || '请求失败'));
   },
   fail() { reject(new Error('无法连接服务，请检查网络和后端地址')); }

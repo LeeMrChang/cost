@@ -1,5 +1,6 @@
 {
   "usingComponents": {
     "calendar-popup": "../../components/calendar-popup/index"
-  }
+  },
+  "navigationStyle": "custom"
 }

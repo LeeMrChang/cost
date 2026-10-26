@@ -32,6 +32,20 @@ func (m *MySQL) MergeLedger(ctx context.Context, source string) (int64, error) {
 		return 0, err
 	}
 	src := "`" + source + "`."
+	var hasDeletedColumn int
+	if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=? AND table_name='t_entries' AND column_name='deleted_at'", source).Scan(&hasDeletedColumn); err != nil {
+		return 0, err
+	}
+	if hasDeletedColumn > 0 {
+		var deleted int
+		if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+src+"t_entries WHERE deleted_at IS NOT NULL").Scan(&deleted); err != nil {
+			return 0, err
+		}
+		if deleted > 0 {
+			return 0, fmt.Errorf("source has soft-deleted entries; use full backup restore")
+		}
+	}
+
 	// This importer predates payment accounts and transfers. Reject an upgraded
 	// source carrying these features rather than silently losing financial data.
 	for _, table := range []string{"t_accounts", "t_transfers"} {
@@ -61,14 +75,29 @@ func (m *MySQL) MergeLedger(ctx context.Context, source string) (int64, error) {
 			return 0, fmt.Errorf("ledger merge stopped: source has extended category settings; use full backup restore instead")
 		}
 	}
+	var extEntries int
+	if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=? AND table_name='t_entries' AND column_name='refund_of_id'", source).Scan(&extEntries); err != nil {
+		return 0, err
+	}
+	if extEntries > 0 {
+		// Refunds, flags and foreign currencies are not imported; reject rather
+		// than silently losing financial data.
+		var used int
+		if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+src+"t_entries WHERE refund_of_id IS NOT NULL OR reimbursable<>0 OR exclude_stats<>0 OR exclude_budget<>0 OR BINARY currency<>'CNY'").Scan(&used); err != nil {
+			return 0, err
+		}
+		if used > 0 {
+			return 0, fmt.Errorf("ledger merge stopped: source has extended entry settings; use full backup restore instead")
+		}
+	}
 
 	checks := []struct{ label, query string }{
 		{"source must contain exactly the single family ledger", "SELECT IF(COUNT(*)=1 AND MIN(id)=1,0,1) FROM " + src + "t_ledgers"},
 		{"ledger currency/timezone conflict", "SELECT COUNT(*) FROM " + src + "t_ledgers s JOIN t_ledgers t ON s.id=t.id WHERE NOT(BINARY s.currency <=> BINARY t.currency) OR NOT(BINARY s.timezone <=> BINARY t.timezone)"},
 		{"source has records outside ledger 1", "SELECT (SELECT COUNT(*) FROM " + src + "t_entries WHERE ledger_id<>1)+(SELECT COUNT(*) FROM " + src + "t_categories WHERE ledger_id<>1)+(SELECT COUNT(*) FROM " + src + "t_budgets WHERE ledger_id<>1)"},
 		{"category ID conflicts", "SELECT COUNT(*) FROM " + src + "t_categories s JOIN t_categories t ON s.id=t.id WHERE s.ledger_id<>t.ledger_id OR NOT(BINARY s.name <=> BINARY t.name) OR NOT(BINARY s.kind <=> BINARY t.kind) OR NOT(BINARY s.icon <=> BINARY t.icon)"},
-		{"creator missing cloud identity or membership", "SELECT COUNT(*) FROM " + src + "t_entries e LEFT JOIN " + src + "t_users s ON e.created_by=s.id LEFT JOIN t_users u ON s.openid=u.openid LEFT JOIN t_family_members f ON f.user_id=u.id WHERE e.created_by IS NOT NULL AND (u.id IS NULL OR f.user_id IS NULL)"},
-		{"budget month conflicts", "SELECT COUNT(*) FROM " + src + "t_budgets s JOIN t_budgets t ON s.ledger_id=t.ledger_id AND s.month=t.month WHERE s.amount_cent<>t.amount_cent"},
+		{"creator missing cloud identity", "SELECT COUNT(*) FROM " + src + "t_entries e LEFT JOIN " + src + "t_users s ON e.created_by=s.id LEFT JOIN t_users u ON s.openid=u.openid WHERE e.created_by IS NOT NULL AND u.id IS NULL"},
+		{"budget conflicts", "SELECT COUNT(*) FROM " + src + "t_budgets s JOIN t_budgets t ON s.ledger_id=t.ledger_id AND s.scope=t.scope AND s.period_key=t.period_key AND s.category_id=t.category_id WHERE s.amount_cent<>t.amount_cent"},
 		{"entry request conflicts", "SELECT COUNT(*) FROM " + src + "t_entries s JOIN t_entries t ON s.ledger_id=t.ledger_id AND s.client_request_id=t.client_request_id LEFT JOIN " + src + "t_users su ON s.created_by=su.id LEFT JOIN t_users u ON su.openid=u.openid WHERE s.category_id<>t.category_id OR BINARY s.kind<>BINARY t.kind OR s.amount_cent<>t.amount_cent OR s.occurred_at<>t.occurred_at OR BINARY s.note<>BINARY t.note OR NOT(u.id <=> t.created_by)"},
 	}
 	for _, check := range checks {
@@ -83,7 +112,7 @@ func (m *MySQL) MergeLedger(ctx context.Context, source string) (int64, error) {
 	if _, err = tx.ExecContext(ctx, "INSERT INTO t_categories(id,ledger_id,name,kind,icon) SELECT s.id,s.ledger_id,s.name,s.kind,s.icon FROM "+src+"t_categories s LEFT JOIN t_categories t ON s.id=t.id WHERE t.id IS NULL"); err != nil {
 		return 0, err
 	}
-	if _, err = tx.ExecContext(ctx, "INSERT INTO t_budgets(ledger_id,month,amount_cent) SELECT s.ledger_id,s.month,s.amount_cent FROM "+src+"t_budgets s LEFT JOIN t_budgets t ON s.ledger_id=t.ledger_id AND s.month=t.month WHERE t.ledger_id IS NULL"); err != nil {
+	if _, err = tx.ExecContext(ctx, "INSERT INTO t_budgets(ledger_id,scope,period_key,category_id,amount_cent) SELECT s.ledger_id,s.scope,s.period_key,s.category_id,s.amount_cent FROM "+src+"t_budgets s LEFT JOIN t_budgets t ON s.ledger_id=t.ledger_id AND s.scope=t.scope AND s.period_key=t.period_key AND s.category_id=t.category_id WHERE t.ledger_id IS NULL"); err != nil {
 		return 0, err
 	}
 	result, err := tx.ExecContext(ctx, "INSERT INTO t_entries(ledger_id,category_id,kind,amount_cent,occurred_at,note,client_request_id,created_at,updated_at,created_by) SELECT s.ledger_id,s.category_id,s.kind,s.amount_cent,s.occurred_at,s.note,s.client_request_id,s.created_at,s.updated_at,u.id FROM "+src+"t_entries s LEFT JOIN "+src+"t_users su ON s.created_by=su.id LEFT JOIN t_users u ON su.openid=u.openid LEFT JOIN t_entries t ON s.ledger_id=t.ledger_id AND s.client_request_id=t.client_request_id WHERE t.id IS NULL ORDER BY s.id")

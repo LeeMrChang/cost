@@ -71,11 +71,7 @@ func run() error {
 	var handler http.Handler
 	switch authMode {
 	case "wechat":
-		setup := os.Getenv("COST_SETUP_SECRET")
-		if setup != "" && len(setup) < 32 {
-			return errors.New("COST_SETUP_SECRET must contain at least 32 characters")
-		}
-		handler = api.NewWithAuth(s, auth.New(identities, auth.WeChat{AppID: os.Getenv("WECHAT_APP_ID"), Secret: os.Getenv("WECHAT_APP_SECRET")}, setup))
+		handler = api.NewWithAuth(s, auth.New(identities, auth.WeChat{AppID: os.Getenv("WECHAT_APP_ID"), Secret: os.Getenv("WECHAT_APP_SECRET")}))
 	case "development":
 		if env("COST_ENV", "development") == "production" {
 			return errors.New("development authentication is forbidden in production")

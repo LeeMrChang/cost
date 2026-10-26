@@ -1,5 +1,5 @@
 {
-  "usingComponents": {
-    "calendar-popup": "../../components/calendar-popup/index"
-  }
+ "navigationBarTitleText": "设置",
+ "navigationBarBackgroundColor": "#F4F5F7",
+ "navigationBarTextStyle": "black"
 }

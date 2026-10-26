@@ -1,38 +1,76 @@
-<view class="container">
- <view class="row"><view class="title">我的账本</view><view class="month-chip" bindtap="openMonth">{{month}} ⌄</view></view>
- <view class="search-bar"><input value="{{search}}" placeholder="搜索备注，找回每一笔开支" maxlength="200" bindinput="searchInput" confirm-type="search" bindconfirm="searchEntries"/><text bindtap="searchEntries">搜索</text></view>
- <view class="row tools"><view class="tool {{filtered ? 'on' : ''}}" bindtap="openFilters">☷ 筛选{{filtered ? ' · 已应用' : ''}}</view><button class="export" loading="{{exporting}}" disabled="{{exporting}}" bindtap="exportEntries">导出 CSV ↗</button></view>
- <view wx:if="{{filters.start_date}}" class="range-label">{{filters.start_date}} — {{filters.end_date}}（含首尾日期）</view>
- <view wx:if="{{error}}" class="error" bindtap="load">{{error}}（点击重新加载）</view>
- <view class="card summary-card"><view class="row muted"><text>{{filtered ? '筛选结果支出' : '本月支出'}}</text><text>共 {{total}} 笔</text></view><view class="amount expense">¥{{summary.expense || '0.00'}}</view><view class="row"><view><view class="muted">收入</view><view class="summary-value income">¥{{summary.income || '0.00'}}</view></view><view class="align-right"><view class="muted">收支结余</view><view class="summary-value">¥{{summary.balance || '0.00'}}</view></view></view><view wx:if="{{!filtered}}" class="row budget-row muted"><text>月预算 {{summary.budget || '未设置'}}</text><text>剩余 {{summary.remaining || '未设置'}}</text></view><view class="summary-note">合计包含全部匹配账单 · 不包含账户转账</view></view>
- <view wx:if="{{loading}}" class="empty">正在读取账本…</view>
- <view wx:elif="{{!groups.length && !error}}" class="empty">{{filtered ? '没有符合条件的账单，试试调整筛选' : '这个月还没有账单，记下第一笔吧'}}<view wx:if="{{filtered}}" class="text-link" bindtap="resetFilters">清空筛选</view></view>
- <block wx:if="{{!loading}}" wx:for="{{groups}}" wx:key="date" wx:for-item="group">
-  <view class="row day"><text>{{group.date}}</text><text>已加载支出 ¥{{group.total}}</text></view>
-  <view class="card entries"><view wx:for="{{group.items}}" wx:key="id" class="entry row" data-id="{{item.id}}" bindtap="edit"><view class="entry-main"><view class="icon">{{item.category.icon}}</view><view class="entry-copy"><view class="entry-name">{{item.category.name}}</view><view class="muted entry-note">{{item.time}} {{item.note}}</view><view class="entry-meta">{{item.accountName}} · {{item.authorName}}</view></view></view><text class="entry-amount {{item.kind}}">{{item.kind === 'expense' ? '-' : '+'}}¥{{item.display}}</text></view></view>
- </block>
- <button wx:if="{{!loading && hasMore}}" class="load-more" loading="{{loadingMore}}" disabled="{{loadingMore}}" bindtap="loadMore">{{loadingMore ? '加载中' : '加载更多账单'}}</button>
- <view wx:if="{{!loading && groups.length && !hasMore}}" class="end-note">已显示全部 {{total}} 笔</view>
- <button class="add" disabled="{{loading}}" bindtap="open">＋</button>
+<view class="page">
+	<view class="nav" style="padding-top:{{statusBarHeight}}px">
+		<view class="nav-title" bindtap="goSettings">{{ledgerName}} <text class="nav-arrow">▾</text></view>
+		<view class="nav-right">
+			<view class="avatar" bindtap="goSettings">{{ledgerIcon}}</view>
+			<view class="nav-menu" bindtap="goSettings">⋯</view>
+		</view>
+	</view>
+	<view class="search-bar" bindtap="openSearch">
+		<text class="search-icon">🔍</text>
+		<text class="search-placeholder">搜索备注 / 分类名</text>
+	</view>
+	<view class="month-bar">
+		<view class="month-select">
+			<view class="arrow {{prevRef ? '' : 'arrow-off'}}" data-ref="{{prevRef}}" bindtap="shiftMonth">‹</view>
+			<view class="month-title" bindtap="openCalendar">{{monthLabel}}</view>
+			<view class="arrow {{nextRef ? '' : 'arrow-off'}}" data-ref="{{nextRef}}" bindtap="shiftMonth">›</view>
+		</view>
+		<view class="side-btn" bindtap="openCalendar">收支日历</view>
+	</view>
+	<view class="sum-card">
+		<view class="sum-col">
+			<view class="sum-k">支出</view>
+			<view class="sum-v exp">¥{{summary.expense}}</view>
+		</view>
+		<view class="sum-col">
+			<view class="sum-k">收入</view>
+			<view class="sum-v inc">¥{{summary.income}}</view>
+		</view>
+		<view class="sum-col">
+			<view class="sum-k">结余</view>
+			<view class="sum-v">{{summary.balance}}</view>
+		</view>
+	</view>
+	<view class="budget-card" bindtap="openBudget">
+		<view class="budget-top">
+			<text class="budget-label">剩余月预算</text>
+			<text wx:if="{{overspent}}" class="over-badge">超支</text>
+		</view>
+		<view wx:if="{{budgetSet}}" class="budget-value {{overspent ? 'over' : ''}}">{{overspent ? '-' : ''}}¥{{budget.remaining}}</view>
+		<view wx:else class="budget-value budget-none">未设置</view>
+		<view wx:if="{{budgetSet}}" class="budget-bar"><view class="budget-bar-in {{budget.barClass}}" style="width:{{budget.ratio}}%"></view></view>
+		<view wx:if="{{budgetSet}}" class="budget-meta">
+			总预算 ¥{{budget.total}}<block wx:if="{{budget.dailyShown}}"> · 剩余日均 ¥{{budget.daily}}/天（本月剩 {{budget.remainingDays}} 天）</block>
+		</view>
+		<view wx:else class="budget-meta">点击设置预算</view>
+	</view>
+	<view wx:if="{{error}}" class="error" bindtap="load">{{error}}（点击重试）</view>
+	<view wx:if="{{loading}}" class="empty">正在读取账本…</view>
+	<view wx:elif="{{!groups.length}}" class="empty">这个月还没有账单，记下第一笔吧</view>
+	<block wx:for="{{groups}}" wx:key="date" wx:for-item="group">
+		<view class="day-head" bindtap="toggleGroup" data-date="{{group.date}}">
+			<text>{{group.display}}</text>
+			<view class="day-head-right">
+				<text>支出: ¥{{group.total}}</text>
+				<text wx:if="{{group.hasIncome}}">　收入: ¥{{group.income}}</text>
+				<text class="fold">{{collapsed[group.date] ? '▸' : '▾'}}</text>
+			</view>
+		</view>
+		<view wx:if="{{!collapsed[group.date]}}" class="card entries">
+			<view wx:for="{{group.items}}" wx:key="id" class="entry" data-id="{{item.id}}" bindtap="edit">
+				<view class="icon {{item.kind}}">{{item.category.icon}}</view>
+				<view class="entry-copy">
+					<view class="entry-name">{{item.category.name}}<text wx:if="{{item.note}}"> {{item.note}}</text></view>
+					<view class="entry-time">{{item.time}}</view>
+				</view>
+				<text class="entry-amount {{item.kind}}">{{item.kind === 'expense' ? '-' : '+'}}¥{{item.display}}</text>
+			</view>
+		</view>
+	</block>
+	<view wx:if="{{!loading && hasMore}}" class="load-more" bindtap="loadMore">{{loadingMore ? '加载中…' : '加载更多'}}</view>
+	<view wx:if="{{!loading && groups.length}}" class="month-foot">— 本月共 {{total}} 笔 —</view>
+	<view class="fab" bindtap="add">＋</view>
 </view>
-<view wx:if="{{filterOpen}}" class="mask" bindtap="closeFilters"><view class="sheet" catchtap="noop">
- <view class="row"><text bindtap="closeFilters">取消</text><text class="section">筛选账单</text><text class="text-link" bindtap="resetFilters">清空</text></view>
- <view class="field"><view class="label">备注关键词</view><input value="{{draft.q}}" maxlength="200" placeholder="例如：空调、午餐" data-field="q" bindinput="filterInput"/></view>
- <view class="field"><view class="row"><view class="label">日期范围（含首尾当天）</view><text class="text-link" bindtap="clearDates">按当前月份</text></view><view class="row date-range"><picker mode="date" value="{{draft.start_date}}" data-field="start_date" bindchange="filterInput"><view>{{draft.start_date || '开始日期'}} ⌄</view></picker><text>至</text><picker mode="date" value="{{draft.end_date}}" data-field="end_date" bindchange="filterInput"><view>{{draft.end_date || '结束日期'}} ⌄</view></picker></view><view class="muted">不选日期时查询 {{month}}</view></view>
- <view class="filter-grid"><picker class="field" range="{{kinds}}" range-key="label" value="{{kindFilterIndex}}" data-field="kind" bindchange="filterPick"><view class="label">收支类型</view><view>{{kinds[kindFilterIndex].label}} ⌄</view></picker><picker class="field" range="{{filterCategories}}" range-key="label" value="{{categoryFilterIndex}}" data-field="category_id" bindchange="filterPick"><view class="label">分类</view><view>{{filterCategories[categoryFilterIndex].label}} ⌄</view></picker><picker class="field" range="{{filterAuthors}}" range-key="label" value="{{authorFilterIndex}}" data-field="created_by" bindchange="filterPick"><view class="label">记录成员</view><view>{{filterAuthors[authorFilterIndex].label}} ⌄</view></picker><picker class="field" range="{{filterAccounts}}" range-key="label" value="{{accountFilterIndex}}" data-field="account_id" bindchange="filterPick"><view class="label">支付账户</view><view>{{filterAccounts[accountFilterIndex].label}} ⌄</view></picker></view>
- <view class="field"><view class="label">金额范围（元，含边界）</view><view class="row amount-range"><input type="digit" value="{{draft.min_amount}}" placeholder="最低，不限" data-field="min_amount" bindinput="filterInput"/><text>至</text><input type="digit" value="{{draft.max_amount}}" placeholder="最高，不限" data-field="max_amount" bindinput="filterInput"/></view></view>
- <view wx:if="{{filterError}}" class="error">{{filterError}}</view><button class="button apply" bindtap="applyFilters">查看筛选结果</button>
-</view></view>
-<view wx:if="{{editor}}" class="mask" bindtap="close"><view class="sheet" catchtap="noop">
- <view class="row"><text bindtap="close">取消</text><view class="switch"><text data-kind="expense" bindtap="kindChange" class="{{kind === 'expense' ? 'selected expense' : ''}}">支出</text><text data-kind="income" bindtap="kindChange" class="{{kind === 'income' ? 'selected income' : ''}}">收入</text></view><text>{{editID ? '编辑' : '记一笔'}}</text></view>
- <view class="category-grid"><view wx:for="{{visibleCategories}}" wx:key="id" class="category {{categoryID === item.id ? 'active' : ''}}" data-id="{{item.id}}" bindtap="categoryChange"><view class="emoji">{{item.icon}}</view><text>{{item.label}}</text></view></view>
- <view wx:if="{{!visibleCategories.length}}" class="error">暂无可用分类，请联系管理员添加。</view>
- <view class="field"><view class="label">金额（元）</view><input type="digit" value="{{amount}}" placeholder="0.00" data-field="amount" bindinput="input" class="money-input {{kind}}" /></view>
- <picker class="field" range="{{visibleAccounts}}" range-key="label" value="{{accountIndex}}" bindchange="accountChange"><view class="label">支付账户</view><view>{{visibleAccounts[accountIndex].label}} ⌄</view></picker>
- <view class="field row"><view bindtap="openDate">{{date}} {{time}}　⌄</view></view>
- <view class="field"><input value="{{note}}" placeholder="添加备注" maxlength="500" data-field="note" bindinput="input" /></view>
- <button class="button save {{kind}}" loading="{{saving}}" disabled="{{saving}}" bindtap="save">保存账单</button>
- <button wx:if="{{editID}}" class="delete" disabled="{{saving}}" bindtap="remove">删除这笔账单</button>
-</view></view>
-<calendar-popup mode="date" visible="{{dateOpen}}" date="{{date}}" time="{{time}}" bind:confirm="onDateConfirm" bind:cancel="closeDate" />
-<calendar-popup mode="month" visible="{{monthOpen}}" month="{{month}}" bind:confirm="onMonthConfirm" bind:cancel="closeMonth" />
+
+<undo-banner bind:restored="load" />

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -52,6 +53,14 @@ func testP0(t *testing.T, s store.Store) {
 		t.Fatalf("filtered totals %+v", list)
 	}
 	call("GET", q+"&page=2", nil, 200)
+	json.Unmarshal(call("GET", "/api/v1/entries?start_date=2026-09-30&end_date=2026-10-01&q="+url.QueryEscape("家庭"), nil, 200).Body.Bytes(), &list)
+	if len(list.Items) != 2 || list.Total != 2 {
+		t.Fatalf("category-name keyword: %+v", list)
+	}
+	json.Unmarshal(call("GET", "/api/v1/entries?start_date=2026-09-30&end_date=2026-10-01&q="+url.QueryEscape("不存在的词"), nil, 200).Body.Bytes(), &list)
+	if list.Total != 0 {
+		t.Fatalf("missing keyword: %+v", list)
+	}
 	for _, bad := range []string{"page=0", "page_size=101", "min_amount_cent=-1", "min_amount_cent=20&max_amount_cent=10", "created_by=wat", "account_id=-1", "category_id=0", "kind=transfer", "start_date=2026-02-30", "start_date=2026-10-02&end_date=2026-10-01"} {
 		call("GET", "/api/v1/entries?"+bad, nil, 400)
 	}

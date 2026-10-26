@@ -20,15 +20,21 @@ function stamp(value = new Date()) {
 }
 function allowed(items, originalID) { return items.filter(i => !i.disabled || i.id === originalID).map(i => ({...i, label: i.name + (i.disabled ? '（已停用）' : '')})); }
 function groups(entries, categories, accounts) {
- const cm = {}, am = {}, days = {};
- categories.forEach(c => { cm[c.id] = c; }); accounts.forEach(a => { am[a.id] = a; });
- entries.forEach(e => {
-  const s = stamp(e.occurred_at);
-  if (!days[s.date]) days[s.date] = {date: s.date, expense: 0, items: []};
-  if (e.kind === 'expense') days[s.date].expense += e.amount_cent;
-  days[s.date].items.push({...e, ...s, category: cm[e.category_id] || {name: '历史分类', icon: '📦'}, accountName: am[e.account_id] ? am[e.account_id].name : '未指定账户', authorName: e.created_by ? '成员 ' + e.created_by : '历史记录', display: money(e.amount_cent)});
- });
- return Object.keys(days).sort().reverse().map(k => ({...days[k], total: money(days[k].expense)}));
+	const cm = {}, am = {}, days = {};
+	categories.forEach(c => { cm[c.id] = c; }); accounts.forEach(a => { am[a.id] = a; });
+	entries.forEach(e => {
+		const s = stamp(e.occurred_at);
+		if (!days[s.date]) days[s.date] = {date: s.date, expense: 0, income: 0, items: []};
+		if (e.kind === 'expense') days[s.date].expense += e.amount_cent;
+		else days[s.date].income += e.amount_cent;
+		days[s.date].items.push({...e, ...s, category: cm[e.category_id] || {name: '历史分类', icon: '📦'}, accountName: am[e.account_id] ? am[e.account_id].name : '未指定账户', authorName: e.created_by ? '用户 ' + e.created_by : '历史记录', display: money(e.amount_cent)});
+	});
+	return Object.keys(days).sort().reverse().map(k => {
+		const weekday = WEEKDAYS[new Date(k + 'T00:00:00+08:00').getDay()];
+		const d = days[k];
+		return {...d, total: money(d.expense), income: money(d.income), hasIncome: d.income > 0, weekday, display: k.slice(5).replace('-', '/') + ' ' + weekday};
+	});
 }
+const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
 function requestID() { return 'wx-' + Date.now() + '-' + Math.random().toString(16).slice(2); }
 module.exports = { emptyFilters, query, stamp, allowed, groups, requestID };

@@ -71,18 +71,15 @@ SELECT 'budgets_count', COUNT(*) FROM t_budgets;
 SELECT 'users_count', COUNT(*) FROM t_users;
 SELECT 'sessions_count', COUNT(*) FROM t_sessions;
 SELECT 'ledgers_count', COUNT(*) FROM t_ledgers;
-SELECT 'family_setup_count', COUNT(*) FROM t_family_setup;
-SELECT 'family_invites_count', COUNT(*) FROM t_family_invites;
 SELECT 'entries_count', COUNT(*) FROM t_entries;
 SELECT 'income_count', COUNT(*) FROM t_entries WHERE kind='income';
 SELECT 'income_cent', COALESCE(SUM(amount_cent),0) FROM t_entries WHERE kind='income';
 SELECT 'expense_count', COUNT(*) FROM t_entries WHERE kind='expense';
 SELECT 'expense_cent', COALESCE(SUM(amount_cent),0) FROM t_entries WHERE kind='expense';
-SELECT 'family_members_count', COUNT(*) FROM t_family_members;
 SELECT 'accounts_count', COUNT(*) FROM t_accounts;
 SELECT 'transfers_count', COUNT(*) FROM t_transfers;
 " >> "$report_tmp" 2> "$scratch/report.log"
-grep -q '004_ledger_features.sql' "$report_tmp"
+grep -q '005_icost_realignment.sql' "$report_tmp"
 mv "$report_tmp" "$status_dir/verify-report.tsv"
 status success "${latest##*/}"
 echo "Isolated backup restore verified: ${latest##*/}"

@@ -1,0 +1,21 @@
+<view class="container">
+ <view wx:if="{{loading}}" class="empty">正在读取账单…</view>
+ <view wx:if="{{error}}" class="error" bindtap="load">{{error}}（点击重试）</view>
+ <block wx:if="{{entry}}">
+  <view class="bill-head"><view class="bill-amount {{entry.kind}}">{{entry.kind === 'expense' ? '-' : '+'}}¥{{amount}}</view><view>{{icon}} {{categoryName}}</view></view>
+  <view class="bill-actions card"><button disabled="{{saving}}" bindtap="edit">编辑</button><button disabled="{{saving}}" class="expense" bindtap="remove">删除</button><button bindtap="later">退款</button><button bindtap="later">存为模板</button></view>
+  <view class="card details">
+   <view class="field row"><text>类型</text><text>{{entry.kind === 'expense' ? '支出' : '收入'}}</text></view>
+   <view class="field row"><text>账本</text><text>{{ledgerName}}</text></view>
+   <view class="field row"><text>时间</text><text>{{date}} {{time}}</text></view>
+   <view class="field row"><text>金额</text><text>¥{{amount}}</text></view>
+   <view class="field row"><text>货币</text><text>{{entry.currency || 'CNY'}}</text></view>
+   <view class="field row"><text>账户</text><text>{{accountName}}</text></view>
+   <view class="field row"><text>备注</text><text class="note">{{entry.note || '无'}}</text></view>
+   <view class="field row"><text>标签</text><text class="muted">未设置</text></view>
+   <view class="field row"><text>图片</text><text class="muted">无</text></view>
+   <view class="field row"><text>优惠</text><text class="muted">未设置</text></view>
+   <view class="field row"><text>报销标记</text><text>{{entry.reimbursable ? '待报销' : '未标记'}}</text></view>
+  </view>
+ </block>
+</view>

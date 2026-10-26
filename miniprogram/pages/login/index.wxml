@@ -1,18 +1,11 @@
 <view class="container">
- <view class="title">Cost 家庭账本</view>
+ <view class="title">Cost 记账</view>
  <view class="card">
-  <view class="section">和家人一起记录生活</view>
-  <view class="muted">微信登录用于识别你的账本账号，不获取手机号。只有加入家庭的成员可以查看账单。</view>
+  <view class="section">简单记账，为生活留痕</view>
+  <view class="muted">微信登录用于识别你的账本账号，不获取手机号。账单数据仅属于你自己。</view>
   <button wx:if="{{!user}}" class="button" loading="{{busy}}" disabled="{{busy}}" bindtap="signIn">微信登录</button>
   <view wx:else>
-   <view class="section">已登录 · 成员 {{user.id}}</view>
-   <view wx:if="{{!user.role}}">
-    <view class="muted">向家庭管理员获取一次性邀请码。</view>
-    <input value="{{invite}}" maxlength="64" data-field="invite" bindinput="input" placeholder="粘贴家庭邀请码" />
-    <button class="button" loading="{{busy}}" disabled="{{busy}}" bindtap="join">加入家庭账本</button>
-    <button bindtap="toggleSetup" disabled="{{busy}}">{{setup ? '收起初始化' : '首次使用：初始化家庭'}}</button>
-    <view wx:if="{{setup}}"><input value="{{secret}}" password maxlength="256" data-field="secret" bindinput="input" placeholder="输入服务端初始化密钥" /><button class="button" loading="{{busy}}" disabled="{{busy}}" bindtap="bootstrap">成为家庭管理员</button></view>
-   </view>
+   <view class="section">已登录 · 用户 {{user.id}}</view>
    <button bindtap="signOut" disabled="{{busy}}">退出登录</button>
   </view>
   <view wx:if="{{error}}" class="error">{{error}}</view>

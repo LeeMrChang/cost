@@ -4,11 +4,13 @@ import (
 	"context"
 	"cost/internal/domain"
 	"sort"
+	"strings"
 )
 
-func (m *Memory) validateReferences(e, old domain.Entry) error {
+func (m *Memory) validateReferences(ctx context.Context, e, old domain.Entry) error {
+	ledgerID := LedgerID(ctx)
 	c, ok := m.categories[e.CategoryID]
-	if !ok || c.Kind != e.Kind || (c.Disabled && old.CategoryID != c.ID) {
+	if !ok || m.categoryLedger[e.CategoryID] != ledgerID || c.Kind != e.Kind || (c.Disabled && old.CategoryID != c.ID) {
 		return domain.ErrInvalid
 	}
 	if e.AccountID < 0 {
@@ -16,24 +18,25 @@ func (m *Memory) validateReferences(e, old domain.Entry) error {
 	}
 	if e.AccountID != 0 {
 		a, ok := m.accounts[e.AccountID]
-		if !ok || (a.Disabled && old.AccountID != a.ID) {
+		if !ok || m.accountLedger[e.AccountID] != ledgerID || (a.Disabled && old.AccountID != a.ID) {
 			return domain.ErrInvalid
 		}
 	}
 	return domain.Validate(e, []domain.Category{c})
 }
-func (m *Memory) SaveCategory(_ context.Context, c domain.Category) (domain.Category, error) {
+func (m *Memory) SaveCategory(ctx context.Context, c domain.Category) (domain.Category, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if err := domain.ValidateCategory(c); err != nil {
 		return c, err
 	}
+	ledgerID := LedgerID(ctx)
 	if c.ID == 0 {
 		c.ID = m.nextCategory
 		m.nextCategory++
 	} else {
 		old, ok := m.categories[c.ID]
-		if !ok {
+		if !ok || m.categoryLedger[c.ID] != ledgerID {
 			return c, domain.ErrNotFound
 		}
 		if old.Kind != c.Kind {
@@ -41,30 +44,33 @@ func (m *Memory) SaveCategory(_ context.Context, c domain.Category) (domain.Cate
 		}
 	}
 	m.categories[c.ID] = c
+	m.categoryLedger[c.ID] = ledgerID
 	return c, nil
 }
-func (m *Memory) SaveAccount(_ context.Context, a domain.Account) (domain.Account, error) {
+func (m *Memory) SaveAccount(ctx context.Context, a domain.Account) (domain.Account, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if err := domain.ValidateAccount(a); err != nil {
 		return a, err
 	}
+	ledgerID := LedgerID(ctx)
 	if a.ID == 0 {
 		a.ID = m.nextAccount
 		m.nextAccount++
 	} else {
-		if _, ok := m.accounts[a.ID]; !ok {
+		if _, ok := m.accounts[a.ID]; !ok || m.accountLedger[a.ID] != ledgerID {
 			return a, domain.ErrNotFound
 		}
 	}
 	m.accounts[a.ID] = a
+	m.accountLedger[a.ID] = ledgerID
 	a.Balance = m.balance(a)
 	return a, nil
 }
 func (m *Memory) balance(a domain.Account) int64 {
 	n := a.OpeningBalance
 	for _, e := range m.entries {
-		if e.AccountID == a.ID {
+		if e.AccountID == a.ID && m.deletedAt[e.ID].IsZero() {
 			if e.Kind == "income" {
 				n += e.Amount
 			} else {
@@ -82,11 +88,15 @@ func (m *Memory) balance(a domain.Account) int64 {
 	}
 	return n
 }
-func (m *Memory) Accounts(context.Context) ([]domain.Account, error) {
+func (m *Memory) Accounts(ctx context.Context) ([]domain.Account, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+	ledgerID := LedgerID(ctx)
 	out := []domain.Account{}
 	for _, a := range m.accounts {
+		if m.accountLedger[a.ID] != ledgerID {
+			continue
+		}
 		a.Balance = m.balance(a)
 		out = append(out, a)
 	}
@@ -96,13 +106,14 @@ func (m *Memory) Accounts(context.Context) ([]domain.Account, error) {
 func sameTransfer(a, b domain.Transfer) bool {
 	return a.CreatedBy == b.CreatedBy && a.FromAccountID == b.FromAccountID && a.ToAccountID == b.ToAccountID && a.Amount == b.Amount && a.OccurredAt.Equal(b.OccurredAt) && a.Note == b.Note
 }
-func (m *Memory) SaveTransfer(_ context.Context, t domain.Transfer) (domain.Transfer, bool, error) {
+func (m *Memory) SaveTransfer(ctx context.Context, t domain.Transfer) (domain.Transfer, bool, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if err := domain.ValidateTransfer(t); err != nil {
 		return t, false, err
 	}
-	if id, ok := m.transferRequests[t.RequestID]; ok {
+	ledgerID := LedgerID(ctx)
+	if id, ok := m.transferRequests[requestKey(ledgerID, t.RequestID)]; ok {
 		old := m.transfers[id]
 		if !sameTransfer(old, t) {
 			return t, false, domain.ErrConflict
@@ -111,42 +122,47 @@ func (m *Memory) SaveTransfer(_ context.Context, t domain.Transfer) (domain.Tran
 	}
 	for _, id := range []int64{t.FromAccountID, t.ToAccountID} {
 		a, ok := m.accounts[id]
-		if !ok || a.Disabled {
+		if !ok || m.accountLedger[id] != ledgerID || a.Disabled {
 			return t, false, domain.ErrInvalid
 		}
 	}
 	t.ID = m.nextTransfer
 	m.nextTransfer++
 	m.transfers[t.ID] = t
-	m.transferRequests[t.RequestID] = t.ID
+	m.transferLedger[t.ID] = ledgerID
+	m.transferRequests[requestKey(ledgerID, t.RequestID)] = t.ID
 	return t, true, nil
 }
-func (m *Memory) GetTransfer(_ context.Context, id int64) (domain.Transfer, error) {
+func (m *Memory) GetTransfer(ctx context.Context, id int64) (domain.Transfer, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	t, ok := m.transfers[id]
-	if !ok {
+	if !ok || m.transferLedger[id] != LedgerID(ctx) {
 		return t, domain.ErrNotFound
 	}
 	return t, nil
 }
-func (m *Memory) DeleteTransfer(_ context.Context, id int64) error {
+func (m *Memory) DeleteTransfer(ctx context.Context, id int64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	t, ok := m.transfers[id]
-	if !ok {
+	if !ok || m.transferLedger[id] != LedgerID(ctx) {
 		return domain.ErrNotFound
 	}
-	delete(m.transferRequests, t.RequestID)
+	delete(m.transferRequests, requestKey(LedgerID(ctx), t.RequestID))
+	delete(m.transferLedger, id)
 	delete(m.transfers, id)
 	return nil
 }
-func (m *Memory) Transfers(_ context.Context, page, size int) (domain.TransferPage, error) {
+func (m *Memory) Transfers(ctx context.Context, page, size int) (domain.TransferPage, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+	ledgerID := LedgerID(ctx)
 	out := []domain.Transfer{}
 	for _, t := range m.transfers {
-		out = append(out, t)
+		if m.transferLedger[t.ID] == ledgerID {
+			out = append(out, t)
+		}
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].OccurredAt.Equal(out[j].OccurredAt) {
@@ -169,12 +185,23 @@ func pageBounds(page, size, total int) (int, int) {
 	}
 	return start, end
 }
-func (m *Memory) Query(_ context.Context, f domain.EntryFilter) (domain.EntryPage, error) {
+func (m *Memory) Query(ctx context.Context, f domain.EntryFilter) (domain.EntryPage, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+	ledgerID := LedgerID(ctx)
+	q := f.Query
+	f.Query = ""
+	queryCats := map[int64]bool{}
+	if q != "" {
+		for id, c := range m.categories {
+			if m.categoryLedger[id] == ledgerID && strings.Contains(c.Name, q) {
+				queryCats[id] = true
+			}
+		}
+	}
 	out := []domain.Entry{}
 	for _, e := range m.entries {
-		if f.Match(e) {
+		if m.entryLedger[e.ID] == ledgerID && m.deletedAt[e.ID].IsZero() && f.Match(e) && (q == "" || strings.Contains(e.Note, q) || queryCats[e.CategoryID]) {
 			out = append(out, e)
 		}
 	}
@@ -189,12 +216,15 @@ func (m *Memory) Query(_ context.Context, f domain.EntryFilter) (domain.EntryPag
 	start, end := pageBounds(f.Page, f.PageSize, total)
 	return domain.EntryPage{Items: out[start:end], Total: total, Page: f.Page, PageSize: f.PageSize, Summary: s}, nil
 }
-func (m *Memory) Authors(context.Context) ([]domain.Author, error) {
+func (m *Memory) Authors(ctx context.Context) ([]domain.Author, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+	ledgerID := LedgerID(ctx)
 	ids := map[int64]bool{}
 	for _, e := range m.entries {
-		ids[e.CreatedBy] = true
+		if m.entryLedger[e.ID] == ledgerID && m.deletedAt[e.ID].IsZero() {
+			ids[e.CreatedBy] = true
+		}
 	}
 	out := []domain.Author{}
 	for id := range ids {
@@ -204,11 +234,11 @@ func (m *Memory) Authors(context.Context) ([]domain.Author, error) {
 	return out, nil
 }
 
-func (m *Memory) PatchCategory(_ context.Context, id int64, p domain.CategoryPatch) (domain.Category, error) {
+func (m *Memory) PatchCategory(ctx context.Context, id int64, p domain.CategoryPatch) (domain.Category, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	old, ok := m.categories[id]
-	if !ok {
+	if !ok || m.categoryLedger[id] != LedgerID(ctx) {
 		return old, domain.ErrNotFound
 	}
 	c := p.Apply(old)
@@ -221,11 +251,11 @@ func (m *Memory) PatchCategory(_ context.Context, id int64, p domain.CategoryPat
 	m.categories[id] = c
 	return c, nil
 }
-func (m *Memory) PatchAccount(_ context.Context, id int64, p domain.AccountPatch) (domain.Account, error) {
+func (m *Memory) PatchAccount(ctx context.Context, id int64, p domain.AccountPatch) (domain.Account, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	old, ok := m.accounts[id]
-	if !ok {
+	if !ok || m.accountLedger[id] != LedgerID(ctx) {
 		return old, domain.ErrNotFound
 	}
 	a := p.Apply(old)

@@ -57,9 +57,20 @@
 - [2026-10-23：实施计划](superpowers/plans/2026-10-23-automatic-cicd.md)
 - [2026-10-23：初始化、自动部署和故障处理](ops/2026-10-23-automatic-cicd.md)
 
+## iCost 重定位（M1 核心闭环）
+
+- [2026-10-26：v4.3 主流程修复设计](superpowers/specs/2026-10-26-icost-rescue-design.md)
+- [2026-10-26：主流程修复执行记录](superpowers/plans/2026-10-26-icost-rescue.md)
+- [2026-10-26：主流程修复验证与升级说明](ops/2026-10-26-icost-rescue-validation.md)
+- [2026-10-26：重定位设计（单人账本、统计与预算）](superpowers/specs/2026-10-26-icost-realignment-design.md)
+- [2026-10-26：M1 实施计划](superpowers/plans/2026-10-26-icost-realignment.md)
+- [2026-10-26：单人账本、统计与预算 API](api/2026-10-26-icost-realignment-api.md)
+- [2026-10-26：M1 验证记录](ops/2026-10-26-icost-realignment-validation.md)
+
 ## 功能需求清单
 
-- [核心功能待开发清单](../requirements.md)（2026-10-23 需求讨论稿；按用户要求保存在项目根目录）
+- 需求依据为 Master 提供的《cost-原型与需求说明-iCost对标-v2.1.md》与《cost_可交互原型_v4.html》
+  （位于 `~/Documents/cost_need/`，含 22 张 iCost 实拍截图 S01~S22），由重定位设计文档引用，不在本仓库内。
 
 ## P0 核心功能
 

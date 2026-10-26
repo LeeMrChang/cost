@@ -1,0 +1,43 @@
+<view class="page">
+	<view class="cal-head">
+		<view class="cal-month">
+			<view class="arrow {{prevRef ? '' : 'arrow-off'}}" bindtap="prevMonth">‹</view>
+			<view class="cal-title">{{label}}</view>
+			<view class="arrow {{nextRef ? '' : 'arrow-off'}}" bindtap="nextMonth">›</view>
+		</view>
+		<view class="cal-stats" bindtap="goStats">统计</view>
+	</view>
+	<view class="cal-card">
+		<view class="cal-week">
+			<view wx:for="{{weekdays}}" wx:key="*this" class="cal-wd">{{item}}</view>
+		</view>
+		<view class="cal-grid">
+			<view wx:for="{{cells}}" wx:key="index" class="cell {{item.day ? '' : 'cell-empty'}} {{item.today ? 'cell-today' : ''}} {{selected === item.key ? 'cell-on' : ''}}" data-key="{{item.key}}" bindtap="tapDay">
+				<text class="cell-day">{{item.day}}</text>
+				<text wx:if="{{item.hasExpense}}" class="cell-expense">¥{{item.expense}}</text>
+				<text wx:if="{{item.hasIncome}}" class="cell-income">¥{{item.income}}</text>
+			</view>
+		</view>
+	</view>
+	<view wx:if="{{error}}" class="error" bindtap="load">{{error}}（点击重试）</view>
+	<view wx:if="{{loading}}" class="empty">正在读取日历…</view>
+	<block wx:if="{{selected}}">
+		<view class="day-head">
+			<text>{{selectedDisplay}}</text>
+		</view>
+		<view wx:if="{{dayLoading}}" class="empty">正在读取当日账单…</view>
+		<view wx:elif="{{!dayGroups.length}}" class="empty">这一天没有账单</view>
+		<view class="card entries">
+			<view wx:for="{{dayGroups[0].items}}" wx:key="id" class="entry" data-id="{{item.id}}" bindtap="openEntry">
+				<view class="icon {{item.kind}}">{{item.category.icon}}</view>
+				<view class="entry-copy">
+					<view class="entry-name">{{item.category.name}}{{item.note ? ' · ' + item.note : ''}}</view>
+					<view class="entry-time">{{item.accountName}} · {{item.time}}</view>
+				</view>
+				<view class="entry-amount {{item.kind}}">{{item.kind === 'expense' ? '-' : '+'}}{{item.display}}</view>
+			</view>
+		</view>
+	</block>
+</view>
+
+<undo-banner bind:restored="refresh" />

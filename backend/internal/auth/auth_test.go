@@ -5,8 +5,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -40,34 +38,28 @@ func TestWeChatExchange(t *testing.T) {
 		t.Fatal("missing configuration accepted")
 	}
 }
-func TestInviteAtomicAndExpiry(t *testing.T) {
+func TestSessionLifecycle(t *testing.T) {
 	r := NewMemory()
 	ctx := context.Background()
-	p, _ := r.Login(ctx, "owner", "s1", time.Now().Add(time.Hour))
-	if err := r.Bootstrap(ctx, p.ID); err != nil {
+	now := time.Now()
+	p, err := r.Login(ctx, "wx-user", "s1", now.Add(time.Hour))
+	if err != nil || p.ID == 0 {
+		t.Fatalf("login failed: %v %v", p, err)
+	}
+	got, err := r.Resolve(ctx, "s1", now)
+	if err != nil || got.ID != p.ID {
+		t.Fatalf("resolve failed: %v %v", got, err)
+	}
+	if _, err = r.Resolve(ctx, "s1", now.Add(2*time.Hour)); err != ErrUnauthorized {
+		t.Fatal("expired session accepted")
+	}
+	if err = r.Logout(ctx, "s1"); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Invite(ctx, p.ID, "expired", time.Now().Add(-time.Minute)); err != nil {
-		t.Fatal(err)
+	if _, err = r.Resolve(ctx, "s1", now); err != ErrUnauthorized {
+		t.Fatal("logged-out session accepted")
 	}
-	q, _ := r.Login(ctx, "family", "s2", time.Now().Add(time.Hour))
-	if err := r.Join(ctx, q.ID, "expired", time.Now()); err != ErrInvite {
-		t.Fatal("expired invite accepted")
-	}
-	_ = r.Invite(ctx, p.ID, "once", time.Now().Add(time.Hour))
-	var successes atomic.Int32
-	var wg sync.WaitGroup
-	for i := 0; i < 20; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if r.Join(ctx, q.ID, "once", time.Now()) == nil {
-				successes.Add(1)
-			}
-		}()
-	}
-	wg.Wait()
-	if successes.Load() != 1 {
-		t.Fatal("invite was not consumed atomically")
+	if again, err := r.Login(ctx, "wx-user", "s2", now.Add(time.Hour)); err != nil || again.ID != p.ID {
+		t.Fatalf("same openid must map to same user: %v %v", again, err)
 	}
 }

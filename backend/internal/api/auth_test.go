@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"cost/internal/auth"
-	"cost/internal/domain"
 	"cost/internal/store"
 	"encoding/json"
 	"fmt"
@@ -22,12 +21,12 @@ func (fakeWeChat) Exchange(_ context.Context, code string) (string, error) {
 	}
 	return code, nil
 }
-func TestFamilyLoginPermissionsAndRevocation(t *testing.T) {
-	testFamilyWorkflow(t, store.NewMemory(), auth.NewMemory())
+func TestLoginLedgerIsolationAndRevocation(t *testing.T) {
+	testWorkflow(t, store.NewMemory(), auth.NewMemory())
 }
-func testFamilyWorkflow(t *testing.T, data store.Store, repo auth.Repository) {
+func testWorkflow(t *testing.T, data store.Store, repo auth.Repository) {
 	t.Helper()
-	service := auth.New(repo, fakeWeChat{}, strings.Repeat("s", 32))
+	service := auth.New(repo, fakeWeChat{})
 	h := NewWithAuth(data, service)
 	call := func(method, path, token, body string) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, path, bytes.NewBufferString(body))
@@ -63,102 +62,76 @@ func testFamilyWorkflow(t *testing.T, data store.Store, repo auth.Repository) {
 	expect(call("GET", "/api/v1/entries", "", ""), 401)
 	expect(call("POST", "/api/v1/auth/wechat", "", `{"code":"bad"}`), 400)
 	expect(call("POST", "/api/v1/auth/wechat", "", `{"code":"a","openid":"forged"}`), 400)
-	admin, _ := login("owner")
-	member, memberID := login("family")
-	stranger, _ := login("stranger")
-	expect(call("GET", "/api/v1/entries", stranger, ""), 403)
-	expect(call("GET", "/api/v1/auth/me", stranger, ""), 200)
-	expect(call("POST", "/api/v1/family/bootstrap", admin, `{"secret":"wrong"}`), 403)
-	expect(call("POST", "/api/v1/family/bootstrap", admin, `{"secret":"`+strings.Repeat("s", 32)+`"}`), 200)
-	expect(call("POST", "/api/v1/family/bootstrap", stranger, `{"secret":"`+strings.Repeat("s", 32)+`"}`), 409)
-	invite := func() string {
-		w := call("POST", "/api/v1/family/invites", admin, "")
-		expect(w, 201)
-		var v struct{ Token string }
-		_ = json.Unmarshal(w.Body.Bytes(), &v)
-		return v.Token
-	}
-	token := invite()
-	expect(call("POST", "/api/v1/family/join", member, `{"token":"`+token+`"}`), 200)
-	expect(call("POST", "/api/v1/family/join", stranger, `{"token":"`+token+`"}`), 400)
-	expect(call("GET", "/api/v1/entries", member, ""), 200)
-	expect(call("POST", "/api/v1/family/invites", member, ""), 403)
-	expect(call("PUT", "/api/v1/budgets/2026-10", member, `{"amount_cent":100}`), 403)
-	expect(call("DELETE", "/api/v1/family/members/1", admin, ""), 403)
-	entry := `{"category_id":2,"kind":"expense","amount_cent":1800,"occurred_at":"2026-10-13T12:00:00+08:00","client_request_id":"request-1","created_by":1}`
-	expect(call("POST", "/api/v1/entries", member, entry), 201)
-	e, _ := data.Get(context.Background(), 1)
-	if e.CreatedBy != memberID {
-		t.Fatal("creator forged")
-	}
-	expect(call("POST", "/api/v1/entries", member, entry), 200)
-	expect(call("POST", "/api/v1/entries", admin, entry), 409)
-	entry2 := strings.Replace(entry, "request-1", "request-2", 1)
-	created := call("POST", "/api/v1/entries", admin, entry2)
-	expect(created, 201)
-	var ownerEntry domain.Entry
-	if err := json.Unmarshal(created.Body.Bytes(), &ownerEntry); err != nil {
-		t.Fatal(err)
-	}
-	ownerPath := fmt.Sprintf("/api/v1/entries/%d", ownerEntry.ID)
-	expect(call("PATCH", ownerPath, member, entry2), 403)
-	expect(call("DELETE", ownerPath, member, ""), 403)
-	expect(call("PATCH", "/api/v1/entries/1", member, entry), 200)
-	expect(call("PATCH", "/api/v1/entries/1", admin, entry), 200)
-	e, _ = data.Get(context.Background(), 1)
-	if e.CreatedBy != memberID {
-		t.Fatal("update changed creator")
-	}
-	// Historical entries remain visible and can be maintained by the administrator.
-	legacy, _, err := data.Save(context.Background(), domain.Entry{CategoryID: 2, Kind: "expense", Amount: 50, OccurredAt: time.Now(), RequestID: "legacy"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	legacyPath := fmt.Sprintf("/api/v1/entries/%d", legacy.ID)
-	expect(call("DELETE", legacyPath, member, ""), 403)
-	expect(call("DELETE", legacyPath, admin, ""), 204)
+	first, _ := login("owner")
+	second, _ := login("other")
 
-	// P0 metadata writes require administrator privileges; all members can query,
-	// export and move funds, but may only delete their own transfer records.
-	for _, path := range []string{"/api/v1/accounts", "/api/v1/categories", "/api/v1/transfers", "/api/v1/entry-authors", "/api/v1/entries/export?month=2026-10"} {
-		expect(call("GET", path, member, ""), 200)
-		expect(call("GET", path, stranger, ""), 403)
+	// 登录即可直达业务接口，无初始化/角色中间态。
+	expect(call("GET", "/api/v1/entries", first, ""), 200)
+	expect(call("GET", "/api/v1/auth/me", first, ""), 200)
+	me := call("GET", "/api/v1/auth/me", first, "")
+	var principal auth.Principal
+	_ = json.Unmarshal(me.Body.Bytes(), &principal)
+	if principal.ID == 0 || strings.Contains(me.Body.String(), "role") {
+		t.Fatal("principal must carry id only")
 	}
-	for _, path := range []string{"/api/v1/accounts", "/api/v1/categories"} {
-		expect(call("POST", path, member, `{}`), 403)
-		expect(call("PATCH", path+"/1", member, `{}`), 403)
+
+	// 每个用户自动获得独立账本，数据与幂等键互不干扰。
+	catList := call("GET", "/api/v1/categories", first, "")
+	expect(catList, 200)
+	var cats []struct {
+		ID   int64  `json:"id"`
+		Kind string `json:"kind"`
 	}
-	var cash, bank domain.Account
-	cashResponse := call("POST", "/api/v1/accounts", admin, `{"name":"现金","type":"cash","opening_balance_cent":10000}`)
-	expect(cashResponse, 201)
-	json.Unmarshal(cashResponse.Body.Bytes(), &cash)
-	bankResponse := call("POST", "/api/v1/accounts", admin, `{"name":"银行","type":"bank"}`)
-	expect(bankResponse, 201)
-	json.Unmarshal(bankResponse.Body.Bytes(), &bank)
-	transferBody := fmt.Sprintf(`{"from_account_id":%d,"to_account_id":%d,"amount_cent":100,"occurred_at":"2026-10-13T12:00:00+08:00","client_request_id":"owner-transfer","created_by":%d}`, cash.ID, bank.ID, memberID)
-	tw := call("POST", "/api/v1/transfers", admin, transferBody)
-	expect(tw, 201)
-	var ownerTransfer domain.Transfer
-	json.Unmarshal(tw.Body.Bytes(), &ownerTransfer)
-	if ownerTransfer.CreatedBy == memberID {
-		t.Fatal("forged transfer creator")
+	if err := json.Unmarshal(catList.Body.Bytes(), &cats); err != nil {
+		t.Fatal(err)
 	}
-	transferPath := fmt.Sprintf("/api/v1/transfers/%d", ownerTransfer.ID)
-	expect(call("DELETE", transferPath, member, ""), 403)
-	expect(call("DELETE", transferPath, admin, ""), 204)
-	transferBody = strings.Replace(transferBody, "owner-transfer", "member-transfer", 1)
-	tw = call("POST", "/api/v1/transfers", member, transferBody)
-	expect(tw, 201)
-	var memberTransfer domain.Transfer
-	json.Unmarshal(tw.Body.Bytes(), &memberTransfer)
-	if memberTransfer.CreatedBy != memberID {
-		t.Fatal("member transfer creator missing")
+	catID := int64(0)
+	for _, c := range cats {
+		if c.Kind == "expense" {
+			catID = c.ID
+			break
+		}
 	}
-	expect(call("DELETE", fmt.Sprintf("/api/v1/transfers/%d", memberTransfer.ID), member, ""), 204)
-	expect(call("DELETE", fmt.Sprintf("/api/v1/family/members/%d", memberID), admin, ""), 204)
-	expect(call("GET", "/api/v1/entries", member, ""), 403)
-	expect(call("POST", "/api/v1/auth/logout", admin, ""), 204)
-	expect(call("GET", "/api/v1/auth/me", admin, ""), 401)
+	if catID == 0 {
+		t.Fatal("no expense category in fresh ledger")
+	}
+	entry := fmt.Sprintf(`{"category_id":%d,"kind":"expense","amount_cent":1800,"occurred_at":"2026-10-13T12:00:00+08:00","client_request_id":"request-1"}`, catID)
+	expect(call("POST", "/api/v1/entries", first, entry), 201)
+	expect(call("POST", "/api/v1/entries", first, entry), 200)
+	// 第二个用户拥有独立账本与分类：相同幂等键不冲突，但必须使用自己的分类。
+	otherCats := call("GET", "/api/v1/categories", second, "")
+	expect(otherCats, 200)
+	_ = json.Unmarshal(otherCats.Body.Bytes(), &cats)
+	otherCatID := int64(0)
+	for _, c := range cats {
+		if c.Kind == "expense" {
+			otherCatID = c.ID
+			break
+		}
+	}
+	otherEntry := fmt.Sprintf(`{"category_id":%d,"kind":"expense","amount_cent":1800,"occurred_at":"2026-10-13T12:00:00+08:00","client_request_id":"request-1"}`, otherCatID)
+	expect(call("POST", "/api/v1/entries", second, otherEntry), 201)
+	expect(call("POST", "/api/v1/entries", second, entry), 400)
+	if !strings.Contains(call("GET", "/api/v1/entries", second, "").Body.String(), `"total":1`) {
+		t.Fatal("second user must see only their own entry")
+	}
+
+	// 预算与账本接口。
+	expect(call("PUT", "/api/v1/budgets", first, `{"scope":"month","period":"2026-10","category_id":0,"amount_cent":10000}`), 200)
+	expect(call("PUT", "/api/v1/budgets", first, `{"scope":"month","period":"2026-13","category_id":0,"amount_cent":10000}`), 400)
+	expect(call("PUT", "/api/v1/budgets", first, `{"scope":"quarter","period":"2026-10","category_id":0,"amount_cent":10000}`), 400)
+	expect(call("GET", "/api/v1/budgets?scope=month&period=2026-10", first, ""), 200)
+	ledger := call("GET", "/api/v1/ledgers/me", first, "")
+	expect(ledger, 200)
+	if !strings.Contains(ledger.Body.String(), `"name":"我的账本"`) {
+		t.Fatal("ledger must be auto-provisioned with default name")
+	}
+	expect(call("GET", "/api/v1/stats?range=month&ref=2026-10-15", first, ""), 200)
+	expect(call("GET", "/api/v1/stats?range=bad", first, ""), 400)
+
+	// 登出后令牌失效。
+	expect(call("POST", "/api/v1/auth/logout", first, ""), 204)
+	expect(call("GET", "/api/v1/auth/me", first, ""), 401)
 }
 func TestAuthRoutesMethodAndExpiry(t *testing.T) {
 	repo := auth.NewMemory()

@@ -25,26 +25,43 @@ type Category struct {
 	Name      string `json:"name"`
 	Kind      string `json:"kind"` // income 为收入，expense 为支出。
 	Icon      string `json:"icon"`
+	ParentID  int64  `json:"parent_id,omitempty"` // 二级分类预留；0 表示一级，暂不使用。
 }
 
 // Entry 表示一笔收入或支出；账户间转账单独使用 Transfer。
 type Entry struct {
-	AccountID  int64     `json:"account_id"` // 归属的资金账户 ID；0 表示未关联账户。
-	CreatedBy  int64     `json:"created_by"` // 创建者的成员 ID；历史无创建者记录为 0。
-	ID         int64     `json:"id"`
-	CategoryID int64     `json:"category_id"`
-	Kind       string    `json:"kind"`        // income 或 expense，必须与分类的收支类型一致。
-	Amount     int64     `json:"amount_cent"` // 金额，单位为分，必须为正数；收支方向由 Kind 决定。
-	OccurredAt time.Time `json:"occurred_at"` // 业务发生时间；按北京时间归入统计日期和月份。
-	Note       string    `json:"note"`
-	RequestID  string    `json:"client_request_id"` // 客户端幂等键，用于识别重复创建请求。
+	AccountID     int64     `json:"account_id"` // 归属的资金账户 ID；0 表示未关联账户。
+	CreatedBy     int64     `json:"created_by"` // 创建者的用户 ID；历史无创建者记录为 0。
+	ID            int64     `json:"id"`
+	CategoryID    int64     `json:"category_id"`
+	Kind          string    `json:"kind"`        // income 或 expense，必须与分类的收支类型一致。
+	Amount        int64     `json:"amount_cent"` // 金额，单位为分，必须为正数；收支方向由 Kind 决定。
+	OccurredAt    time.Time `json:"occurred_at"` // 业务发生时间；按北京时间归入统计日期和月份。
+	Note          string    `json:"note"`
+	RequestID     string    `json:"client_request_id"` // 客户端幂等键，用于识别重复创建请求。
+	RefundOfID    int64     `json:"refund_of_id,omitempty"`    // 退款关联的原账单 ID；P1。
+	Reimbursable  bool      `json:"reimbursable"`              // 是否标记可报销；P1。
+	ExcludeStats  bool      `json:"exclude_stats"`             // 不计收支；P2。
+	ExcludeBudget bool      `json:"exclude_budget"`            // 不计预算；P2。
+	Currency      string    `json:"currency,omitempty"`        // 币种代码，默认 CNY；P2。
 }
 
 // Validate 校验记账金额、发生时间、备注、幂等键及分类类型匹配。
 // 账户可用性、成员身份和编辑权限不在此函数中校验。
 func Validate(e Entry, categories []Category) error {
-	if e.Amount <= 0 || e.Amount > 100000000000 || (e.OccurredAt.IsZero() || e.OccurredAt.Year() < 1000 || e.OccurredAt.Year() > 9999) || len([]rune(e.Note)) > 500 || len(e.RequestID) == 0 || len(e.RequestID) > 64 {
+	if e.Amount <= 0 || e.Amount > 100000000000 || (e.OccurredAt.IsZero() || e.OccurredAt.Year() < 1000 || e.OccurredAt.Year() > 9999) || len([]rune(e.Note)) > 500 || len(e.RequestID) == 0 || len(e.RequestID) > 64 || e.RefundOfID < 0 {
 		return ErrInvalid
+	}
+	if e.Currency != "" {
+		ok := len(e.Currency) == 3
+		for _, ch := range e.Currency {
+			if ch < 'A' || ch > 'Z' {
+				ok = false
+			}
+		}
+		if !ok {
+			return ErrInvalid
+		}
 	}
 	for _, c := range categories {
 		if c.ID == e.CategoryID && c.Kind == e.Kind {
@@ -54,13 +71,22 @@ func Validate(e Entry, categories []Category) error {
 	return ErrInvalid
 }
 
-// DefaultCategories 返回账本初始化使用的默认收支分类。
+// DefaultCategories 返回新账本初始化的默认收支分类：Master 在 iCost 实际使用的扁平分类集。
+// 支出 12 个（ID 1~12）、收入 12 个（ID 13~24）；已存在的账本通过迁移按名称补种，不覆盖自定义分类。
 func DefaultCategories() []Category {
 	return []Category{
-		{ID: 1, Name: "早餐", Kind: "expense", Icon: "🍞"}, {ID: 2, Name: "午餐", Kind: "expense", Icon: "🍜"}, {ID: 3, Name: "晚餐", Kind: "expense", Icon: "🍚"},
-		{ID: 4, Name: "饮料咖啡", Kind: "expense", Icon: "☕"}, {ID: 5, Name: "交通", Kind: "expense", Icon: "🚇"}, {ID: 6, Name: "购物", Kind: "expense", Icon: "🛍️"},
-		{ID: 7, Name: "住房", Kind: "expense", Icon: "🏠"}, {ID: 8, Name: "其他支出", Kind: "expense", Icon: "🧾"},
-		{ID: 9, Name: "工资", Kind: "income", Icon: "💼"}, {ID: 10, Name: "奖金", Kind: "income", Icon: "🎁"}, {ID: 11, Name: "其他收入", Kind: "income", Icon: "💰"},
+		{ID: 1, Name: "餐饮", Kind: "expense", Icon: "🍜"}, {ID: 2, Name: "交通", Kind: "expense", Icon: "🚗"},
+		{ID: 3, Name: "夜宵", Kind: "expense", Icon: "🍢"}, {ID: 4, Name: "公交", Kind: "expense", Icon: "🚌"},
+		{ID: 5, Name: "地铁", Kind: "expense", Icon: "🚇"}, {ID: 6, Name: "早餐", Kind: "expense", Icon: "🍳"},
+		{ID: 7, Name: "午餐", Kind: "expense", Icon: "🍱"}, {ID: 8, Name: "晚餐", Kind: "expense", Icon: "🍚"},
+		{ID: 9, Name: "消费", Kind: "expense", Icon: "🛍️"}, {ID: 10, Name: "饮料咖啡", Kind: "expense", Icon: "☕"},
+		{ID: 11, Name: "住房", Kind: "expense", Icon: "🏠"}, {ID: 12, Name: "其他", Kind: "expense", Icon: "🧾"},
+		{ID: 13, Name: "工资", Kind: "income", Icon: "💼"}, {ID: 14, Name: "奖金", Kind: "income", Icon: "🎁"},
+		{ID: 15, Name: "加班", Kind: "income", Icon: "🌙"}, {ID: 16, Name: "福利", Kind: "income", Icon: "🧧"},
+		{ID: 17, Name: "公积金", Kind: "income", Icon: "🏦"}, {ID: 18, Name: "红包", Kind: "income", Icon: "🧧"},
+		{ID: 19, Name: "兼职", Kind: "income", Icon: "💻"}, {ID: 20, Name: "副业", Kind: "income", Icon: "📈"},
+		{ID: 21, Name: "退税", Kind: "income", Icon: "💸"}, {ID: 22, Name: "投资", Kind: "income", Icon: "📊"},
+		{ID: 23, Name: "意外收入", Kind: "income", Icon: "🍀"}, {ID: 24, Name: "其他", Kind: "income", Icon: "💰"},
 	}
 }
 

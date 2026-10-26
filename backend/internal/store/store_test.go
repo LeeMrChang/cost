@@ -58,3 +58,33 @@ func TestUpdateAndMonthBoundaries(t *testing.T) {
 		t.Fatal("moving entry to next month must update list")
 	}
 }
+
+func TestSoftDeleteExpiryAndLedgerIsolation(t *testing.T) {
+	m := NewMemory()
+	ctx := context.Background()
+	e, _, err := m.Save(ctx, domain.Entry{CategoryID: 1, Kind: "expense", Amount: 100, OccurredAt: time.Now(), RequestID: "expiry"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = m.Delete(ctx, e.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err = m.Restore(WithLedgerID(ctx, 99), e.ID); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("cross ledger restore: %v", err)
+	}
+	m.deletedAt[e.ID] = time.Now().Add(-6 * time.Second)
+	if err = m.Restore(ctx, e.ID); !errors.Is(err, domain.ErrConflict) {
+		t.Fatalf("expired restore: %v", err)
+	}
+	if _, _, err = m.Save(ctx, e); !errors.Is(err, domain.ErrConflict) {
+		t.Fatalf("retry resurrected tombstone: %v", err)
+	}
+	entries, _ := m.List(ctx, time.Time{}, time.Time{})
+	if len(entries) != 0 {
+		t.Fatal("deleted entry visible in list")
+	}
+	authors, _ := m.Authors(ctx)
+	if len(authors) != 0 {
+		t.Fatal("deleted entry visible in authors")
+	}
+}

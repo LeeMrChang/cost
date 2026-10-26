@@ -1,0 +1,31 @@
+.page{background:#F4F5F7;min-height:100vh;padding:20rpx 28rpx calc(60rpx + env(safe-area-inset-bottom));box-sizing:border-box}
+.search-head{display:flex;align-items:center;gap:20rpx;margin-bottom:24rpx}
+.input-box{flex:1;display:flex;align-items:center;gap:12rpx;background:#E9EBEE;border-radius:999rpx;padding:16rpx 28rpx}
+.search-icon{font-size:26rpx}
+.input{flex:1;font-size:28rpx;color:#1A1D21}
+.ph{color:#8B9199}
+.clear{color:#B6BBC2;font-size:30rpx;padding:0 6rpx}
+.cancel{font-size:28rpx;color:#3B82F6}
+.chips{display:flex;gap:16rpx;margin-bottom:20rpx}
+.chip{background:#fff;color:#8B9199;font-size:25rpx;border-radius:999rpx;padding:12rpx 30rpx}
+.chip-on{background:#3B82F6;color:#fff}
+.summary{display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:20rpx;padding:22rpx 28rpx;margin-bottom:20rpx;font-size:24rpx;color:#8B9199}
+.day-head{display:flex;justify-content:space-between;align-items:center;margin:26rpx 6rpx 14rpx;color:#8B9199;font-size:24rpx}
+.day-head-right{display:flex;align-items:center;gap:12rpx}
+.card{background:#fff;border-radius:24rpx;margin-bottom:20rpx}
+.entries{padding:0 28rpx}
+.entry{display:flex;align-items:center;padding:24rpx 0;border-bottom:1rpx solid #ECEEF1}
+.entry:last-child{border:0}
+.icon{width:72rpx;height:72rpx;display:flex;align-items:center;justify-content:center;border-radius:50%;margin-right:22rpx;font-size:36rpx;flex-shrink:0}
+.icon.expense{background:#FDECEC}
+.icon.income{background:#E9F7EE}
+.entry-copy{flex:1;min-width:0}
+.entry-name{font-weight:650;color:#1A1D21;margin-bottom:6rpx;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.entry-time{color:#B6BBC2;font-size:22rpx}
+.entry-amount{font-weight:700;font-size:32rpx;flex-shrink:0;margin-left:16rpx}
+.entry-amount.expense{color:#1A1D21}
+.entry-amount.income{color:#17A34A}
+.load-more{text-align:center;color:#3B82F6;font-size:26rpx;padding:24rpx}
+.empty{text-align:center;color:#8B9199;padding:80rpx 20rpx}
+.error{background:#FDECEC;color:#E5484D;border-radius:18rpx;padding:24rpx;margin:20rpx 0;font-size:25rpx}
+.input-box{border-radius:20rpx;background:#fff}.chips{flex-wrap:wrap;gap:16rpx}.chip{border-radius:16rpx;background:#E9EBEF;padding:16rpx 24rpx;color:#6F7680}.chip-on{background:#E7EFFD;color:#3B82F6}.suggest-title{font-size:25rpx;font-weight:650;color:#8B9199;margin:8rpx 4rpx 22rpx}.entry-amount.expense{color:#E5484D}.clear-filters{color:#3B82F6;padding:24rpx}.summary{flex-wrap:wrap;gap:12rpx}

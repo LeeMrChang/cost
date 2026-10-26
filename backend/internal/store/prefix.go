@@ -7,7 +7,9 @@ import (
 	"strings"
 )
 
-var tableNames = []string{"ledgers", "categories", "entries", "budgets", "users", "sessions", "family_setup", "family_members", "family_invites", "schema_migrations"}
+// 005 起家庭协作三表（family_setup/family_members/family_invites）已删除，不再参与前缀判定；
+// 迁移 005 同时清理新旧两种前缀的残留表。
+var tableNames = []string{"ledgers", "categories", "entries", "budgets", "users", "sessions", "schema_migrations"}
 
 // prefixState rejects ambiguous layouts before the first DDL statement.
 func prefixState(ctx context.Context, conn *sql.Conn) (bool, error) {

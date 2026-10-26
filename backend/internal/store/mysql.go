@@ -121,12 +121,18 @@ func (m *MySQL) Migrate(ctx context.Context) error {
 	if err := applyTableComments(ctx, conn); err != nil {
 		return err
 	}
-	return applyLedgerFeatures(ctx, conn)
+	if err := applyLedgerFeatures(ctx, conn); err != nil {
+		return err
+	}
+	if err := applyICostRealignment(ctx, conn); err != nil {
+		return err
+	}
+	return applyEntrySoftDelete(ctx, conn)
 }
 func (m *MySQL) DB() *sql.DB { return m.db }
 
 func (m *MySQL) Categories(ctx context.Context) ([]domain.Category, error) {
-	rows, err := m.db.QueryContext(ctx, "SELECT id,name,kind,icon,sort_order,disabled FROM t_categories WHERE ledger_id=1 ORDER BY sort_order,id")
+	rows, err := m.db.QueryContext(ctx, "SELECT id,name,kind,icon,sort_order,disabled,COALESCE(parent_id,0) FROM t_categories WHERE ledger_id=? ORDER BY sort_order,id", LedgerID(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +140,7 @@ func (m *MySQL) Categories(ctx context.Context) ([]domain.Category, error) {
 	out := []domain.Category{}
 	for rows.Next() {
 		var c domain.Category
-		if err = rows.Scan(&c.ID, &c.Name, &c.Kind, &c.Icon, &c.SortOrder, &c.Disabled); err != nil {
+		if err = rows.Scan(&c.ID, &c.Name, &c.Kind, &c.Icon, &c.SortOrder, &c.Disabled, &c.ParentID); err != nil {
 			return nil, err
 		}
 		out = append(out, c)
@@ -142,15 +148,25 @@ func (m *MySQL) Categories(ctx context.Context) ([]domain.Category, error) {
 	return out, rows.Err()
 }
 
-const fields = "id,category_id,kind,amount_cent,occurred_at,note,client_request_id,COALESCE(created_by,0),COALESCE(account_id,0)"
+const fields = "id,category_id,kind,amount_cent,occurred_at,note,client_request_id,COALESCE(created_by,0),COALESCE(account_id,0),COALESCE(refund_of_id,0),reimbursable,exclude_stats,exclude_budget,currency"
 
 func scan(s interface{ Scan(...any) error }) (domain.Entry, error) {
 	var e domain.Entry
-	err := s.Scan(&e.ID, &e.CategoryID, &e.Kind, &e.Amount, &e.OccurredAt, &e.Note, &e.RequestID, &e.CreatedBy, &e.AccountID)
+	err := s.Scan(&e.ID, &e.CategoryID, &e.Kind, &e.Amount, &e.OccurredAt, &e.Note, &e.RequestID, &e.CreatedBy, &e.AccountID, &e.RefundOfID, &e.Reimbursable, &e.ExcludeStats, &e.ExcludeBudget, &e.Currency)
 	return e, err
 }
 func (m *MySQL) List(ctx context.Context, start, end time.Time) ([]domain.Entry, error) {
-	rows, err := m.db.QueryContext(ctx, "SELECT "+fields+" FROM t_entries WHERE ledger_id=1 AND occurred_at>=? AND occurred_at<? ORDER BY occurred_at DESC,id DESC", start.UTC(), end.UTC())
+	where := "ledger_id=? AND deleted_at IS NULL"
+	args := []any{LedgerID(ctx)}
+	if !start.IsZero() {
+		where += " AND occurred_at>=?"
+		args = append(args, start.UTC())
+	}
+	if !end.IsZero() {
+		where += " AND occurred_at<?"
+		args = append(args, end.UTC())
+	}
+	rows, err := m.db.QueryContext(ctx, "SELECT "+fields+" FROM t_entries WHERE "+where+" ORDER BY occurred_at DESC,id DESC", args...)
 	if err != nil {
 		return nil, err
 	}
@@ -171,8 +187,19 @@ func (m *MySQL) Save(ctx context.Context, e domain.Entry) (domain.Entry, bool, e
 		return e, false, err
 	}
 	defer tx.Rollback()
-	old, err := scan(tx.QueryRowContext(ctx, "SELECT "+fields+" FROM t_entries WHERE ledger_id=1 AND client_request_id=?", e.RequestID))
+	ledgerID := LedgerID(ctx)
+	if e.Currency == "" {
+		e.Currency = "CNY"
+	}
+	old, err := scan(tx.QueryRowContext(ctx, "SELECT "+fields+" FROM t_entries WHERE ledger_id=? AND client_request_id=?", ledgerID, e.RequestID))
 	if err == nil {
+		var deleted sql.NullTime
+		if err = tx.QueryRowContext(ctx, "SELECT deleted_at FROM t_entries WHERE ledger_id=? AND id=?", ledgerID, old.ID).Scan(&deleted); err != nil {
+			return e, false, err
+		}
+		if deleted.Valid {
+			return e, false, domain.ErrConflict
+		}
 		if !same(old, e) {
 			return e, false, domain.ErrConflict
 		}
@@ -184,7 +211,7 @@ func (m *MySQL) Save(ctx context.Context, e domain.Entry) (domain.Entry, bool, e
 	if err = validateSQLReferences(ctx, tx, e, domain.Entry{}); err != nil {
 		return e, false, err
 	}
-	result, err := tx.ExecContext(ctx, "INSERT INTO t_entries(ledger_id,category_id,kind,amount_cent,occurred_at,note,client_request_id,created_by,account_id) VALUES(1,?,?,?,?,?,?,NULLIF(?,0),NULLIF(?,0))", e.CategoryID, e.Kind, e.Amount, e.OccurredAt.UTC(), e.Note, e.RequestID, e.CreatedBy, e.AccountID)
+	result, err := tx.ExecContext(ctx, "INSERT INTO t_entries(ledger_id,category_id,kind,amount_cent,occurred_at,note,client_request_id,created_by,account_id,refund_of_id,reimbursable,exclude_stats,exclude_budget,currency) VALUES(?,?,?,?,?,?,?,NULLIF(?,0),NULLIF(?,0),NULLIF(?,0),?,?,?,?)", ledgerID, e.CategoryID, e.Kind, e.Amount, e.OccurredAt.UTC(), e.Note, e.RequestID, e.CreatedBy, e.AccountID, e.RefundOfID, e.Reimbursable, e.ExcludeStats, e.ExcludeBudget, e.Currency)
 	if err != nil {
 		return e, false, err
 	}
@@ -200,17 +227,21 @@ func (m *MySQL) Update(ctx context.Context, e domain.Entry) (domain.Entry, error
 		return e, err
 	}
 	defer tx.Rollback()
-	old, err := scan(tx.QueryRowContext(ctx, "SELECT "+fields+" FROM t_entries WHERE ledger_id=1 AND id=? FOR UPDATE", e.ID))
+	ledgerID := LedgerID(ctx)
+	old, err := scan(tx.QueryRowContext(ctx, "SELECT "+fields+" FROM t_entries WHERE ledger_id=? AND id=? AND deleted_at IS NULL FOR UPDATE", ledgerID, e.ID))
 	if errors.Is(err, sql.ErrNoRows) {
 		return e, domain.ErrNotFound
 	}
 	if err != nil {
 		return e, err
 	}
+	if e.Currency == "" {
+		e.Currency = "CNY"
+	}
 	if err = validateSQLReferences(ctx, tx, e, old); err != nil {
 		return e, err
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE t_entries SET category_id=?,kind=?,amount_cent=?,occurred_at=?,note=?,account_id=NULLIF(?,0) WHERE ledger_id=1 AND id=?", e.CategoryID, e.Kind, e.Amount, e.OccurredAt.UTC(), e.Note, e.AccountID, e.ID)
+	_, err = tx.ExecContext(ctx, "UPDATE t_entries SET category_id=?,kind=?,amount_cent=?,occurred_at=?,note=?,account_id=NULLIF(?,0),refund_of_id=NULLIF(?,0),reimbursable=?,exclude_stats=?,exclude_budget=?,currency=? WHERE ledger_id=? AND id=?", e.CategoryID, e.Kind, e.Amount, e.OccurredAt.UTC(), e.Note, e.AccountID, e.RefundOfID, e.Reimbursable, e.ExcludeStats, e.ExcludeBudget, e.Currency, ledgerID, e.ID)
 	if err != nil {
 		return e, err
 	}
@@ -219,7 +250,7 @@ func (m *MySQL) Update(ctx context.Context, e domain.Entry) (domain.Entry, error
 	return e, tx.Commit()
 }
 func (m *MySQL) Delete(ctx context.Context, id int64) error {
-	r, err := m.db.ExecContext(ctx, "DELETE FROM t_entries WHERE ledger_id=1 AND id=?", id)
+	r, err := m.db.ExecContext(ctx, "UPDATE t_entries SET deleted_at=UTC_TIMESTAMP(6) WHERE ledger_id=? AND id=? AND deleted_at IS NULL", LedgerID(ctx), id)
 	if err != nil {
 		return err
 	}
@@ -232,17 +263,76 @@ func (m *MySQL) Delete(ctx context.Context, id int64) error {
 	}
 	return nil
 }
-func (m *MySQL) Budget(ctx context.Context, month string) (*int64, error) {
-	var n int64
-	err := m.db.QueryRowContext(ctx, "SELECT amount_cent FROM t_budgets WHERE ledger_id=1 AND month=?", month).Scan(&n)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
+func (m *MySQL) Budgets(ctx context.Context, scope, period string) ([]domain.BudgetRow, error) {
+	rows, err := m.db.QueryContext(ctx, "SELECT scope,period_key,category_id,amount_cent FROM t_budgets WHERE ledger_id=? AND scope=? AND period_key=?", LedgerID(ctx), scope, period)
+	if err != nil {
+		return nil, err
 	}
-	return &n, err
+	defer rows.Close()
+	out := []domain.BudgetRow{}
+	for rows.Next() {
+		var r domain.BudgetRow
+		if err = rows.Scan(&r.Scope, &r.Period, &r.CategoryID, &r.Amount); err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
 }
-func (m *MySQL) SetBudget(ctx context.Context, month string, n int64) error {
-	_, err := m.db.ExecContext(ctx, "INSERT INTO t_budgets(ledger_id,month,amount_cent) VALUES(1,?,?) ON DUPLICATE KEY UPDATE amount_cent=?", month, n, n)
+func (m *MySQL) SetBudget(ctx context.Context, row domain.BudgetRow) error {
+	if err := domain.ValidateBudgetRow(row); err != nil {
+		return err
+	}
+	if row.Amount == 0 {
+		_, err := m.db.ExecContext(ctx, "DELETE FROM t_budgets WHERE ledger_id=? AND scope=? AND period_key=? AND category_id=?", LedgerID(ctx), row.Scope, row.Period, row.CategoryID)
+		return err
+	}
+	_, err := m.db.ExecContext(ctx, "INSERT INTO t_budgets(ledger_id,scope,period_key,category_id,amount_cent) VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE amount_cent=VALUES(amount_cent)", LedgerID(ctx), row.Scope, row.Period, row.CategoryID, row.Amount)
 	return err
+}
+func (m *MySQL) LedgerForUser(ctx context.Context, userID int64) (int64, error) {
+	tx, err := m.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	var id int64
+	err = tx.QueryRowContext(ctx, "SELECT id FROM t_ledgers WHERE owner_id=?", userID).Scan(&id)
+	if err == nil {
+		return id, tx.Commit()
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return 0, err
+	}
+	// t_ledgers 无自增主键，取全局 MAX+1；owner_id 唯一索引兜底并发首次登录。
+	if err = tx.QueryRowContext(ctx, "SELECT COALESCE(MAX(id),0)+1 FROM t_ledgers").Scan(&id); err != nil {
+		return 0, err
+	}
+	if _, err = tx.ExecContext(ctx, "INSERT INTO t_ledgers(id,name,icon,owner_id) VALUES(?,?,?,?)", id, domain.DefaultLedgerName(), domain.DefaultLedgerIcon(), userID); err != nil {
+		var existing int64
+		if e2 := tx.QueryRowContext(ctx, "SELECT id FROM t_ledgers WHERE owner_id=?", userID).Scan(&existing); e2 == nil {
+			return existing, tx.Commit()
+		}
+		return 0, err
+	}
+	for _, cat := range domain.DefaultCategories() {
+		var next int64
+		if err = tx.QueryRowContext(ctx, "SELECT COALESCE(MAX(id),0)+1 FROM t_categories").Scan(&next); err != nil {
+			return 0, err
+		}
+		if _, err = tx.ExecContext(ctx, "INSERT INTO t_categories(id,ledger_id,name,kind,icon,sort_order,disabled) VALUES(?,?,?,?,?,0,FALSE)", next, id, cat.Name, cat.Kind, cat.Icon); err != nil {
+			return 0, err
+		}
+	}
+	return id, tx.Commit()
+}
+func (m *MySQL) Ledger(ctx context.Context, id int64) (domain.Ledger, error) {
+	var l domain.Ledger
+	err := m.db.QueryRowContext(ctx, "SELECT id,name,icon,currency,timezone FROM t_ledgers WHERE id=?", id).Scan(&l.ID, &l.Name, &l.Icon, &l.Currency, &l.Timezone)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = domain.ErrNotFound
+	}
+	return l, err
 }
 func (m *MySQL) Close() error { return m.db.Close() }
 func (m *MySQL) String() string {
@@ -250,9 +340,36 @@ func (m *MySQL) String() string {
 }
 
 func (m *MySQL) Get(ctx context.Context, id int64) (domain.Entry, error) {
-	e, err := scan(m.db.QueryRowContext(ctx, "SELECT "+fields+" FROM t_entries WHERE ledger_id=1 AND id=?", id))
+	e, err := scan(m.db.QueryRowContext(ctx, "SELECT "+fields+" FROM t_entries WHERE ledger_id=? AND id=? AND deleted_at IS NULL", LedgerID(ctx), id))
 	if errors.Is(err, sql.ErrNoRows) {
 		err = domain.ErrNotFound
 	}
 	return e, err
+}
+
+func (m *MySQL) Restore(ctx context.Context, id int64) error {
+	tx, err := m.ledgerTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var deleted sql.NullTime
+	err = tx.QueryRowContext(ctx, "SELECT deleted_at FROM t_entries WHERE ledger_id=? AND id=? FOR UPDATE", LedgerID(ctx), id).Scan(&deleted)
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && !deleted.Valid) {
+		return domain.ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	var expired bool
+	if err = tx.QueryRowContext(ctx, "SELECT deleted_at < UTC_TIMESTAMP(6) - INTERVAL 5 SECOND FROM t_entries WHERE ledger_id=? AND id=?", LedgerID(ctx), id).Scan(&expired); err != nil {
+		return err
+	}
+	if expired {
+		return domain.ErrConflict
+	}
+	if _, err = tx.ExecContext(ctx, "UPDATE t_entries SET deleted_at=NULL WHERE ledger_id=? AND id=?", LedgerID(ctx), id); err != nil {
+		return err
+	}
+	return tx.Commit()
 }

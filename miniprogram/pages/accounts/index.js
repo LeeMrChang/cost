@@ -7,16 +7,16 @@ Page({
  onShow() {this.load();},
  onUnload() {this.version = (this.version || 0) + 1;},
  onReachBottom() {this.loadMore();},
- decorateTransfers(items, accounts, user) {
+ decorateTransfers(items, accounts) {
   const map = {}; accounts.forEach(a => {map[a.id] = a.name;});
-  return items.map(t => ({...t, fromName: map[t.from_account_id] || '历史账户', toName: map[t.to_account_id] || '历史账户', display: money(t.amount_cent), ...stamp(t.occurred_at), canDelete: user.role === 'admin' || user.id === t.created_by}));
+  return items.map(t => ({...t, fromName: map[t.from_account_id] || '历史账户', toName: map[t.to_account_id] || '历史账户', display: money(t.amount_cent), ...stamp(t.occurred_at), canDelete: true}));
  },
  async load() {
   const version = this.version = (this.version || 0) + 1; this.setData({loading: true, loadingMore: false, error: '', user: null, accounts: [], activeAccounts: [], transfers: [], total: 0, page: 0, hasMore: false, balance: '0.00'});
   try {
    const [user, rows, transfers] = await Promise.all([api.me(), api.request('/api/v1/accounts'), api.request('/api/v1/transfers?page=1&page_size=50')]); if (version !== this.version) return;
    const accounts = rows.map(a => {const type = types.find(t => t.value === a.type) || types[4]; return {...a, icon: type.icon, typeLabel: type.label, balance: money(a.balance_cent), opening: money(a.opening_balance_cent)};});
-   this.setData({user, accounts, activeAccounts: accounts.filter(a => !a.disabled), balance: money(accounts.reduce((sum, a) => sum + a.balance_cent, 0)), transfers: this.decorateTransfers(transfers.items || [], accounts, user), total: transfers.total, page: 1, hasMore: transfers.items.length < transfers.total});
+   this.setData({user, accounts, activeAccounts: accounts.filter(a => !a.disabled), balance: money(accounts.reduce((sum, a) => sum + a.balance_cent, 0)), transfers: this.decorateTransfers(transfers.items || [], accounts), total: transfers.total, page: 1, hasMore: transfers.items.length < transfers.total});
   } catch (e) {if (version === this.version) this.setData({error: e.message});} finally {if (version === this.version) this.setData({loading: false});}
  },
  async loadMore() {
@@ -24,12 +24,12 @@ Page({
   const version = this.version, page = this.data.page + 1; this.setData({loadingMore: true, error: ''});
   try {
    const result = await api.request('/api/v1/transfers?page=' + page + '&page_size=50'); if (version !== this.version) return;
-   const map = {}; this.data.transfers.concat(this.decorateTransfers(result.items, this.data.accounts, this.data.user)).forEach(t => {map[t.id] = t;});
+   const map = {}; this.data.transfers.concat(this.decorateTransfers(result.items, this.data.accounts)).forEach(t => {map[t.id] = t;});
    const transfers = Object.values(map).sort((a, b) => b.occurred_at.localeCompare(a.occurred_at) || b.id - a.id);
    this.setData({transfers, total: result.total, page, hasMore: result.items.length > 0 && transfers.length < result.total});
   } catch (e) {if (version === this.version) this.setData({error: e.message});} finally {if (version === this.version) this.setData({loadingMore: false});}
  },
- canManage() {if (!this.data.user || this.data.user.role !== 'admin') {wx.showToast({title: '仅管理员可管理账户', icon: 'none'}); return false;} return true;},
+ canManage() {if (!this.data.user) {wx.showToast({title: '账本数据尚未加载', icon: 'none'}); return false;} return true;},
  openAccount() {if (this.data.saving || !this.canManage()) return; this.setData({accountEditor: true, editID: null, name: '', opening: '0.00', typeIndex: 0, disabled: false});},
  editAccount(e) {
   if (this.data.saving || !this.canManage()) return; const a = this.data.accounts.find(a => a.id === Number(e.currentTarget.dataset.id)); if (!a) return;

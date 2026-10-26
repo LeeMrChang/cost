@@ -19,7 +19,7 @@
 
 ## 问题修复
 
-先使用 `systematic-debugging`，记录现象、复现步骤和证据，区分微信登录失败、会话过期、家庭成员权限、初始化密钥以及邀请码错误。定位原因后写可复现的失败测试，再做最小修复。不要仅凭错误提示猜测并连续修改。
+先使用 `systematic-debugging`，记录现象、复现步骤和证据，区分微信登录失败、会话过期、账本归属与分类/预算数据错误。定位原因后写可复现的失败测试，再做最小修复。不要仅凭错误提示猜测并连续修改。
 
 ## 项目验证命令
 
@@ -42,10 +42,7 @@ COST_TEST_MYSQL_ADMIN_DSN='root@unix(/tmp/mysql.sock)/' go test -race ./...
 在仓库根目录：
 
 ```sh
-node miniprogram/tests/money.test.js
-node miniprogram/tests/calendar.test.js
-node miniprogram/tests/auth.test.js
-node miniprogram/tests/validate.js
+node --test 'miniprogram/tests/*.test.js'
 ```
 
 Node 必须与本机架构兼容。2026-10-22 的测试使用 Codex 随附 Node；本机默认 `/usr/local/bin/node` 当时存在架构不兼容问题。遇到环境问题应记录实际使用的运行时，不把未执行的测试记为通过。
@@ -55,7 +52,7 @@ Node 必须与本机架构兼容。2026-10-22 的测试使用 Codex 随附 Node�
 - 语法和页面完整性检查：不能证明平台编译或真实登录。
 - 微信开发者工具编译：不能证明后端换取身份成功。
 - 真实 `wx.login → 后端 → jscode2session`：证明当前账号的登录链路。
-- 手机真机、另一微信账号、加入/移除家庭：分别证明设备环境和多人权限；未执行则保留待验证状态。
+- 手机真机：证明设备环境；未执行则保留待验证状态。
 
 ## 文档与证据
 
@@ -68,7 +65,7 @@ Node 必须与本机架构兼容。2026-10-22 的测试使用 Codex 随附 Node�
 | docs/superpowers/specs/ | 事前设计或明确标注的事后补录 |
 | docs/superpowers/plans/ | 实施前的任务计划和执行进度 |
 
-每次验证记录说明日期、命令、运行环境、结果和跳过项。截图中的“已登录”与“已加入家庭”是不同状态；邀请码错误不能作为微信登录失败的证据。
+每次验证记录说明日期、命令、运行环境、结果和跳过项。截图中的“已登录”是登录成功的证据，不代表业务功能全部可用。
 
 ## 本次改造的流程缺口
 

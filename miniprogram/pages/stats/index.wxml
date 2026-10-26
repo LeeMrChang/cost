@@ -1,6 +1,53 @@
-<view class="container"><view class="title">统计</view><view class="section" bindtap="openMonth">{{month}}　⌄</view><view wx:if="{{error}}" class="error" bindtap="load">{{error}}（点击重试）</view>
- <view class="card"><view class="section">收支概览</view><view class="metrics"><view><view class="muted">支出</view><view class="metric expense">¥{{summary.expense || '0.00'}}</view></view><view><view class="muted">收入</view><view class="metric income">¥{{summary.income || '0.00'}}</view></view></view><view class="muted">结余　¥{{summary.balance || '0.00'}}</view></view>
- <view class="card"><view class="section">每日支出</view><view wx:if="{{!days.length}}" class="empty">暂无数据</view><view wx:for="{{days}}" wx:key="date" class="trend"><view class="row"><text class="muted">{{item.date}}</text><text>¥{{item.amount}}</text></view><view class="track"><view class="bar" style="width:{{item.width}}%"></view></view></view></view>
- <view class="card"><view class="section">支出分类</view><view wx:if="{{!rows.length}}" class="empty">暂无支出</view><view wx:for="{{rows}}" wx:key="category_id" class="category-row"><view class="row"><text>{{item.icon}} {{item.name}}</text><text>¥{{item.amount}}</text></view><view class="row muted"><text>{{item.count}} 笔</text><text>{{item.percent}}%</text></view><view class="track"><view class="bar" style="width:{{item.percent}}%"></view></view></view></view>
+<view class="container">
+ <view class="head"><view class="title">统计</view><view class="budget-entry" bindtap="openBudget">预算 ›</view></view>
+ <view class="segments">
+  <view wx:for="{{['week','month','year','all','custom']}}" wx:key="*this" class="segment {{range === item ? 'on' : ''}}" data-range="{{item}}" bindtap="setRange">{{item === 'week' ? '周' : item === 'month' ? '月' : item === 'year' ? '年' : item === 'all' ? '全部' : '自定义'}}</view>
+ </view>
+ <view wx:if="{{range !== 'all'}}" class="range-bar">
+  <view class="arrow {{prevRef ? '' : 'off'}}" bindtap="prev">‹</view>
+  <view wx:if="{{range !== 'custom'}}" class="range-label">{{label}}</view>
+  <view wx:else class="range-label"><text bindtap="openStart">{{customStart}}</text><text class="tilde">至</text><text bindtap="openEnd">{{customEnd}}</text></view>
+  <view class="arrow {{nextRef ? '' : 'off'}}" bindtap="next">›</view>
+ </view>
+ <view wx:if="{{error}}" class="error" bindtap="load">{{error}}（点击重试）</view>
+ <view wx:if="{{loading && !chart.length}}" class="muted">加载中…</view>
+ <view wx:else>
+  <view class="card metrics">
+   <view class="metric"><view class="muted">支出</view><view class="value expense">¥{{summary.expense}}</view></view>
+   <view class="metric"><view class="muted">收入</view><view class="value income">¥{{summary.income}}</view></view>
+   <view class="metric"><view class="muted">结余</view><view class="value">¥{{summary.balance}}</view></view>
+   <view class="metric"><view class="muted">日均支出</view><view class="value">¥{{summary.daily}}</view></view>
+  </view>
+  <view class="card">
+   <view class="section">支出走势</view>
+   <view wx:if="{{!chart.length}}" class="empty">暂无数据</view>
+   <view wx:else class="bars">
+    <view wx:for="{{chart}}" wx:key="key" class="bar-col">
+     <view wx:if="{{showValues}}" class="bar-value">{{item.value}}</view>
+     <view wx:elif="{{item.hot}}" class="bar-value hot">{{item.value}}</view>
+     <view class="bar {{item.hot ? 'hot' : ''}}" style="height:{{item.height}}%"></view>
+     <view class="bar-label">{{item.label}}</view>
+    </view>
+   </view>
+  </view>
+  <view class="card">
+   <view class="section">支出分类</view>
+   <view wx:if="{{!categories.length}}" class="empty">暂无支出</view>
+   <view wx:for="{{categories}}" wx:key="category_id" class="category-row">
+    <view class="row"><text class="cat-name">{{item.icon}} {{item.name}}</text><text class="cat-amount">¥{{item.amount}}</text></view>
+    <view class="row muted"><text>{{item.count}} 笔</text><text>{{item.percent}}%</text></view>
+    <view class="track"><view class="fill" style="width:{{item.width}}%"></view></view>
+   </view>
+  </view>
+  <view wx:if="{{range === 'month'}}" class="card">
+   <view class="section">月预算</view>
+   <view wx:if="{{budget.unset}}" class="budget-hint" bindtap="openBudget">尚未设置月预算，点击设置 ›</view>
+   <view wx:else>
+    <view class="budget-num {{budget.over ? 'over' : ''}}">剩余 ¥{{budget.remaining}}</view>
+    <view class="muted">总预算 ¥{{budget.total}}<text wx:if="{{budget.daily}}"> · 日均剩余 ¥{{budget.daily}}</text></view>
+   </view>
+  </view>
+ </view>
 </view>
-<calendar-popup mode="month" visible="{{monthOpen}}" month="{{month}}" bind:confirm="onMonthConfirm" bind:cancel="closeMonth" />
+<calendar-popup mode="date" visible="{{startOpen}}" date="{{customStart}}" bind:confirm="onStart" bind:cancel="closeStart" />
+<calendar-popup mode="date" visible="{{endOpen}}" date="{{customEnd}}" bind:confirm="onEnd" bind:cancel="closeEnd" />

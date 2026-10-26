@@ -1,0 +1,50 @@
+<view class="container">
+ <view class="title">月预算</view>
+ <view class="range-bar">
+  <view class="arrow" bindtap="prev">‹</view>
+  <view class="range-label" bindtap="openMonth">{{label}}　⌄</view>
+  <view class="arrow" bindtap="next">›</view>
+ </view>
+ <view wx:if="{{error}}" class="error" bindtap="load">{{error}}（点击重试）</view>
+ <view wx:if="{{loading && !rows.length}}" class="muted">加载中…</view>
+ <view wx:else>
+  <view class="card">
+   <view wx:if="{{!totalEditor}}" bindtap="editTotal">
+    <view wx:if="{{totalCent === null}}" class="budget-hint">设置本月总预算 ›</view>
+    <view wx:else>
+     <view class="remaining {{over ? 'over' : ''}}">{{over ? '超支' : '剩余'}} ¥{{remaining}}</view>
+     <view class="track"><view class="fill {{over ? 'over' : warn ? 'warn' : ''}}" style="width:{{progress}}%"></view></view>
+     <view class="muted">总预算 ¥{{totalDisplay}} · 已用 ¥{{spent}}<text wx:if="{{daily}}"> · 日均剩余 ¥{{daily}}</text></view>
+    </view>
+   </view>
+   <view wx:else class="editor">
+    <input type="digit" value="{{totalInput}}" placeholder="月总预算（元）" data-field="totalInput" bindinput="input" />
+    <view class="actions">
+     <button size="mini" loading="{{saving}}" disabled="{{saving}}" bindtap="save">保存</button>
+     <button wx:if="{{totalCent !== null}}" size="mini" disabled="{{saving}}" bindtap="clear">清除</button>
+     <button size="mini" disabled="{{saving}}" bindtap="closeEditor">取消</button>
+    </view>
+   </view>
+  </view>
+  <view class="card">
+   <view class="section">分类预算</view>
+   <view class="muted hint">点击分类设置预算，各分类支出均计入总预算，分类预算可独立设置</view>
+   <view wx:for="{{rows}}" wx:key="id" class="budget-row {{editingID === item.id ? 'editing' : ''}}">
+    <view wx:if="{{editingID !== item.id}}" data-id="{{item.id}}" bindtap="editRow">
+     <view class="row"><text class="cat-name">{{item.icon}} {{item.name}}</text><text class="cat-amount {{item.set ? '' : 'muted'}}">{{item.set ? '¥' + item.amount : '未设置'}}</text></view>
+     <view wx:if="{{item.spent}}" class="row muted"><text>已用 ¥{{item.spent}}</text><text>{{item.overSpent ? '已超支' : ''}}</text></view>
+     <view wx:if="{{item.set}}" class="track"><view class="fill {{item.overSpent ? 'over' : item.warn ? 'warn' : ''}}" style="width:{{item.progress}}%"></view></view>
+    </view>
+    <view wx:else class="editor">
+     <input type="digit" value="{{editInput}}" placeholder="预算金额（元）" data-field="editInput" bindinput="input" />
+     <view class="actions">
+      <button size="mini" loading="{{saving}}" disabled="{{saving}}" bindtap="save">保存</button>
+      <button wx:if="{{item.set}}" size="mini" disabled="{{saving}}" bindtap="clear">清除</button>
+      <button size="mini" disabled="{{saving}}" bindtap="closeEditor">取消</button>
+     </view>
+    </view>
+   </view>
+  </view>
+ </view>
+</view>
+<calendar-popup mode="month" visible="{{monthOpen}}" month="{{period}}" bind:confirm="onMonthConfirm" bind:cancel="closeMonth" />

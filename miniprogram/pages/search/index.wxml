@@ -1,0 +1,45 @@
+<view class="page">
+	<view class="search-head">
+		<view class="input-box">
+			<text class="search-icon">🔍</text>
+			<input class="input" value="{{keyword}}" focus="{{focus}}" bindfocus="focusInput" placeholder="输入关键词" placeholder-class="ph" confirm-type="search" bindinput="onInput" bindconfirm="submit" />
+			<text wx:if="{{keyword}}" class="clear" bindtap="clearInput">✕</text>
+		</view>
+		<text class="cancel" bindtap="goBack">取消</text>
+	</view>
+	<view wx:if="{{!searched && !loading}}" class="suggest-title">搜索建议</view>
+	<view class="chips">
+		<view wx:for="{{chips}}" wx:key="value" class="chip {{kind === item.value ? 'chip-on' : ''}}" data-value="{{item.value}}" bindtap="setKind">{{item.label}}</view>
+	</view>
+	<view wx:if="{{searched && !loading}}" class="summary">
+		<text>共 {{summary.total}} 笔</text>
+		<text>支出 ¥{{summary.expense}}</text>
+		<text>收入 ¥{{summary.income}}</text>
+	</view>
+	<view wx:if="{{error}}" class="error" bindtap="load">{{error}}（点击重试）</view>
+	<view wx:if="{{loading}}" class="empty">正在搜索…</view>
+	<view wx:elif="{{searched && !groups.length}}" class="empty">没有匹配的账单，试试放宽筛选<view class="clear-filters" bindtap="clearInput">清除筛选</view></view>
+	<block wx:for="{{groups}}" wx:key="date" wx:for-item="group">
+		<view class="day-head">
+			<text>{{group.display}}</text>
+			<view class="day-head-right">
+				<text>支出: ¥{{group.total}}</text>
+				<text wx:if="{{group.hasIncome}}">　收入: ¥{{group.income}}</text>
+			</view>
+		</view>
+		<view class="card entries">
+			<view wx:for="{{group.items}}" wx:key="id" class="entry" data-id="{{item.id}}" bindtap="edit">
+				<view class="icon {{item.kind}}">{{item.category.icon}}</view>
+				<view class="entry-copy">
+					<view class="entry-name">{{item.category.name}}{{item.note ? ' · ' + item.note : ''}}</view>
+					<view class="entry-time">{{item.accountName}} · {{item.time}}</view>
+				</view>
+				<view class="entry-amount {{item.kind}}">{{item.kind === 'expense' ? '-' : '+'}}{{item.display}}</view>
+			</view>
+		</view>
+	</block>
+	<view wx:if="{{loadingMore}}" class="load-more">加载中…</view>
+	<view wx:elif="{{hasMore}}" class="load-more" bindtap="loadMore">加载更多</view>
+</view>
+
+<undo-banner bind:restored="load" />

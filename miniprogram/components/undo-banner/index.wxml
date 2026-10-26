@@ -1,0 +1,1 @@
+<view wx:if="{{visible}}" class="undo"><text>已删除账单</text><button disabled="{{restoring}}" loading="{{restoring}}" bindtap="undo">撤销</button></view>
