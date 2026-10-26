@@ -92,8 +92,32 @@ func TestMySQLLegacyUpgrade(t *testing.T) {
 	if err != nil || e.Amount != 1234 || e.Note != "迁移前记录" || e.CreatedBy != 0 {
 		t.Fatalf("legacy entry changed: %+v %v", e, err)
 	}
-	var versions int
-	if err = db.DB().QueryRow("SELECT COUNT(*) FROM t_schema_migrations").Scan(&versions); err != nil || versions != 5 {
-		t.Fatal("migration versions missing", err)
+	files, err := os.ReadDir("../store/migrations")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want, got []string
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".sql") {
+			want = append(want, file.Name())
+		}
+	}
+	rows, err := db.DB().Query("SELECT version FROM t_schema_migrations ORDER BY version")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var version string
+		if err := rows.Scan(&version); err != nil {
+			t.Fatal(err)
+		}
+		got = append(got, version)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("migration versions mismatch:\nwant: %v\ngot:  %v", want, got)
 	}
 }
