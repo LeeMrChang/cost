@@ -1,5 +1,5 @@
 const api = require('../../utils/api');
-const {parseCent, money, acceptAmountInput} = require('../../utils/money');
+const {parseCent, money, displayMoney, acceptAmountInput} = require('../../utils/money');
 const {stamp, requestID} = require('../../utils/ledger');
 const types = [{value: 'cash', label: '现金', icon: '💵'}, {value: 'wechat', label: '微信', icon: '💚'}, {value: 'alipay', label: '支付宝', icon: '💙'}, {value: 'bank', label: '银行卡', icon: '💳'}, {value: 'other', label: '其他', icon: '👛'}];
 Page({
@@ -9,14 +9,14 @@ Page({
  onReachBottom() {this.loadMore();},
  decorateTransfers(items, accounts) {
   const map = {}; accounts.forEach(a => {map[a.id] = a.name;});
-  return items.map(t => ({...t, fromName: map[t.from_account_id] || '历史账户', toName: map[t.to_account_id] || '历史账户', display: money(t.amount_cent), ...stamp(t.occurred_at), canDelete: true}));
+  return items.map(t => ({...t, fromName: map[t.from_account_id] || '历史账户', toName: map[t.to_account_id] || '历史账户', display: displayMoney(t.amount_cent), ...stamp(t.occurred_at), canDelete: true}));
  },
  async load() {
   const version = this.version = (this.version || 0) + 1; this.setData({loading: true, loadingMore: false, error: '', user: null, accounts: [], activeAccounts: [], transfers: [], total: 0, page: 0, hasMore: false, balance: '0.00'});
   try {
    const [user, rows, transfers] = await Promise.all([api.me(), api.request('/api/v1/accounts'), api.request('/api/v1/transfers?page=1&page_size=50')]); if (version !== this.version) return;
-   const accounts = rows.map(a => {const type = types.find(t => t.value === a.type) || types[4]; return {...a, icon: type.icon, typeLabel: type.label, balance: money(a.balance_cent), opening: money(a.opening_balance_cent)};});
-   this.setData({user, accounts, activeAccounts: accounts.filter(a => !a.disabled), balance: money(accounts.reduce((sum, a) => sum + a.balance_cent, 0)), transfers: this.decorateTransfers(transfers.items || [], accounts), total: transfers.total, page: 1, hasMore: transfers.items.length < transfers.total});
+   const accounts = rows.map(a => {const type = types.find(t => t.value === a.type) || types[4]; return {...a, icon: type.icon, typeLabel: type.label, balance: displayMoney(a.balance_cent), opening: money(a.opening_balance_cent), openingDisplay: displayMoney(a.opening_balance_cent)};});
+   this.setData({user, accounts, activeAccounts: accounts.filter(a => !a.disabled), balance: displayMoney(accounts.reduce((sum, a) => sum + a.balance_cent, 0)), transfers: this.decorateTransfers(transfers.items || [], accounts), total: transfers.total, page: 1, hasMore: transfers.items.length < transfers.total});
   } catch (e) {if (version === this.version) this.setData({error: e.message});} finally {if (version === this.version) this.setData({loading: false});}
  },
  async loadMore() {

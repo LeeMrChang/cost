@@ -1,5 +1,10 @@
 const assert = require('assert').strict;
-const { parseCent, money } = require('../utils/money');
+const { parseCent, money, displayMoney } = require('../utils/money');
 assert.equal(parseCent('18.50'),1850);assert.equal(parseCent('0.01'),1);assert.equal(parseCent('7'),700);assert.equal(parseCent('1.2'),120);assert.equal(money(-500),'-5.00');
+assert.equal(displayMoney(1495608),'14,956.08');
+assert.equal(displayMoney(100000),'1,000.00');
+assert.equal(displayMoney(-123456789),'-1,234,567.89');
+assert.equal(displayMoney(0),'0.00');
+assert.equal(displayMoney(99999),'999.99');
 for(const v of ['1.234','-1','1e2','','NaN'])assert.throws(()=>parseCent(v));
 console.log('money tests passed');

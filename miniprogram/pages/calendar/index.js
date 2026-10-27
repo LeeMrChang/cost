@@ -1,11 +1,11 @@
 const api = require('../../utils/api');
-const { money } = require('../../utils/money');
+const { displayMoney } = require('../../utils/money');
 const { query, groups } = require('../../utils/ledger');
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 
 function todayKey() { return new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10); }
-function shortMoney(n) { const s = money(n); return s.endsWith('.00') ? s.slice(0, -3) : s; }
+function shortMoney(n) { const s = displayMoney(n); return s.endsWith('.00') ? s.slice(0, -3) : s; }
 function buildGrid(month, series) {
 	const [y, m] = month.split('-').map(Number);
 	const offset = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
@@ -62,11 +62,10 @@ Page({
 			(stats.series || []).forEach(p => {series[p.key] = p;});
 			const label = stats.label || this.data.month;
 			const s = stats.summary || {};
-			if (wx.setNavigationBarTitle) wx.setNavigationBarTitle({title: label});
 			this.setData({
 				categories,
 				label,
-				summary: {expense: money(s.expense_cent || 0), income: money(s.income_cent || 0)},
+				summary: {expense: displayMoney(s.expense_cent || 0), income: displayMoney(s.income_cent || 0)},
 				prevRef: stats.prev_ref || '', nextRef: stats.next_ref || '',
 				cells: buildGrid(this.data.month, series),
 			});

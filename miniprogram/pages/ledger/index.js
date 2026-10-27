@@ -1,11 +1,11 @@
 const api = require('../../utils/api');
-const { money } = require('../../utils/money');
+const { displayMoney } = require('../../utils/money');
 const { emptyFilters, query, groups } = require('../../utils/ledger');
 
 Page({
 	data: {
 		ledgerName: '我的账本', ledgerIcon: '📒',
-		statusBarHeight: 20,
+		statusBarHeight: 20, navRight: 0,
 		month: new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 7),
 		ref: '', prevRef: '', nextRef: '',
 		monthLabel: '',
@@ -17,10 +17,14 @@ Page({
 		collapsed: {},
 	},
 	onLoad() {
-		if (wx.getWindowInfo) {
-			const info = wx.getWindowInfo();
-			if (info.statusBarHeight) this.setData({statusBarHeight: info.statusBarHeight});
+		const data = {};
+		const info = wx.getWindowInfo ? wx.getWindowInfo() : null;
+		if (info && info.statusBarHeight) data.statusBarHeight = info.statusBarHeight;
+		if (info && info.windowWidth && wx.getMenuButtonBoundingClientRect) {
+			const rect = wx.getMenuButtonBoundingClientRect();
+			if (rect && rect.left > 0) data.navRight = info.windowWidth - rect.left + 8;
 		}
+		this.setData(data);
 	},
 	onShow() { this.setData({groups: [], entries: []}); this.load(); },
 	onHide() { this.loadVersion = (this.loadVersion || 0) + 1; },
@@ -46,6 +50,7 @@ Page({
 			const total = budgetSet ? b.total_cent : 0;
 			const remaining = budgetSet ? (b.remaining_cent === null || b.remaining_cent === undefined ? 0 : b.remaining_cent) : -spent;
 			const pct = budgetSet && total > 0 ? Math.round(((total - remaining) / total) * 100) : 0;
+			const balanceCent = (s.balance_cent === null || s.balance_cent === undefined) ? 0 : s.balance_cent;
 			const rd = b.remaining_daily_cent;
 			const dailyShown = budgetSet && rd !== null && rd !== undefined;
 			let remainingDays = 0;
@@ -67,16 +72,17 @@ Page({
 				prevRef: stats.prev_ref || '', nextRef: stats.next_ref || '',
 				ledgerName, ledgerIcon,
 				summary: {
-					expense: money(spent),
-					income: money(s.income_cent || 0),
-					balance: money((s.balance_cent === null || s.balance_cent === undefined) ? 0 : s.balance_cent),
+					expense: displayMoney(spent),
+					income: displayMoney(s.income_cent || 0),
+					balance: displayMoney(Math.abs(balanceCent)),
+					balanceNegative: balanceCent < 0,
 				},
 				budgetSet,
 				overspent: budgetSet && remaining < 0,
 				budget: {
-					remaining: money(Math.abs(remaining)),
-					total: money(total),
-					daily: money(rd === null || rd === undefined ? 0 : rd),
+					remaining: displayMoney(Math.abs(remaining)),
+					total: displayMoney(total),
+					daily: displayMoney(rd === null || rd === undefined ? 0 : rd),
 					ratio: Math.min(100, Math.max(0, pct)),
 					barClass: pct >= 100 ? 'over' : pct >= 80 ? 'warn' : '',
 					dailyShown,

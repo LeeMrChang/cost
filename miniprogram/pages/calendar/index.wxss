@@ -10,13 +10,13 @@
 .cal-week{display:flex}
 .cal-wd{flex:1;text-align:center;font-size:22rpx;color:#B6BBC2;padding:10rpx 0}
 .cal-grid{display:flex;flex-wrap:wrap}
-.cell{width:14.28%;height:112rpx;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;border-radius:14rpx}
+.cell{width:14.28%;height:112rpx;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;border-radius:14rpx;overflow:hidden}
 .cell-empty{visibility:hidden}
 .cell-day{font-size:26rpx;color:#1A1D21;line-height:1.2}
-.cell-nums{display:flex;flex-direction:column;align-items:center;margin-top:2rpx}
-.cell-expense{font-size:18rpx;color:#E5484D;line-height:1.25;max-width:88rpx;overflow:hidden;white-space:nowrap}
-.cell-income{font-size:18rpx;color:#17A34A;line-height:1.25;max-width:88rpx;overflow:hidden;white-space:nowrap}
-.cell-none{font-size:18rpx;color:#C5CAD1;line-height:1.25}
+.cell-nums{display:flex;flex-direction:column;align-items:center;margin-top:2rpx;width:100%;padding:0 2rpx;box-sizing:border-box}
+.cell-expense{font-size:16rpx;color:#E5484D;line-height:1.25;max-width:100%;overflow:hidden;white-space:nowrap}
+.cell-income{font-size:16rpx;color:#17A34A;line-height:1.25;max-width:100%;overflow:hidden;white-space:nowrap}
+.cell-none{font-size:16rpx;color:#C5CAD1;line-height:1.25}
 .cell-today{border:2rpx solid #3B82F6}
 .cell-on{background:#E8F0FE}
 .day-head{display:flex;justify-content:space-between;align-items:center;margin:20rpx 6rpx 14rpx;color:#8B9199;font-size:24rpx}

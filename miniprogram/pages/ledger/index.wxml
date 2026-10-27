@@ -1,5 +1,5 @@
 <view class="page">
-	<view class="nav" style="padding-top:{{statusBarHeight}}px">
+	<view class="nav" style="padding-top:{{statusBarHeight}}px;padding-right:{{navRight}}px">
 		<view class="nav-title" bindtap="goSettings">{{ledgerName}} <text class="nav-arrow">▾</text></view>
 		<view class="nav-right">
 			<view class="avatar" bindtap="goSettings">{{ledgerIcon}}</view>
@@ -29,7 +29,7 @@
 		</view>
 		<view class="sum-col">
 			<view class="sum-k">结余</view>
-			<view class="sum-v">{{summary.balance}}</view>
+			<view class="sum-v"><text wx:if="{{summary.balanceNegative}}">-</text>¥{{summary.balance}}</view>
 		</view>
 	</view>
 	<view class="budget-card" bindtap="openBudget">

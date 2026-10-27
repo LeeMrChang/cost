@@ -1,6 +1,6 @@
 .page{background:#F4F5F7;min-height:100vh;padding:0 28rpx calc(160rpx + env(safe-area-inset-bottom));box-sizing:border-box}
 .nav{display:flex;align-items:center;justify-content:space-between;height:88rpx;margin-bottom:12rpx}
-.nav-title{flex:1;font-size:34rpx;font-weight:750;color:#1A1D21}
+.nav-title{flex:1;min-width:0;font-size:34rpx;font-weight:750;color:#1A1D21;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .nav-arrow{font-size:22rpx;color:#8B9199}
 .nav-right{display:flex;align-items:center;gap:20rpx;justify-content:flex-end}
 .avatar{width:64rpx;height:64rpx;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:36rpx;box-shadow:0 2rpx 8rpx #00000014}
