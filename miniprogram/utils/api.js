@@ -3,7 +3,12 @@ let redirecting = false;
 function isDevelop() {
  try { return wx.getAccountInfoSync().miniProgram.envVersion === 'develop'; } catch (_) { return false; }
 }
-function config() { return { baseURL: (isDevelop() && wx.getStorageSync('cost_base_url')) || defaults.baseURL }; }
+function config() {
+ const baseURL = isDevelop()
+  ? wx.getStorageSync('cost_base_url') || defaults.developmentBaseURL
+  : defaults.baseURL;
+ return { baseURL };
+}
 function clearSession() { wx.removeStorageSync('cost_session'); }
 function session() { const value = wx.getStorageSync('cost_session'); return value && value.token && Date.parse(value.expires_at) > Date.now() ? value : null; }
 function goLogin() {

@@ -23,7 +23,7 @@ const api = require('../utils/api');
  wx.setStorageSync('cost_base_url', 'http://192.168.1.2:8080');
  assert.equal(api.config().baseURL, 'http://192.168.1.2:8080');
  wx.getAccountInfoSync = () => ({ miniProgram: { envVersion: 'release' } });
- assert.equal(api.config().baseURL, 'http://127.0.0.1:8080');
+ assert.equal(api.config().baseURL, 'https://api.xiachen.xyz');
  handler = options => options.success({ statusCode: 401, data: { error: 'unauthorized' } });
  await assert.rejects(api.request('/api/v1/entries'), /登录已过期/); assert.equal(api.session(), null);
  wx.setStorageSync('cost_session', { token: 'expired', expires_at: '2020-01-01' });
