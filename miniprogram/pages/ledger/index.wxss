@@ -1,8 +1,8 @@
 .page{background:#F4F5F7;min-height:100vh;padding:0 28rpx calc(160rpx + env(safe-area-inset-bottom));box-sizing:border-box}
 .nav{display:flex;align-items:center;justify-content:space-between;height:88rpx;margin-bottom:12rpx}
-.nav-spacer{width:140rpx}
-.nav-title{font-size:34rpx;font-weight:750;color:#1A1D21;text-align:center;flex:1}
-.nav-right{display:flex;align-items:center;gap:20rpx;width:140rpx;justify-content:flex-end}
+.nav-title{flex:1;font-size:34rpx;font-weight:750;color:#1A1D21}
+.nav-arrow{font-size:22rpx;color:#8B9199}
+.nav-right{display:flex;align-items:center;gap:20rpx;justify-content:flex-end}
 .avatar{width:64rpx;height:64rpx;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:36rpx;box-shadow:0 2rpx 8rpx #00000014}
 .nav-menu{font-size:44rpx;color:#3B82F6;line-height:1}
 .search-bar{display:flex;align-items:center;gap:12rpx;background:#E9EBEE;border-radius:999rpx;padding:16rpx 28rpx;margin-bottom:20rpx}
@@ -37,8 +37,9 @@
 .entry-amount.expense{color:#E5484D}
 .entry-amount.income{color:#17A34A}
 .load-more{text-align:center;color:#3B82F6;font-size:26rpx;padding:24rpx}
+.month-foot{text-align:center;color:#B6BBC2;font-size:22rpx;padding:18rpx 0 6rpx}
 .fab{position:fixed;right:36rpx;bottom:calc(64rpx + env(safe-area-inset-bottom));width:116rpx;height:116rpx;border-radius:50%;background:#3B82F6;color:#fff;font-size:68rpx;line-height:108rpx;text-align:center;box-shadow:0 10rpx 30rpx #3B82F666;z-index:10}
 .empty{text-align:center;color:#8B9199;padding:80rpx 20rpx}
 .error{background:#FDECEC;color:#E5484D;border-radius:18rpx;padding:24rpx;margin:20rpx 0;font-size:25rpx}
 
-.sum-card{display:flex;background:#fff;border-radius:24rpx;padding:24rpx 16rpx;margin-bottom:20rpx}.sum-col{flex:1;text-align:center;min-width:0}.sum-k{color:#8B9199;font-size:22rpx}.sum-v{font-size:32rpx;font-weight:700;margin-top:8rpx;overflow:hidden;text-overflow:ellipsis}.sum-v.exp{color:#E5484D}.sum-v.inc{color:#17A34A}.budget-bar{height:14rpx;background:#ECEEF1;border-radius:8rpx;overflow:hidden;margin:16rpx 0}.budget-bar-in{height:100%;background:#3B82F6}.budget-bar-in.warn{background:#F5A524}.budget-bar-in.over{background:#E5484D}.budget-value.over{color:#E5484D}.budget-none{font-size:36rpx;color:#8B9199}
+.sum-card{display:flex;background:#fff;border-radius:24rpx;padding:24rpx 16rpx;margin-bottom:20rpx}.sum-col{flex:1;text-align:center;min-width:0}.sum-k{color:#8B9199;font-size:22rpx}.sum-v{font-size:32rpx;font-weight:700;margin-top:8rpx;overflow:hidden;text-overflow:ellipsis}.budget-bar{height:14rpx;background:#ECEEF1;border-radius:8rpx;overflow:hidden;margin:16rpx 0}.budget-bar-in{height:100%;background:#3B82F6}.budget-bar-in.warn{background:#F5A524}.budget-bar-in.over{background:#E5484D}.budget-value.over{color:#E5484D}.budget-none{font-size:36rpx;color:#8B9199}

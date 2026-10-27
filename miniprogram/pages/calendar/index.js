@@ -5,6 +5,7 @@ const { query, groups } = require('../../utils/ledger');
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 
 function todayKey() { return new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10); }
+function shortMoney(n) { const s = money(n); return s.endsWith('.00') ? s.slice(0, -3) : s; }
 function buildGrid(month, series) {
 	const [y, m] = month.split('-').map(Number);
 	const offset = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
@@ -18,8 +19,8 @@ function buildGrid(month, series) {
 			day: d, key, today: key === todayKey(),
 			hasExpense: !!p && p.expense_cent > 0,
 			hasIncome: !!p && p.income_cent > 0,
-			expense: p && p.expense_cent > 0 ? money(p.expense_cent) : '',
-			income: p && p.income_cent > 0 ? money(p.income_cent) : '',
+			expense: p && p.expense_cent > 0 ? shortMoney(p.expense_cent) : '',
+			income: p && p.income_cent > 0 ? '+' + shortMoney(p.income_cent) : '',
 		});
 	}
 	while (cells.length % 7) cells.push({day: 0});
@@ -32,6 +33,7 @@ Page({
 		prevRef: '', nextRef: '',
 		weekdays: WEEKDAYS,
 		cells: [],
+		summary: {expense: '0.00', income: '0.00'},
 		categories: [], dayTotal:0, dayEntries:[],
 		selected: '', selectedDisplay: '',
 		dayGroups: [], dayLoading: false,
@@ -58,9 +60,13 @@ Page({
 			if (version !== this.loadVersion) return;
 			const series = {};
 			(stats.series || []).forEach(p => {series[p.key] = p;});
+			const label = stats.label || this.data.month;
+			const s = stats.summary || {};
+			if (wx.setNavigationBarTitle) wx.setNavigationBarTitle({title: label});
 			this.setData({
 				categories,
-				label: stats.label || this.data.month,
+				label,
+				summary: {expense: money(s.expense_cent || 0), income: money(s.income_cent || 0)},
 				prevRef: stats.prev_ref || '', nextRef: stats.next_ref || '',
 				cells: buildGrid(this.data.month, series),
 			});

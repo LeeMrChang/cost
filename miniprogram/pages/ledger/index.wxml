@@ -21,11 +21,11 @@
 	<view class="sum-card">
 		<view class="sum-col">
 			<view class="sum-k">支出</view>
-			<view class="sum-v exp">¥{{summary.expense}}</view>
+			<view class="sum-v expense">¥{{summary.expense}}</view>
 		</view>
 		<view class="sum-col">
 			<view class="sum-k">收入</view>
-			<view class="sum-v inc">¥{{summary.income}}</view>
+			<view class="sum-v income">¥{{summary.income}}</view>
 		</view>
 		<view class="sum-col">
 			<view class="sum-k">结余</view>
@@ -40,9 +40,7 @@
 		<view wx:if="{{budgetSet}}" class="budget-value {{overspent ? 'over' : ''}}">{{overspent ? '-' : ''}}¥{{budget.remaining}}</view>
 		<view wx:else class="budget-value budget-none">未设置</view>
 		<view wx:if="{{budgetSet}}" class="budget-bar"><view class="budget-bar-in {{budget.barClass}}" style="width:{{budget.ratio}}%"></view></view>
-		<view wx:if="{{budgetSet}}" class="budget-meta">
-			总预算 ¥{{budget.total}}<block wx:if="{{budget.dailyShown}}"> · 剩余日均 ¥{{budget.daily}}/天（本月剩 {{budget.remainingDays}} 天）</block>
-		</view>
+		<view wx:if="{{budgetSet}}" class="budget-meta">总预算 ¥{{budget.total}}<text wx:if="{{budget.dailyShown}}"> · 剩余日均 ¥{{budget.daily}}/天（本月剩 {{budget.remainingDays}} 天）</text></view>
 		<view wx:else class="budget-meta">点击设置预算</view>
 	</view>
 	<view wx:if="{{error}}" class="error" bindtap="load">{{error}}（点击重试）</view>
