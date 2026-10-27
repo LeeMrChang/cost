@@ -7,6 +7,10 @@
 		</view>
 		<view class="cal-stats" bindtap="goStats">统计</view>
 	</view>
+	<view class="cal-sum">
+		<text>本月支出 <text class="expense">¥{{summary.expense}}</text></text>
+		<text>收入 <text class="income">¥{{summary.income}}</text></text>
+	</view>
 	<view class="cal-card">
 		<view class="cal-week">
 			<view wx:for="{{weekdays}}" wx:key="*this" class="cal-wd">{{item}}</view>
@@ -14,8 +18,11 @@
 		<view class="cal-grid">
 			<view wx:for="{{cells}}" wx:key="index" class="cell {{item.day ? '' : 'cell-empty'}} {{item.today ? 'cell-today' : ''}} {{selected === item.key ? 'cell-on' : ''}}" data-key="{{item.key}}" bindtap="tapDay">
 				<text class="cell-day">{{item.day}}</text>
-				<text wx:if="{{item.hasExpense}}" class="cell-expense">¥{{item.expense}}</text>
-				<text wx:if="{{item.hasIncome}}" class="cell-income">¥{{item.income}}</text>
+				<view class="cell-nums">
+					<text wx:if="{{item.hasExpense}}" class="cell-expense">{{item.expense}}</text>
+					<text wx:if="{{item.hasIncome}}" class="cell-income">{{item.income}}</text>
+					<text wx:if="{{item.day && !item.hasExpense && !item.hasIncome}}" class="cell-none">—</text>
+				</view>
 			</view>
 		</view>
 	</view>
@@ -24,6 +31,10 @@
 	<block wx:if="{{selected}}">
 		<view class="day-head">
 			<text>{{selectedDisplay}}</text>
+			<view wx:if="{{dayGroups.length}}" class="day-head-right">
+				<text>支出 ¥{{dayGroups[0].total}}</text>
+				<text wx:if="{{dayGroups[0].hasIncome}}">　收入 ¥{{dayGroups[0].income}}</text>
+			</view>
 		</view>
 		<view wx:if="{{dayLoading}}" class="empty">正在读取当日账单…</view>
 		<view wx:elif="{{!dayGroups.length}}" class="empty">这一天没有账单</view>
@@ -31,10 +42,10 @@
 			<view wx:for="{{dayGroups[0].items}}" wx:key="id" class="entry" data-id="{{item.id}}" bindtap="openEntry">
 				<view class="icon {{item.kind}}">{{item.category.icon}}</view>
 				<view class="entry-copy">
-					<view class="entry-name">{{item.category.name}}{{item.note ? ' · ' + item.note : ''}}</view>
-					<view class="entry-time">{{item.accountName}} · {{item.time}}</view>
+					<view class="entry-name">{{item.category.name}}{{item.note ? ' ' + item.note : ''}}</view>
+					<view class="entry-time">{{item.time}}</view>
 				</view>
-				<view class="entry-amount {{item.kind}}">{{item.kind === 'expense' ? '-' : '+'}}{{item.display}}</view>
+				<view class="entry-amount {{item.kind}}">{{item.kind === 'expense' ? '-' : '+'}}¥{{item.display}}</view>
 			</view>
 		</view>
 	</block>

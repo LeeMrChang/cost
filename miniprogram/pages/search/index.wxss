@@ -28,4 +28,4 @@
 .load-more{text-align:center;color:#3B82F6;font-size:26rpx;padding:24rpx}
 .empty{text-align:center;color:#8B9199;padding:80rpx 20rpx}
 .error{background:#FDECEC;color:#E5484D;border-radius:18rpx;padding:24rpx;margin:20rpx 0;font-size:25rpx}
-.input-box{border-radius:20rpx;background:#fff}.chips{flex-wrap:wrap;gap:16rpx}.chip{border-radius:16rpx;background:#E9EBEF;padding:16rpx 24rpx;color:#6F7680}.chip-on{background:#E7EFFD;color:#3B82F6}.suggest-title{font-size:25rpx;font-weight:650;color:#8B9199;margin:8rpx 4rpx 22rpx}.entry-amount.expense{color:#E5484D}.clear-filters{color:#3B82F6;padding:24rpx}.summary{flex-wrap:wrap;gap:12rpx}
+.input-box{border-radius:20rpx;background:#fff}.chips{flex-wrap:wrap;gap:16rpx}.chip{border-radius:16rpx;background:#E9EBEF;padding:16rpx 24rpx;color:#6F7680}.chip-on{background:#E7EFFD;color:#3B82F6}.chip-pending{opacity:.5}.suggest-title{font-size:25rpx;font-weight:650;color:#8B9199;margin:8rpx 4rpx 22rpx}.entry-amount.expense{color:#E5484D}.clear-filters{color:#3B82F6;padding:24rpx}.summary{flex-wrap:wrap;gap:12rpx}

@@ -37,7 +37,9 @@ test('ledger loads month groups and renders the documented budget card', async (
 	assert.equal(page.data.budgetSet, true); assert.equal(page.data.overspent, false);
  assert.equal(page.data.summary.expense,'12.34');assert.equal(page.data.summary.income,'200.00');assert.equal(page.data.summary.balance,'187.66');
 	assert.equal(page.data.budget.remaining, '287.66'); assert.equal(page.data.budget.total, '300.00'); assert.equal(page.data.budget.daily, '10.00');
-	assert.equal(page.data.monthLabel, '2026 年 10 月'); assert.equal(page.data.prevRef, '2026-09-01'); assert.equal(page.data.nextRef, '2026-11-01');
+	assert.equal(page.data.budget.ratio, 4); assert.equal(page.data.budget.barClass, ''); assert.equal(page.data.budget.dailyShown, true);
+	assert.ok(page.data.budget.remainingDays >= 1 && page.data.budget.remainingDays <= 31);
+	assert.equal(page.data.monthLabel, '2026年10月'); assert.equal(page.data.prevRef, '2026-09-01'); assert.equal(page.data.nextRef, '2026-11-01');
 	assert.equal(page.data.groups.length, 1); assert.match(page.data.groups[0].display, /10\/23 星期五/);
 	assert.equal(page.data.groups[0].total, '12.34');
 });
@@ -45,18 +47,19 @@ test('ledger marks actual overspending and guides setup when the budget is unset
 	const overspent = load('ledger', url => url.startsWith('/api/v1/stats?') ? {...statsResponse, budget: {total_cent: 1000, remaining_cent: -234, remaining_daily_cent: null}} : undefined);
 	await overspent.page.load(); await flush();
 	assert.equal(overspent.page.data.overspent, true); assert.equal(overspent.page.data.budget.remaining, '2.34'); assert.equal(overspent.page.data.budget.total, '10.00'); assert.equal(overspent.page.data.budget.daily, '0.00');
+	assert.equal(overspent.page.data.budget.ratio, 100); assert.equal(overspent.page.data.budget.barClass, 'over');
 	const unset = load('ledger', url => url.startsWith('/api/v1/stats?') ? {...statsResponse, budget: {total_cent: null, remaining_cent: null, remaining_daily_cent: null}} : undefined);
 	await unset.page.load(); await flush();
 	assert.equal(unset.page.data.budgetSet, false);
 	assert.equal(unset.page.data.overspent, false);
 	assert.equal(unset.page.data.budget.remaining, '12.34'); assert.equal(unset.page.data.budget.total, '0.00'); assert.equal(unset.page.data.budget.daily, '0.00');
 });
-test('ledger shifts months via stats refs and month picker', async () => {
-	const {page} = load('ledger'); await page.load(); await flush();
+test('ledger shifts months via stats refs and opens the calendar from the month title', async () => {
+	const {page, navigations} = load('ledger'); await page.load(); await flush();
 	page.shiftMonth({currentTarget: {dataset: {ref: '2026-09-01'}}});
 	assert.equal(page.data.month, '2026-09'); assert.equal(page.data.ref, '2026-09-01');
-	page.onMonthConfirm({detail: {month: '2026-08'}});
-	assert.equal(page.data.month, '2026-08'); assert.equal(page.data.ref, '2026-08-01');
+	page.openCalendar();
+	assert.deepEqual(navigations[navigations.length - 1], '/pages/calendar/index?month=2026-09');
 });
 test('ledger collapses day groups and hands the entry to the keypad editor', async () => {
 	const {page, navigations, app} = load('ledger'); await page.load(); await flush();
@@ -147,7 +150,9 @@ test('calendar builds a sunday-start month grid with red expense and green incom
 	assert.equal(page.data.cells[4].day, 1);
 	assert.equal(page.data.cells[34].day, 31);
 	const cell = page.data.cells[26];
-	assert.equal(cell.key, '2026-10-23'); assert.equal(cell.expense, '12.34'); assert.equal(cell.income, '5.00');
+	assert.equal(cell.key, '2026-10-23'); assert.equal(cell.expense, '12.34'); assert.equal(cell.income, '+5');
+	assert.equal(cell.hasExpense, true); assert.equal(cell.hasIncome, true);
+	assert.equal(page.data.summary.expense, '12.34'); assert.equal(page.data.summary.income, '200.00');
 });
 test('calendar expands the tapped day with its entries and shifts months', async () => {
 	const {page, requests} = load('calendar',url=>url.startsWith('/api/v1/entries?')?{...response,total:1}:undefined);
@@ -182,6 +187,8 @@ test('search opens empty and only queries all time after explicit search', async
 test('search debounces input and switches kind chips', async () => {
 	const {page, requests} = load('search');
 	await page.onLoad(); await flush();
+	assert.equal(page.data.chips.length, 10);
+	assert.equal(page.data.chips.filter(c => c.pending).length, 7);
 	page.onInput({detail: {value: '咖'}});
 	page.onInput({detail: {value: '咖啡'}});
 	await new Promise(r => setTimeout(r, 450)); await flush();
@@ -190,6 +197,8 @@ test('search debounces input and switches kind chips', async () => {
 	page.setKind({currentTarget: {dataset: {value: 'expense'}}}); await flush();
 	url = requests.filter(r => r[0].startsWith('/api/v1/entries?') && r[0].includes('kind=expense')).at(-1)[0];
 	assert.ok(url.includes('q=' + encodeURIComponent('咖啡')));
+	page.setKind({currentTarget: {dataset: {value: 'refund'}}});
+	assert.equal(page.data.kind, 'expense');
 	page.clearInput(); await flush();
 	assert.equal(page.data.keyword, '');
 });

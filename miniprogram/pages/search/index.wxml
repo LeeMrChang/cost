@@ -9,10 +9,10 @@
 	</view>
 	<view wx:if="{{!searched && !loading}}" class="suggest-title">搜索建议</view>
 	<view class="chips">
-		<view wx:for="{{chips}}" wx:key="value" class="chip {{kind === item.value ? 'chip-on' : ''}}" data-value="{{item.value}}" bindtap="setKind">{{item.label}}</view>
+		<view wx:for="{{chips}}" wx:key="value" class="chip {{kind === item.value ? 'chip-on' : ''}} {{item.pending ? 'chip-pending' : ''}}" data-value="{{item.value}}" bindtap="setKind">{{item.label}}</view>
 	</view>
 	<view wx:if="{{searched && !loading}}" class="summary">
-		<text>共 {{summary.total}} 笔</text>
+		<text>找到 {{summary.total}} 条结果</text>
 		<text>支出 ¥{{summary.expense}}</text>
 		<text>收入 ¥{{summary.income}}</text>
 	</view>
@@ -31,10 +31,10 @@
 			<view wx:for="{{group.items}}" wx:key="id" class="entry" data-id="{{item.id}}" bindtap="edit">
 				<view class="icon {{item.kind}}">{{item.category.icon}}</view>
 				<view class="entry-copy">
-					<view class="entry-name">{{item.category.name}}{{item.note ? ' · ' + item.note : ''}}</view>
-					<view class="entry-time">{{item.accountName}} · {{item.time}}</view>
+					<view class="entry-name">{{item.category.name}}{{item.note ? ' ' + item.note : ''}}</view>
+					<view class="entry-time">{{item.dateShort}} {{item.time}}</view>
 				</view>
-				<view class="entry-amount {{item.kind}}">{{item.kind === 'expense' ? '-' : '+'}}{{item.display}}</view>
+				<view class="entry-amount {{item.kind}}">{{item.kind === 'expense' ? '-' : '+'}}¥{{item.display}}</view>
 			</view>
 		</view>
 	</block>
