@@ -30,7 +30,8 @@ function groups(entries, categories, accounts) {
 		days[s.date].items.push({...e, ...s, category: cm[e.category_id] || {name: '历史分类', icon: '📦'}, accountName: am[e.account_id] ? am[e.account_id].name : '未指定账户', authorName: e.created_by ? '用户 ' + e.created_by : '历史记录', display: money(e.amount_cent)});
 	});
 	return Object.keys(days).sort().reverse().map(k => {
-		const weekday = WEEKDAYS[new Date(k + 'T00:00:00+08:00').getDay()];
+		// k 已是北京时间的日历日期，按 UTC 解析仅用于计算星期，不受设备时区影响。
+		const weekday = WEEKDAYS[new Date(k + 'T00:00:00Z').getUTCDay()];
 		const d = days[k];
 		return {...d, total: money(d.expense), income: money(d.income), hasIncome: d.income > 0, weekday, display: k.slice(5).replace('-', '/') + ' ' + weekday};
 	});
