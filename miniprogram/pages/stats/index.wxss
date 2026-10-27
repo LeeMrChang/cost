@@ -1,6 +1,8 @@
-.head{display:flex;align-items:center;justify-content:space-between}
-.budget-entry{font-size:28rpx;color:#3B82F6;font-weight:600}
-.segments{display:flex;background:#fff;border-radius:20rpx;padding:8rpx;margin:24rpx 0;box-shadow:0 2rpx 8rpx rgba(26,29,33,0.04)}
+.page{background:#F4F5F7;min-height:100vh;padding:0 28rpx calc(180rpx + env(safe-area-inset-bottom));box-sizing:border-box}
+.nav{display:flex;align-items:center;justify-content:space-between;height:88rpx;margin-bottom:12rpx}
+.nav-title{flex:1;min-width:0;font-size:34rpx;font-weight:750;color:#1A1D21}
+.nav-budget{font-size:28rpx;color:#3B82F6;font-weight:600;padding-left:24rpx}
+.segments{display:flex;background:#fff;border-radius:20rpx;padding:8rpx;margin:12rpx 0 24rpx;box-shadow:0 2rpx 8rpx rgba(26,29,33,0.04)}
 .segment{flex:1;text-align:center;font-size:28rpx;color:#8B9199;padding:16rpx 0;border-radius:14rpx}
 .segment.on{background:#3B82F6;color:#fff;font-weight:600}
 .range-bar{display:flex;align-items:center;justify-content:space-between;margin:8rpx 0 24rpx}
@@ -14,9 +16,10 @@
 .value{font-size:40rpx;font-weight:700;margin-top:8rpx}
 .value.expense{color:#E5484D}
 .value.income{color:#17A34A}
-.bars{display:flex;align-items:flex-end;gap:6rpx;height:260rpx;overflow-x:auto;padding-top:40rpx}
-.bar-col{flex:1;min-width:28rpx;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
-.bar-value{font-size:18rpx;color:#8B9199;margin-bottom:6rpx;white-space:nowrap}
+.bars{display:flex;align-items:flex-end;gap:6rpx;height:260rpx;padding-top:40rpx}
+.bars.dense{gap:2rpx}
+.bar-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.bar-value{font-size:16rpx;color:#8B9199;margin-bottom:6rpx;white-space:nowrap}
 .bar-value.hot{color:#E5484D;font-weight:600}
 .bar{width:100%;max-width:36rpx;background:#3B82F6;border-radius:8rpx 8rpx 0 0;min-height:4rpx}
 .bar.hot{background:#E5484D}

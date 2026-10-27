@@ -1,5 +1,8 @@
-<view class="container">
- <view class="head"><view class="title">统计</view><view class="budget-entry" bindtap="openBudget">预算 ›</view></view>
+<view class="page">
+ <view class="nav" style="padding-top:{{statusBarHeight}}px;padding-right:{{navRight}}px">
+  <view class="nav-title">统计</view>
+  <view class="nav-budget" bindtap="openBudget">预算</view>
+ </view>
  <view class="segments">
   <view wx:for="{{['week','month','year','all','custom']}}" wx:key="*this" class="segment {{range === item ? 'on' : ''}}" data-range="{{item}}" bindtap="setRange">{{item === 'week' ? '周' : item === 'month' ? '月' : item === 'year' ? '年' : item === 'all' ? '全部' : '自定义'}}</view>
  </view>
@@ -21,12 +24,12 @@
   <view class="card">
    <view class="section">支出走势</view>
    <view wx:if="{{!chart.length}}" class="empty">暂无数据</view>
-   <view wx:else class="bars">
+   <view wx:else class="bars {{dense ? 'dense' : ''}}">
     <view wx:for="{{chart}}" wx:key="key" class="bar-col">
      <view wx:if="{{showValues}}" class="bar-value">{{item.value}}</view>
      <view wx:elif="{{item.hot}}" class="bar-value hot">{{item.value}}</view>
      <view class="bar {{item.hot ? 'hot' : ''}}" style="height:{{item.height}}%"></view>
-     <view class="bar-label">{{item.label}}</view>
+     <view class="bar-label">{{item.showLabel ? item.label : ''}}</view>
     </view>
    </view>
   </view>

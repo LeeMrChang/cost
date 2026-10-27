@@ -8,10 +8,21 @@ function chartLabel(key) {
 }
 Page({
  data: {
+  statusBarHeight: 20, navRight: 0,
   range: 'month', label: '', ref: today(), prevRef: '', nextRef: '',
-  summary: {}, chart: [], categories: [], budget: null,
+  summary: {}, chart: [], categories: [], budget: null, dense: false,
   error: '', loading: false, showValues: false,
   customStart: '', customEnd: '', startOpen: false, endOpen: false,
+ },
+ onLoad() {
+  const data = {};
+  const info = wx.getWindowInfo ? wx.getWindowInfo() : null;
+  if (info && info.statusBarHeight) data.statusBarHeight = info.statusBarHeight;
+  if (info && info.windowWidth && wx.getMenuButtonBoundingClientRect) {
+   const rect = wx.getMenuButtonBoundingClientRect();
+   if (rect && rect.left > 0) data.navRight = info.windowWidth - rect.left + 8;
+  }
+  this.setData(data);
  },
  onShow() { this.load(); },
  setRange(e) {
@@ -44,10 +55,17 @@ Page({
    const q = ['range=' + this.data.range];
    if (this.data.range === 'custom') q.push('start_date=' + this.data.customStart, 'end_date=' + this.data.customEnd);
    else q.push('ref=' + this.data.ref);
-   const s = await api.request('/api/v1/stats?' + q.join('&'));
+   const [s, categories] = await Promise.all([
+    api.request('/api/v1/stats?' + q.join('&')),
+    api.request('/api/v1/categories'),
+   ]);
    if (version !== this.version) return;
+   const catMap = {};
+   categories.forEach(c => { catMap[c.id] = c; });
    const max = Math.max(1, ...s.series.map(p => p.expense_cent));
    const total = s.summary.expense_cent || 0;
+   const count = s.series.length;
+   const labelStep = count > 14 ? 10 : 1;
    let budgetView = null;
    if (s.budget) {
     if (s.budget.total_cent === null) budgetView = { unset: true };
@@ -60,17 +78,21 @@ Page({
    }
    this.setData({
     label: s.label, prevRef: s.prev_ref || '', nextRef: s.next_ref || '',
-    showValues: this.data.range !== 'month' && this.data.range !== 'custom',
+    dense: count > 14,
+    showValues: this.data.range !== 'month' && this.data.range !== 'custom' && count <= 7,
     summary: {
      expense: displayMoney(s.summary.expense_cent), income: displayMoney(s.summary.income_cent),
      balance: displayMoney(s.summary.balance_cent), daily: displayMoney(s.summary.daily_avg_expense_cent),
     },
-    chart: s.series.map(p => ({
-     key: p.key, label: chartLabel(p.key), value: displayMoney(p.expense_cent),
+    chart: s.series.map((p, i) => ({
+     key: p.key, label: chartLabel(p.key),
+     showLabel: labelStep === 1 || i % labelStep === 0 || i === count - 1,
+     value: displayMoney(p.expense_cent),
      height: Math.round(p.expense_cent / max * 100), hot: p.expense_cent > 0 && p.expense_cent === max,
     })),
     categories: s.categories.map(c => ({
-     ...c, amount: displayMoney(c.amount_cent),
+     ...c, name: catMap[c.category_id].name, icon: catMap[c.category_id].icon,
+     amount: displayMoney(c.amount_cent),
      percent: total ? (c.amount_cent / total * 100).toFixed(1) : '0.0',
      width: total ? Math.min(100, c.amount_cent / total * 100) : 0,
     })),

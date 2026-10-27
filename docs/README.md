@@ -64,6 +64,7 @@
 - [2026-10-27：开发与发布环境配置](ops/2026-10-27-environment-configuration.md)
 - [2026-10-27：记账键盘操作键布局修复](ops/2026-10-27-keypad-button-layout.md)
 - [2026-10-27：第一批 UI 缺陷修复（展示层）](ops/2026-10-27-ui-display-fixes.md)
+- [2026-10-27：统计页导航与排版修复（第二批）](ops/2026-10-27-stats-nav-layout.md)
 - [2026-10-26：v4.3 主流程修复设计](superpowers/specs/2026-10-26-icost-rescue-design.md)
 - [2026-10-26：主流程修复执行记录](superpowers/plans/2026-10-26-icost-rescue.md)
 - [2026-10-26：主流程修复验证与升级说明](ops/2026-10-26-icost-rescue-validation.md)

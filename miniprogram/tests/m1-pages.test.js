@@ -41,8 +41,25 @@ test('stats month view renders metrics, chart, ranking and the budget strip', as
 	assert.equal(page.data.chart.length, 2); assert.equal(page.data.chart[0].height, 50); assert.equal(page.data.chart[0].hot, false);
 	assert.equal(page.data.chart[1].height, 100); assert.equal(page.data.chart[1].hot, true); assert.equal(page.data.chart[1].label, '02');
 	assert.equal(page.data.categories[0].percent, '50.0'); assert.equal(page.data.categories[0].width, 50); assert.equal(page.data.categories[0].amount, '6.17');
+	assert.equal(page.data.categories[0].name, '餐饮'); assert.equal(page.data.categories[0].icon, '🍚');
 	assert.equal(page.data.budget.remaining, '287.66'); assert.equal(page.data.budget.total, '300.00'); assert.equal(page.data.budget.daily, '10.00');
 	assert.equal(page.data.budget.over, false);
+});
+test('stats chart thins axis labels for dense series and limits per-bar values', async () => {
+	const daily = Array.from({length: 31}, (_, i) => ({key: '2026-10-' + String(i + 1).padStart(2, '0'), expense_cent: i === 15 ? 500 : 0, income_cent: 0}));
+	const withSeries = series => load('stats', url => url.startsWith('/api/v1/stats?') ? {...statsResponse, series} : undefined);
+	const month = withSeries(daily);
+	await month.page.load(); await flush();
+	assert.equal(month.page.data.dense, true); assert.equal(month.page.data.chart.length, 31);
+	assert.deepEqual(month.page.data.chart.flatMap((p, i) => p.showLabel ? [i] : []), [0, 10, 20, 30]);
+	const week = withSeries(daily.slice(0, 7));
+	week.page.setRange({currentTarget: {dataset: {range: 'week'}}}); await flush();
+	assert.equal(week.page.data.dense, false); assert.equal(week.page.data.showValues, true);
+	assert.equal(week.page.data.chart.every(p => p.showLabel), true);
+	const year = withSeries(Array.from({length: 12}, (_, i) => ({key: '2026-' + String(i + 1).padStart(2, '0'), expense_cent: i * 100, income_cent: 0})));
+	year.page.setRange({currentTarget: {dataset: {range: 'year'}}}); await flush();
+	assert.equal(year.page.data.dense, false); assert.equal(year.page.data.showValues, false);
+	assert.equal(year.page.data.chart.every(p => p.showLabel), true);
 });
 test('stats overspent and unset budget views plus range switching via refs', async () => {
 	const over = load('stats', url => url.startsWith('/api/v1/stats?') ? {...statsResponse, budget: {total_cent: 1000, remaining_cent: -234, remaining_daily_cent: null}} : undefined);
