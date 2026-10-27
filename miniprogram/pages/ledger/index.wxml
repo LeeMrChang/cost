@@ -1,73 +1,77 @@
 <view class="page">
-	<view class="nav" style="padding-top:{{statusBarHeight}}px;padding-right:{{navRight}}px">
-		<view class="nav-title" bindtap="goSettings">{{ledgerName}} <text class="nav-arrow">▾</text></view>
-		<view class="nav-right">
-			<view class="avatar" bindtap="goSettings">{{ledgerIcon}}</view>
-			<view class="nav-menu" bindtap="goSettings">⋯</view>
-		</view>
-	</view>
-	<view class="search-bar" bindtap="openSearch">
-		<text class="search-icon">🔍</text>
-		<text class="search-placeholder">搜索备注 / 分类名</text>
-	</view>
-	<view class="month-bar">
-		<view class="month-select">
-			<view class="arrow {{prevRef ? '' : 'arrow-off'}}" data-ref="{{prevRef}}" bindtap="shiftMonth">‹</view>
-			<view class="month-title" bindtap="openCalendar">{{monthLabel}}</view>
-			<view class="arrow {{nextRef ? '' : 'arrow-off'}}" data-ref="{{nextRef}}" bindtap="shiftMonth">›</view>
-		</view>
-		<view class="side-btn" bindtap="openCalendar">收支日历</view>
-	</view>
-	<view class="sum-card">
-		<view class="sum-col">
-			<view class="sum-k">支出</view>
-			<view class="sum-v expense">¥{{summary.expense}}</view>
-		</view>
-		<view class="sum-col">
-			<view class="sum-k">收入</view>
-			<view class="sum-v income">¥{{summary.income}}</view>
-		</view>
-		<view class="sum-col">
-			<view class="sum-k">结余</view>
-			<view class="sum-v"><text wx:if="{{summary.balanceNegative}}">-</text>¥{{summary.balance}}</view>
-		</view>
-	</view>
-	<view class="budget-card" bindtap="openBudget">
-		<view class="budget-top">
-			<text class="budget-label">剩余月预算</text>
-			<text wx:if="{{overspent}}" class="over-badge">超支</text>
-		</view>
-		<view wx:if="{{budgetSet}}" class="budget-value {{overspent ? 'over' : ''}}">{{overspent ? '-' : ''}}¥{{budget.remaining}}</view>
-		<view wx:else class="budget-value budget-none">未设置</view>
-		<view wx:if="{{budgetSet}}" class="budget-bar"><view class="budget-bar-in {{budget.barClass}}" style="width:{{budget.ratio}}%"></view></view>
-		<view wx:if="{{budgetSet}}" class="budget-meta">总预算 ¥{{budget.total}}<text wx:if="{{budget.dailyShown}}"> · 剩余日均 ¥{{budget.daily}}/天（本月剩 {{budget.remainingDays}} 天）</text></view>
-		<view wx:else class="budget-meta">点击设置预算</view>
-	</view>
-	<view wx:if="{{error}}" class="error" bindtap="load">{{error}}（点击重试）</view>
-	<view wx:if="{{loading}}" class="empty">正在读取账本…</view>
-	<view wx:elif="{{!groups.length}}" class="empty">这个月还没有账单，记下第一笔吧</view>
-	<block wx:for="{{groups}}" wx:key="date" wx:for-item="group">
-		<view class="day-head" bindtap="toggleGroup" data-date="{{group.date}}">
-			<text>{{group.display}}</text>
-			<view class="day-head-right">
-				<text>支出: ¥{{group.total}}</text>
-				<text wx:if="{{group.hasIncome}}">　收入: ¥{{group.income}}</text>
-				<text class="fold">{{collapsed[group.date] ? '▸' : '▾'}}</text>
+	<view class="header" style="padding-top:{{statusBarHeight}}px">
+		<view class="nav" style="padding-right:{{navRight}}px">
+			<view class="nav-title" bindtap="goSettings">{{ledgerName}} <text class="nav-arrow">▾</text></view>
+			<view class="nav-right">
+				<view class="avatar" bindtap="goSettings">{{ledgerIcon}}</view>
+				<view class="nav-menu" bindtap="goSettings">⋯</view>
 			</view>
 		</view>
-		<view wx:if="{{!collapsed[group.date]}}" class="card entries">
-			<view wx:for="{{group.items}}" wx:key="id" class="entry" data-id="{{item.id}}" bindtap="edit">
-				<view class="icon {{item.kind}}">{{item.category.icon}}</view>
-				<view class="entry-copy">
-					<view class="entry-name">{{item.category.name}}<text wx:if="{{item.note}}"> {{item.note}}</text></view>
-					<view class="entry-time">{{item.time}}</view>
+	</view>
+	<view class="content">
+		<view class="search-bar" bindtap="openSearch">
+			<text class="search-icon">🔍</text>
+			<text class="search-placeholder">搜索备注 / 分类名</text>
+		</view>
+		<view class="month-bar">
+			<view class="month-select">
+				<view class="arrow {{prevRef ? '' : 'arrow-off'}}" data-ref="{{prevRef}}" bindtap="shiftMonth">‹</view>
+				<view class="month-title" bindtap="openCalendar">{{monthLabel}}</view>
+				<view class="arrow {{nextRef ? '' : 'arrow-off'}}" data-ref="{{nextRef}}" bindtap="shiftMonth">›</view>
+			</view>
+			<view class="side-btn" bindtap="openCalendar">收支日历</view>
+		</view>
+		<view class="sum-card">
+			<view class="sum-col">
+				<view class="sum-k">支出</view>
+				<view class="sum-v expense">¥{{summary.expense}}</view>
+			</view>
+			<view class="sum-col">
+				<view class="sum-k">收入</view>
+				<view class="sum-v income">¥{{summary.income}}</view>
+			</view>
+			<view class="sum-col">
+				<view class="sum-k">结余</view>
+				<view class="sum-v"><text wx:if="{{summary.balanceNegative}}">-</text>¥{{summary.balance}}</view>
+			</view>
+		</view>
+		<view class="budget-card" bindtap="openBudget">
+			<view class="budget-top">
+				<text class="budget-label">剩余月预算</text>
+				<text wx:if="{{overspent}}" class="over-badge">超支</text>
+			</view>
+			<view wx:if="{{budgetSet}}" class="budget-value {{overspent ? 'over' : ''}}">{{overspent ? '-' : ''}}¥{{budget.remaining}}</view>
+			<view wx:else class="budget-value budget-none">未设置</view>
+			<view wx:if="{{budgetSet}}" class="budget-bar"><view class="budget-bar-in {{budget.barClass}}" style="width:{{budget.ratio}}%"></view></view>
+			<view wx:if="{{budgetSet}}" class="budget-meta">总预算 ¥{{budget.total}}<text wx:if="{{budget.dailyShown}}"> · 剩余日均 ¥{{budget.daily}}/天（本月剩 {{budget.remainingDays}} 天）</text></view>
+			<view wx:else class="budget-meta">点击设置预算</view>
+		</view>
+		<view wx:if="{{error}}" class="error" bindtap="load">{{error}}（点击重试）</view>
+		<view wx:if="{{loading}}" class="empty">正在读取账本…</view>
+		<view wx:elif="{{!groups.length}}" class="empty">这个月还没有账单，记下第一笔吧</view>
+		<block wx:for="{{groups}}" wx:key="date" wx:for-item="group">
+			<view class="day-head" bindtap="toggleGroup" data-date="{{group.date}}">
+				<text>{{group.display}}</text>
+				<view class="day-head-right">
+					<text>支出: ¥{{group.total}}</text>
+					<text wx:if="{{group.hasIncome}}">　收入: ¥{{group.income}}</text>
+					<text class="fold">{{collapsed[group.date] ? '▸' : '▾'}}</text>
 				</view>
-				<text class="entry-amount {{item.kind}}">{{item.kind === 'expense' ? '-' : '+'}}¥{{item.display}}</text>
 			</view>
-		</view>
-	</block>
-	<view wx:if="{{!loading && hasMore}}" class="load-more" bindtap="loadMore">{{loadingMore ? '加载中…' : '加载更多'}}</view>
-	<view wx:if="{{!loading && groups.length}}" class="month-foot">— 本月共 {{total}} 笔 —</view>
+			<view wx:if="{{!collapsed[group.date]}}" class="card entries">
+				<view wx:for="{{group.items}}" wx:key="id" class="entry" data-id="{{item.id}}" bindtap="edit">
+					<view class="icon {{item.kind}}">{{item.category.icon}}</view>
+					<view class="entry-copy">
+						<view class="entry-name">{{item.category.name}}<text wx:if="{{item.note}}"> {{item.note}}</text></view>
+						<view class="entry-time">{{item.time}}</view>
+					</view>
+					<text class="entry-amount {{item.kind}}">{{item.kind === 'expense' ? '-' : '+'}}¥{{item.display}}</text>
+				</view>
+			</view>
+		</block>
+		<view wx:if="{{!loading && hasMore}}" class="load-more" bindtap="loadMore">{{loadingMore ? '加载中…' : '加载更多'}}</view>
+		<view wx:if="{{!loading && groups.length}}" class="month-foot">— 本月共 {{total}} 笔 —</view>
+	</view>
 	<view class="fab" bindtap="add">＋</view>
 </view>
 

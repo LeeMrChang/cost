@@ -77,6 +77,12 @@ test('keypad builds expressions, overrides operators and keeps the last result o
 	assert.equal(page.data.expr, '12+8÷0');
 	assert.equal(page.data.result, '20.00'); // 除零不崩溃，保持上一结果
 });
+test('keypad evaluates each operator immediately instead of applying precedence', () => {
+	const {page} = load();
+	for (const k of ['1', '2', '+', '8', '×', '2']) page.press({currentTarget: {dataset: {v: k}}});
+	assert.equal(page.data.expr, '12+8×2');
+	assert.equal(page.data.result, '40.00'); assert.equal(page.data.resultCents, 4000);
+});
 test('save requires a positive amount and a category before posting', async () => {
 	const {page, requests, toasts} = load();
 	page.onLoad({}); page.onShow(); await flush();
