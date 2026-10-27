@@ -119,7 +119,8 @@ curl http://127.0.0.1:8080/health
 - 模拟器：后端地址默认 `http://127.0.0.1:8080`。
 - 手机：在登录页“开发环境连接”填电脑的局域网 IP，例如 `http://192.168.1.10:8080`。手机的 127.0.0.1 指向手机自身。
 - 本地 HTTP 联调按工具要求使用开发调试设置，确保电脑和手机网络互通、防火墙允许 8080。
-- 体验/正式版忽略本地保存的地址，只读取 miniprogram/utils/config.js；发布前需配置正式 HTTPS 地址和合法域名。
+- 体验/正式版固定使用 `https://api.xiachen.xyz`，忽略开发版保存的调试地址；无需发布前手动改代码。地址在 miniprogram/utils/config.js 维护，与服务器 `COST_DOMAIN=api.xiachen.xyz` 保持一致。
+- 后端本地 `.env` 使用 `COST_ENV=development`、监听 `0.0.0.0:8080`；云端 Compose 使用 `COST_ENV=production`，由 Caddy 转发 HTTPS 到内部 `api:8080`。完整对应关系与上线步骤见 [开发与发布环境配置](docs/ops/2026-10-27-environment-configuration.md)。
 
 ### 5. 登录并开始记账
 
