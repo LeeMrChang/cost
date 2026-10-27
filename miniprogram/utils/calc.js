@@ -1,4 +1,4 @@
-// 计算器表达式引擎：数字、小数点与 + − × ÷；内部以 10^-4 元为整数单位运算，最终结果按分四舍五入。
+// 计算器表达式引擎：数字、小数点与 + − × ÷；按运算符从左到右即时计算，每步按分四舍五入。
 const OPS = ['+', '−', '×', '÷'];
 const SCALE = 10000;
 
@@ -41,6 +41,11 @@ function parseUnits(raw) {
 	return Number.isSafeInteger(n) ? n : null;
 }
 
+function parseCents(raw) {
+	const units = parseUnits(raw);
+	return units === null ? null : Math.round(units / 100);
+}
+
 function tokenize(expr) {
 	const tokens = [];
 	let i = 0;
@@ -48,24 +53,24 @@ function tokenize(expr) {
 		if (isOp(expr[i])) { tokens.push(expr[i] === '-' ? '−' : expr[i]); i++; continue; }
 		let j = i;
 		while (j < expr.length && !isOp(expr[j])) j++;
-		const n = parseUnits(expr.slice(i, j));
+		const n = parseCents(expr.slice(i, j));
 		if (n === null) return null;
 		tokens.push(n); i = j;
 	}
 	return tokens;
 }
 
-function muldiv(tokens) {
-	const out = [tokens[0]];
-	for (let i = 1; i < tokens.length; i += 2) {
-		const op = tokens[i], right = tokens[i + 1], left = out.pop();
-		if (op !== '×' && op !== '÷') { out.push(left, op, right); continue; }
-		if (op === '÷' && right === 0) return null;
-		const product = op === '×' ? left * right : left * SCALE;
+// step 对一步运算即时求值；除零、溢出与非法操作数返回 null。
+function step(op, left, right) {
+	if (op === '÷' && right === 0) return null;
+	if (op === '×' || op === '÷') {
+		const product = op === '×' ? left * right : left * 100;
 		if (!Number.isSafeInteger(product)) return null;
-		out.push(op === '×' ? Math.round(product / SCALE) : Math.round(product / right));
+		const value = Math.round(product / (op === '×' ? 100 : right));
+		return Number.isSafeInteger(value) ? value : null;
 	}
-	return out;
+	const value = op === '+' ? left + right : left - right;
+	return Number.isSafeInteger(value) ? value : null;
 }
 
 // evaluate 返回 {ok:true, cents} 或 {ok:false}；尾随运算符被忽略，除零/溢出/非法输入返回 ok:false。
@@ -74,14 +79,13 @@ function evaluate(expr) {
 	if (!tokens || tokens.length === 0) return {ok: false};
 	if (typeof tokens[tokens.length - 1] === 'string') tokens = tokens.slice(0, -1);
 	if (tokens.length === 0 || typeof tokens[0] === 'string') return {ok: false};
-	const flat = muldiv(tokens);
-	if (flat === null) return {ok: false};
-	let acc = flat[0];
-	for (let i = 1; i < flat.length; i += 2) {
-		acc = flat[i] === '+' ? acc + flat[i + 1] : acc - flat[i + 1];
+	let acc = tokens[0];
+	for (let i = 1; i < tokens.length; i += 2) {
+		if (typeof tokens[i] !== 'string' || typeof tokens[i + 1] !== 'number') return {ok: false};
+		acc = step(tokens[i], acc, tokens[i + 1]);
+		if (acc === null) return {ok: false};
 	}
-	if (!Number.isSafeInteger(acc)) return {ok: false};
-	return {ok: true, cents: Math.round(acc / 100)};
+	return {ok: true, cents: acc};
 }
 
 module.exports = { push, backspace, evaluate };

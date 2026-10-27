@@ -3,9 +3,11 @@ const { push, backspace, evaluate } = require('../utils/calc');
 
 function cents(expr) { const r = evaluate(expr); assert.equal(r.ok, true, expr); return r.cents; }
 
-// 四则与连算：先乘除后加减，结果按分四舍五入。
+// 四则与连算：按运算符即算中间值（从左到右），每步按分四舍五入。
 assert.equal(cents('12+8'), 2000);
-assert.equal(cents('1+2×3'), 700);
+assert.equal(cents('1+2×3'), 900);
+assert.equal(cents('12+8×2'), 4000);
+assert.equal(cents('10÷3×3'), 999);
 assert.equal(cents('12÷4'), 300);
 assert.equal(cents('10÷3'), 333);
 assert.equal(cents('1.5+2.25'), 375);
