@@ -1,5 +1,5 @@
 const api = require('../../utils/api');
-const { money, today } = require('../../utils/money');
+const { displayMoney, today } = require('../../utils/money');
 const RANGES = ['week', 'month', 'year', 'all', 'custom'];
 function chartLabel(key) {
  if (key.length === 4) return key;
@@ -53,24 +53,24 @@ Page({
     if (s.budget.total_cent === null) budgetView = { unset: true };
     else budgetView = {
      over: s.budget.remaining_cent < 0,
-     remaining: money(Math.abs(s.budget.remaining_cent)),
-     total: money(s.budget.total_cent),
-     daily: s.budget.remaining_daily_cent === null ? '' : money(s.budget.remaining_daily_cent),
+     remaining: displayMoney(Math.abs(s.budget.remaining_cent)),
+     total: displayMoney(s.budget.total_cent),
+     daily: s.budget.remaining_daily_cent === null ? '' : displayMoney(s.budget.remaining_daily_cent),
     };
    }
    this.setData({
     label: s.label, prevRef: s.prev_ref || '', nextRef: s.next_ref || '',
     showValues: this.data.range !== 'month' && this.data.range !== 'custom',
     summary: {
-     expense: money(s.summary.expense_cent), income: money(s.summary.income_cent),
-     balance: money(s.summary.balance_cent), daily: money(s.summary.daily_avg_expense_cent),
+     expense: displayMoney(s.summary.expense_cent), income: displayMoney(s.summary.income_cent),
+     balance: displayMoney(s.summary.balance_cent), daily: displayMoney(s.summary.daily_avg_expense_cent),
     },
     chart: s.series.map(p => ({
-     key: p.key, label: chartLabel(p.key), value: money(p.expense_cent),
+     key: p.key, label: chartLabel(p.key), value: displayMoney(p.expense_cent),
      height: Math.round(p.expense_cent / max * 100), hot: p.expense_cent > 0 && p.expense_cent === max,
     })),
     categories: s.categories.map(c => ({
-     ...c, amount: money(c.amount_cent),
+     ...c, amount: displayMoney(c.amount_cent),
      percent: total ? (c.amount_cent / total * 100).toFixed(1) : '0.0',
      width: total ? Math.min(100, c.amount_cent / total * 100) : 0,
     })),

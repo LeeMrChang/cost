@@ -1,5 +1,5 @@
 const api = require('../../utils/api');
-const { money } = require('../../utils/money');
+const { displayMoney } = require('../../utils/money');
 const { query, groups } = require('../../utils/ledger');
 
 const ALL_TIME = { start_date: '2000-01-01', end_date: '9999-12-30' };
@@ -50,8 +50,8 @@ Page({
 				searched: true,
 				summary: {
 					total: response.total,
-					expense: money((response.summary && response.summary.expense_cent) || 0),
-					income: money((response.summary && response.summary.income_cent) || 0),
+					expense: displayMoney((response.summary && response.summary.expense_cent) || 0),
+					income: displayMoney((response.summary && response.summary.income_cent) || 0),
 				},
 			});
 		} catch (e) { if (version === this.loadVersion) this.setData({error: e.message}); }

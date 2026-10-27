@@ -83,7 +83,7 @@ func NewRange(kind, ref, start, end string, today time.Time) (Range, error) {
 			Kind:    kind,
 			Start:   start,
 			End:     start.AddDate(0, 1, 0),
-			Label:   start.Format("2006年01月"),
+			Label:   start.Format("2006年1月"),
 			Ref:     dateOf(start),
 			PrevRef: dateOf(start.AddDate(0, -1, 0)),
 			NextRef: dateOf(start.AddDate(0, 1, 0)),
