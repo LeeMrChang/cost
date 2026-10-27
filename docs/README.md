@@ -30,6 +30,8 @@
 ## Superpowers
 
 - [2026-10-22：开发流程规范](superpowers/2026-10-22-development-workflow.md)
+- [2026-10-27：环境与开发发布规范](superpowers/2026-10-27-environment-development-workflow.md)
+- [数据库迁移模板](superpowers/templates/migration-template.md)
 - [2026-10-22：统一仓库与微信登录设计补录](superpowers/specs/2026-10-22-monorepo-wechat-auth-design.md)
 
 原统一仓库与登录改造没有事前实施计划，不补造计划文件或审批记录。后续计划写入 `superpowers/plans/`，并在此添加链接。尚未形成研究或代码地图文档，不创建只有名字的空目录。
@@ -59,6 +61,8 @@
 
 ## iCost 重定位（M1 核心闭环）
 
+- [2026-10-27：开发与发布环境配置](ops/2026-10-27-environment-configuration.md)
+- [2026-10-27：记账键盘操作键布局修复](ops/2026-10-27-keypad-button-layout.md)
 - [2026-10-26：v4.3 主流程修复设计](superpowers/specs/2026-10-26-icost-rescue-design.md)
 - [2026-10-26：主流程修复执行记录](superpowers/plans/2026-10-26-icost-rescue.md)
 - [2026-10-26：主流程修复验证与升级说明](ops/2026-10-26-icost-rescue-validation.md)
