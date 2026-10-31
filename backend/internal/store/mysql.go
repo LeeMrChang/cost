@@ -296,6 +296,11 @@ func (m *MySQL) LedgerForUser(ctx context.Context, userID int64) (int64, error) 
 		return 0, err
 	}
 	defer tx.Rollback()
+	// 每个鉴权请求都会开通账本，首次登录时并发事务会撞 owner_id 唯一键；先锁用户行把开通串行化。
+	var locked int64
+	if err = tx.QueryRowContext(ctx, "SELECT id FROM t_users WHERE id=? FOR UPDATE", userID).Scan(&locked); err != nil {
+		return 0, err
+	}
 	var id int64
 	err = tx.QueryRowContext(ctx, "SELECT id FROM t_ledgers WHERE owner_id=?", userID).Scan(&id)
 	if err == nil {
