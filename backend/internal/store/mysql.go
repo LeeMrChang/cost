@@ -130,7 +130,10 @@ func (m *MySQL) Migrate(ctx context.Context) error {
 	if err := applyEntrySoftDelete(ctx, conn); err != nil {
 		return err
 	}
-	return applyUserNickname(ctx, conn)
+	if err := applyUserNickname(ctx, conn); err != nil {
+		return err
+	}
+	return applyUserAvatar(ctx, conn)
 }
 func (m *MySQL) DB() *sql.DB { return m.db }
 

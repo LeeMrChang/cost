@@ -33,6 +33,10 @@
 ## 运行与验证
 
 - [2026-11-03：CI 字段数量断言修复](ops/2026-11-03-ci-schema-count-fix.md)
+- [2026-11-03：微信头像 API](api/2026-11-03-wechat-avatar-api.md)
+- [2026-11-03：微信头像设计](superpowers/specs/2026-11-03-wechat-avatar-design.md)
+- [2026-11-03：微信头像实施计划](superpowers/plans/2026-11-03-wechat-avatar.md)
+- [2026-11-03：微信头像验证记录](ops/2026-11-03-wechat-avatar-validation.md)
 
 - [2026-10-22：微信小程序本地开发](ops/2026-10-22-miniprogram-local-development.md)
 - [2026-10-22：统一仓库与登录改造验证记录](ops/2026-10-22-monorepo-wechat-auth-validation.md)

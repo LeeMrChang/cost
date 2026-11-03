@@ -5,8 +5,13 @@
   <view class="muted">微信登录用于识别你的账本账号，不获取手机号。昵称用于识别使用者，账单数据仅属于你自己。</view>
   <button wx:if="{{!user}}" class="button" loading="{{busy}}" disabled="{{busy}}" bindtap="signIn">微信登录</button>
   <form wx:else bindsubmit="signIn">
+   <button class="avatar-picker" open-type="chooseAvatar" bindchooseavatar="chooseAvatar" disabled="{{busy}}">
+    <image wx:if="{{avatarSrc}}" class="profile-avatar" src="{{avatarSrc}}" mode="aspectFill" />
+    <view wx:else class="profile-avatar profile-avatar-placeholder">👤</view>
+    <text>{{avatarSrc ? '更换微信头像' : '选择微信头像（可选）'}}</text>
+   </button>
    <view class="nickname-label">补充昵称</view>
-   <input type="nickname" name="nickname" value="{{nickname}}" maxlength="128" placeholder="点击选择微信昵称或填写昵称" disabled="{{busy}}" />
+   <input type="nickname" name="nickname" value="{{nickname}}" data-field="nickname" bindinput="input" bindblur="input" maxlength="128" placeholder="点击选择微信昵称或填写昵称" disabled="{{busy}}" />
    <view class="muted nickname-hint">请填写昵称后继续，可使用微信昵称。</view>
    <button class="button" loading="{{busy}}" disabled="{{busy}}" form-type="submit">保存昵称并进入</button>
   </form>

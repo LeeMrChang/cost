@@ -23,6 +23,7 @@ const messages = {
  unauthorized: '登录已过期，请重新登录',
  nickname_required: '请先填写昵称', invalid_nickname: '请输入 1–64 个字的昵称，不能包含换行或控制字符',
  invalid_ledger: '账本名称或图标有误，请检查后重试',
+ invalid_avatar: '请选择 JPEG 或 PNG 头像，图片尺寸不能超过 2048 像素', avatar_too_large: '头像不能超过 2 MB，请选择较小的图片',
  wechat_not_configured: '服务端尚未配置微信登录', wechat_unavailable: '微信登录服务暂不可用，请稍后重试',
  invalid_wechat_code: '登录凭证已失效，请重新点击微信登录',
  invalid_json: '请求格式有误，请重试', invalid_entry: '记账内容有误，请检查后重试',
@@ -76,6 +77,30 @@ async function updateNickname(nickname) {
  wx.setStorageSync('cost_session', { ...latest, user });
  return user;
 }
+async function uploadAvatar(filePath) {
+ const current = session();
+ if (!current) { clearSession(); goLogin(); throw new Error('请先微信登录'); }
+ const user = await new Promise((resolve, reject) => wx.uploadFile({
+  url: config().baseURL + '/api/v1/auth/me/avatar', filePath, name: 'avatar',
+  header: { Authorization: 'Bearer ' + current.token }, timeout: 20000,
+  success(res) {
+   const latest = session();
+   if (!latest || latest.token !== current.token) { reject(new Error('登录状态已变化，请重试')); return; }
+   let value = res.data;
+   if (typeof value === 'string') { try { value = JSON.parse(value); } catch (_) { reject(new Error('头像上传返回格式有误，请重试')); return; } }
+   if (res.statusCode >= 200 && res.statusCode < 300) { resolve(value); return; }
+   if (res.statusCode === 401) { clearSession(); goLogin(); }
+   const code = value && value.error;
+   reject(new Error(messages[code] || '头像上传失败，请重试'));
+  },
+  fail() { reject(new Error('头像上传失败，请检查网络后重试')); }
+ }));
+ const latest = session();
+ if (!latest || latest.token !== current.token) throw new Error('登录状态已变化，请重试');
+ profileRevision++;
+ wx.setStorageSync('cost_session', { ...latest, user });
+ return user;
+}
 async function logout() { if (session()) await request('/api/v1/auth/logout', 'POST'); clearSession(); goLogin(); }
 async function exportCSV(query) {
  if (typeof wx.shareFileMessage !== 'function') throw new Error('请升级微信后使用 CSV 导出分享');
@@ -90,4 +115,4 @@ async function exportCSV(query) {
   await new Promise(resolve => fs.unlink({filePath, success: resolve, fail: resolve}));
  }
 }
-module.exports = { exportCSV, request, config, session, clearSession, login, logout, me, updateNickname, isDevelop, goLogin };
+module.exports = { exportCSV, request, config, session, clearSession, login, logout, me, updateNickname, uploadAvatar, isDevelop, goLogin };

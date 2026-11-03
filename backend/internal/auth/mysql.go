@@ -18,7 +18,7 @@ func (m *MySQL) Login(ctx context.Context, openid, nickname, hash string, expire
 		return Principal{}, err
 	}
 	var p Principal
-	if err = tx.QueryRowContext(ctx, "SELECT id,nickname FROM t_users WHERE openid=?", openid).Scan(&p.ID, &p.Nickname); err != nil {
+	if err = tx.QueryRowContext(ctx, "SELECT id,nickname,COALESCE(avatar_url,'') FROM t_users WHERE openid=?", openid).Scan(&p.ID, &p.Nickname, &p.AvatarURL); err != nil {
 		return Principal{}, err
 	}
 	if _, err = tx.ExecContext(ctx, "DELETE FROM t_sessions WHERE expires_at<=?", time.Now().UTC()); err != nil {
@@ -31,7 +31,7 @@ func (m *MySQL) Login(ctx context.Context, openid, nickname, hash string, expire
 }
 func (m *MySQL) Resolve(ctx context.Context, hash string, now time.Time) (Principal, error) {
 	var p Principal
-	err := m.DB.QueryRowContext(ctx, "SELECT u.id,u.nickname FROM t_sessions s JOIN t_users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>?", hash, now).Scan(&p.ID, &p.Nickname)
+	err := m.DB.QueryRowContext(ctx, "SELECT u.id,u.nickname,COALESCE(u.avatar_url,'') FROM t_sessions s JOIN t_users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>?", hash, now).Scan(&p.ID, &p.Nickname, &p.AvatarURL)
 	if err == sql.ErrNoRows {
 		return p, ErrUnauthorized
 	}
@@ -39,7 +39,30 @@ func (m *MySQL) Resolve(ctx context.Context, hash string, now time.Time) (Princi
 }
 func (m *MySQL) UpdateNickname(ctx context.Context, id int64, nickname string) (Principal, error) {
 	_, err := m.DB.ExecContext(ctx, "UPDATE t_users SET nickname=? WHERE id=?", nickname, id)
-	return Principal{ID: id, Nickname: nickname}, err
+	if err != nil {
+		return Principal{}, err
+	}
+	return m.profile(ctx, id)
+}
+func (m *MySQL) profile(ctx context.Context, id int64) (Principal, error) {
+	var p Principal
+	err := m.DB.QueryRowContext(ctx, "SELECT id,nickname,COALESCE(avatar_url,'') FROM t_users WHERE id=?", id).Scan(&p.ID, &p.Nickname, &p.AvatarURL)
+	return p, err
+}
+func (m *MySQL) UpdateAvatar(ctx context.Context, id int64, url string, data []byte) (Principal, error) {
+	_, err := m.DB.ExecContext(ctx, "UPDATE t_users SET avatar_url=?,avatar_data=? WHERE id=?", url, data, id)
+	if err != nil {
+		return Principal{}, err
+	}
+	return m.profile(ctx, id)
+}
+func (m *MySQL) Avatar(ctx context.Context, url string) ([]byte, error) {
+	var data []byte
+	err := m.DB.QueryRowContext(ctx, "SELECT avatar_data FROM t_users WHERE avatar_url=?", url).Scan(&data)
+	if err == sql.ErrNoRows || (err == nil && len(data) == 0) {
+		return nil, ErrAvatarNotFound
+	}
+	return data, err
 }
 func (m *MySQL) Logout(ctx context.Context, hash string) error {
 	_, err := m.DB.ExecContext(ctx, "DELETE FROM t_sessions WHERE token_hash=?", hash)

@@ -64,14 +64,18 @@ func newHandler(s store.Store, token string, service *auth.Service) http.Handler
 	mux.HandleFunc("PATCH /api/v1/ledgers/me", a.updateLedger)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		defer func() { slog.Info("request", "method", r.Method, "path", r.URL.Path, "duration", time.Since(start)) }()
+		path := r.URL.Path
+		if auth.PublicAvatarRequest(r) {
+			path = "/api/v1/avatars/{avatar}"
+		}
+		defer func() { slog.Info("request", "method", r.Method, "path", path, "duration", time.Since(start)) }()
 		defer func() {
 			if v := recover(); v != nil {
 				slog.Error("panic", "error", v)
 				respond(w, 500, map[string]string{"error": "internal_error"})
 			}
 		}()
-		if r.URL.Path != "/health" {
+		if r.URL.Path != "/health" && !(service != nil && auth.PublicAvatarRequest(r)) {
 			if service != nil {
 				if r.URL.Path != "/api/v1/auth/wechat" {
 					p, err := service.Authenticate(r)
@@ -83,7 +87,7 @@ func newHandler(s store.Store, token string, service *auth.Service) http.Handler
 						respond(w, status, map[string]string{"error": code})
 						return
 					}
-					profileRoute := r.URL.Path == "/api/v1/auth/me" || r.URL.Path == "/api/v1/auth/logout"
+					profileRoute := r.URL.Path == "/api/v1/auth/me" || r.URL.Path == "/api/v1/auth/me/avatar" || r.URL.Path == "/api/v1/auth/logout"
 					if p.Nickname == "" && !profileRoute {
 						respond(w, 403, map[string]string{"error": "nickname_required"})
 						return

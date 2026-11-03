@@ -17,9 +17,15 @@
   </form>
  </view>
  <view wx:if="{{user}}" class="card">
-  <view class="section">昵称</view>
+  <view class="section">个人资料</view>
+  <button class="avatar-picker" open-type="chooseAvatar" bindchooseavatar="chooseAvatar" disabled="{{busy}}">
+   <image wx:if="{{avatarSrc}}" class="profile-avatar" src="{{avatarSrc}}" mode="aspectFill" />
+   <view wx:else class="profile-avatar profile-avatar-placeholder">👤</view>
+   <text>{{avatarSrc ? '更换微信头像' : '选择微信头像（可选）'}}</text>
+  </button>
   <form bindsubmit="saveNickname">
-   <input class="nickname-input" type="nickname" name="nickname" value="{{nickname}}" maxlength="128" placeholder="点击选择微信昵称或填写昵称" disabled="{{busy}}" />
+   <view class="label">昵称</view>
+   <input class="nickname-input" type="nickname" name="nickname" value="{{nickname}}" bindinput="inputNickname" bindblur="inputNickname" maxlength="128" placeholder="点击选择微信昵称或填写昵称" disabled="{{busy}}" />
    <button form-type="submit" loading="{{busy}}" disabled="{{busy}}">保存昵称</button>
   </form>
  </view>

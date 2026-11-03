@@ -21,15 +21,19 @@ import (
 )
 
 var ErrUnauthorized = errors.New("unauthorized")
+var ErrAvatarNotFound = errors.New("avatar not found")
 
 // Principal 表示已认证用户；单用户模型下无角色。
 type Principal struct {
-	ID       int64  `json:"id"`
-	Nickname string `json:"nickname"`
+	ID        int64  `json:"id"`
+	Nickname  string `json:"nickname"`
+	AvatarURL string `json:"avatar_url"`
 }
 type Repository interface {
 	Login(context.Context, string, string, string, time.Time) (Principal, error)
 	UpdateNickname(context.Context, int64, string) (Principal, error)
+	UpdateAvatar(context.Context, int64, string, []byte) (Principal, error)
+	Avatar(context.Context, string) ([]byte, error)
 	Resolve(context.Context, string, time.Time) (Principal, error)
 	Logout(context.Context, string) error
 }
@@ -144,6 +148,8 @@ func (s *Service) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/auth/wechat", s.login)
 	mux.HandleFunc("GET /api/v1/auth/me", s.me)
 	mux.HandleFunc("PATCH /api/v1/auth/me", s.updateNickname)
+	mux.HandleFunc("POST /api/v1/auth/me/avatar", s.uploadAvatar)
+	mux.HandleFunc("GET /api/v1/avatars/{key}", s.avatar)
 	mux.HandleFunc("POST /api/v1/auth/logout", s.logout)
 }
 func response(w http.ResponseWriter, status int, v any) {
