@@ -32,6 +32,8 @@
 
 ## 运行与验证
 
+- [2026-11-03：CI 字段数量断言修复](ops/2026-11-03-ci-schema-count-fix.md)
+
 - [2026-10-22：微信小程序本地开发](ops/2026-10-22-miniprogram-local-development.md)
 - [2026-10-22：统一仓库与登录改造验证记录](ops/2026-10-22-monorepo-wechat-auth-validation.md)
 

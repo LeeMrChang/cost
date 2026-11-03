@@ -54,7 +54,9 @@ func assertPrefixed(t *testing.T, db *store.MySQL) {
 	if err := db.DB().QueryRow("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND LEFT(table_name,2)='t_' AND table_comment<>''").Scan(&tables); err != nil || tables != 9 {
 		t.Fatalf("want 9 commented prefixed tables, got %d: %v", tables, err)
 	}
-	if err := db.DB().QueryRow("SELECT COUNT(*),SUM(column_comment='') FROM information_schema.columns WHERE table_schema=DATABASE() AND LEFT(table_name,2)='t_'").Scan(&columns, &uncommented); err != nil || columns != 60 || uncommented != 0 {
+	// Later versioned migrations may add columns; all columns must retain comments.
+	// The original 006 schema had 60 columns; field-specific migrations are tested separately.
+	if err := db.DB().QueryRow("SELECT COUNT(*),SUM(column_comment='') FROM information_schema.columns WHERE table_schema=DATABASE() AND LEFT(table_name,2)='t_'").Scan(&columns, &uncommented); err != nil || columns < 60 || uncommented != 0 {
 		t.Fatalf("columns=%d uncommented=%d err=%v", columns, uncommented, err)
 	}
 	for _, name := range legacyNames {
