@@ -2,6 +2,7 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -15,16 +16,20 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 var ErrUnauthorized = errors.New("unauthorized")
 
 // Principal 表示已认证用户；单用户模型下无角色。
 type Principal struct {
-	ID int64 `json:"id"`
+	ID       int64  `json:"id"`
+	Nickname string `json:"nickname"`
 }
 type Repository interface {
-	Login(context.Context, string, string, time.Time) (Principal, error)
+	Login(context.Context, string, string, string, time.Time) (Principal, error)
+	UpdateNickname(context.Context, int64, string) (Principal, error)
 	Resolve(context.Context, string, time.Time) (Principal, error)
 	Logout(context.Context, string) error
 }
@@ -138,6 +143,7 @@ func (s *Service) Authenticate(r *http.Request) (Principal, error) {
 func (s *Service) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/auth/wechat", s.login)
 	mux.HandleFunc("GET /api/v1/auth/me", s.me)
+	mux.HandleFunc("PATCH /api/v1/auth/me", s.updateNickname)
 	mux.HandleFunc("POST /api/v1/auth/logout", s.logout)
 }
 func response(w http.ResponseWriter, status int, v any) {
@@ -148,7 +154,12 @@ func response(w http.ResponseWriter, status int, v any) {
 }
 func body(w http.ResponseWriter, r *http.Request, v any) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, 4096)
-	d := json.NewDecoder(r.Body)
+	raw, err := io.ReadAll(r.Body)
+	if err != nil || !utf8.Valid(raw) {
+		response(w, 400, map[string]string{"error": "invalid_json"})
+		return false
+	}
+	d := json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
 	if d.Decode(v) != nil || d.Decode(new(any)) != io.EOF {
 		response(w, 400, map[string]string{"error": "invalid_json"})
@@ -163,7 +174,8 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input struct {
-		Code string `json:"code"`
+		Code     string  `json:"code"`
+		Nickname *string `json:"nickname"`
 	}
 	if !body(w, r, &input) {
 		return
@@ -171,6 +183,15 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	if input.Code == "" || len(input.Code) > 256 {
 		response(w, 400, map[string]string{"error": "invalid_wechat_code"})
 		return
+	}
+	nickname := ""
+	if input.Nickname != nil {
+		var ok bool
+		nickname, ok = cleanNickname(*input.Nickname)
+		if !ok {
+			response(w, 400, map[string]string{"error": "invalid_nickname"})
+			return
+		}
 	}
 	id, err := s.WeChat.Exchange(r.Context(), input.Code)
 	if err != nil {
@@ -190,7 +211,7 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	expires := time.Now().UTC().Add(7 * 24 * time.Hour)
-	p, err := s.Repo.Login(r.Context(), id, digest(token), expires)
+	p, err := s.Repo.Login(r.Context(), id, nickname, digest(token), expires)
 	if err != nil {
 		response(w, 500, map[string]string{"error": "internal_error"})
 		return
@@ -198,6 +219,39 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	response(w, 200, map[string]any{"token": token, "expires_at": expires, "user": p})
 }
 func (s *Service) me(w http.ResponseWriter, r *http.Request) { response(w, 200, Current(r.Context())) }
+
+func cleanNickname(value string) (string, bool) {
+	if !utf8.ValidString(value) {
+		return "", false
+	}
+	for _, r := range value {
+		if unicode.IsControl(r) || r == '\u2028' || r == '\u2029' {
+			return "", false
+		}
+	}
+	value = strings.TrimSpace(value)
+	return value, value != "" && utf8.RuneCountInString(value) <= 64
+}
+
+func (s *Service) updateNickname(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Nickname string `json:"nickname"`
+	}
+	if !body(w, r, &input) {
+		return
+	}
+	nickname, ok := cleanNickname(input.Nickname)
+	if !ok {
+		response(w, 400, map[string]string{"error": "invalid_nickname"})
+		return
+	}
+	p, err := s.Repo.UpdateNickname(r.Context(), Current(r.Context()).ID, nickname)
+	if err != nil {
+		response(w, 500, map[string]string{"error": "internal_error"})
+		return
+	}
+	response(w, 200, p)
+}
 func (s *Service) logout(w http.ResponseWriter, r *http.Request) {
 	if err := s.Repo.Logout(r.Context(), digest(bearer(r))); err != nil {
 		response(w, 500, map[string]string{"error": "internal_error"})

@@ -140,7 +140,7 @@ test('ledger shows the ledger icon avatar and opens the calendar', async () => {
 	const {page, navigations} = load('ledger'); await page.load(); await flush();
 	assert.equal(page.data.ledgerIcon, '📒'); assert.equal(page.data.ledgerName, '我的账本');
 	page.openCalendar();
-	assert.deepEqual(navigations[navigations.length - 1], '/pages/calendar/index?month=2026-10');
+	assert.deepEqual(navigations[navigations.length - 1], '/pages/calendar/index?month=' + page.data.month);
 });
 test('calendar builds a sunday-start month grid with red expense and green income', async () => {
 	const {page} = load('calendar', url => url.startsWith('/api/v1/stats?') ? {...statsResponse, series: [{key: '2026-10-23', expense_cent: 1234, income_cent: 500}]} : undefined);
@@ -241,4 +241,15 @@ test('search resumes a query interrupted by hide before the first result',async(
  page.onHide();page.onShow();await flush();
  first(response);await pending;
  assert.equal(page.data.searched,true);assert.equal(page.data.loading,false);
+});
+
+// The ledger page refreshes its identity card when returning from settings.
+test('ledger onShow refreshes a renamed ledger and its icon', async () => {
+ let ledger = {id: 1, name: '我的账本', icon: '📒'};
+ const {page} = load('ledger', url => url === '/api/v1/ledgers/me' ? ledger : undefined);
+ page.onShow(); await flush();
+ assert.equal(page.data.ledgerName, '我的账本');
+ ledger = {id: 1, name: '旅行基金', icon: '✈️'};
+ page.onShow(); await flush();
+ assert.equal(page.data.ledgerName, '旅行基金'); assert.equal(page.data.ledgerIcon, '✈️');
 });

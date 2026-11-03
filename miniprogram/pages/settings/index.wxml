@@ -1,5 +1,28 @@
 <view class="container"><view class="title">设置</view>
- <view wx:if="{{ledger}}" class="card"><view class="ledger-head"><text class="ledger-icon">{{ledger.icon}}</text><view><view class="ledger-name">{{ledger.name}}</view><view class="muted">用户 {{user.id}}</view></view></view></view>
+ <view wx:if="{{ledger}}" class="card">
+  <view class="ledger-head" bindtap="editLedger">
+   <text class="ledger-icon">{{ledger.icon}}</text>
+   <view class="ledger-info"><view class="ledger-name">{{ledger.name}}</view><view class="muted">{{user.nickname}} · 用户 {{user.id}}</view></view>
+   <text class="ledger-edit-link">编辑 ›</text>
+  </view>
+  <form wx:if="{{editingLedger}}" class="ledger-editor" bindsubmit="saveLedger">
+   <view class="label">账本名称</view>
+   <input class="nickname-input" name="name" value="{{ledgerDraftName}}" bindinput="inputLedgerName" maxlength="128" placeholder="如：日常开销、旅行基金" disabled="{{busy}}" />
+   <view class="label">账本图标</view>
+   <view class="ledger-icons">
+    <button wx:for="{{ledgerIcons}}" wx:key="*this" class="ledger-icon-option {{ledgerDraftIcon === item ? 'selected' : ''}}" data-icon="{{item}}" bindtap="chooseLedgerIcon" disabled="{{busy}}" aria-label="选择图标 {{item}}">{{item}}</button>
+   </view>
+   <view wx:if="{{ledgerError}}" class="error">{{ledgerError}}</view>
+   <view class="ledger-edit-actions"><button bindtap="cancelLedgerEdit" disabled="{{busy}}">取消</button><button class="button" form-type="submit" loading="{{busy}}" disabled="{{busy}}">保存账本</button></view>
+  </form>
+ </view>
+ <view wx:if="{{user}}" class="card">
+  <view class="section">昵称</view>
+  <form bindsubmit="saveNickname">
+   <input class="nickname-input" type="nickname" name="nickname" value="{{nickname}}" maxlength="128" placeholder="点击选择微信昵称或填写昵称" disabled="{{busy}}" />
+   <button form-type="submit" loading="{{busy}}" disabled="{{busy}}">保存昵称</button>
+  </form>
+ </view>
  <view wx:if="{{user}}" class="card"><view class="section">账本管理</view>
   <view class="management-link row" bindtap="openBudget"><view><view>🎯 月预算</view><view class="muted">设置每月总预算与分类预算</view></view><text>›</text></view>
   <view class="management-link row" bindtap="openCategories"><view><view>🏷️ 分类管理</view><view class="muted">新增、排序和停用收支分类</view></view><text>›</text></view>

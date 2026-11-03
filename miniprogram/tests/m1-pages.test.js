@@ -11,8 +11,8 @@ function load(name, handler, extra = {}) {
 	assert.ok(fs.existsSync(file), name + ' page must exist');
 	let page; const requests = [], toasts = [], navigations = [];
 	const api = {
-		session: () => null, me: async () => ({id: 1}),
-		login: async () => { requests.push(['login']); return {user: {id: 1}}; },
+		session: () => null, me: async () => ({id: 1, nickname: '小夏'}),
+		login: async nickname => { requests.push(['login', nickname]); return {id: 1, nickname: nickname || '小夏'}; },
 		logout: async () => { requests.push(['logout']); },
 		isDevelop: () => true, config: () => ({baseURL: 'https://example.test'}), clearSession: () => {},
 		exportCSV: async q => requests.push(['export', q]),
@@ -147,11 +147,11 @@ test('budget shifts months and defaults to the current month without options', a
 	const current = load('budget'); current.page.onLoad({}); await current.page.load(); await flush();
 	assert.equal(current.page.data.period, today().slice(0, 7));
 });
-test('login signs in with one tap and enters the ledger directly', async () => {
+test('login reuses a known account nickname and enters the ledger directly', async () => {
 	const {page, requests, navigations} = load('login');
 	await page.signIn(); await flush();
 	assert.deepEqual(navigations, ['/pages/ledger/index']);
-	assert.ok(requests.some(r => r[0] === 'login'));
+	assert.ok(requests.some(r => r[0] === 'login' && r[1] === undefined));
 	assert.equal(page.data.invite, undefined); assert.equal(page.data.secret, undefined);
 });
 test('login restores a session and skips the login button', async () => {

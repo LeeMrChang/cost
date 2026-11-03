@@ -45,7 +45,7 @@ func testWorkflow(t *testing.T, data store.Store, repo auth.Repository) {
 		}
 	}
 	login := func(code string) (string, int64) {
-		w := call("POST", "/api/v1/auth/wechat", "", `{"code":"`+code+`"}`)
+		w := call("POST", "/api/v1/auth/wechat", "", `{"code":"`+code+`","nickname":"`+code+`"}`)
 		expect(w, 200)
 		var v struct {
 			Token string
@@ -72,7 +72,7 @@ func testWorkflow(t *testing.T, data store.Store, repo auth.Repository) {
 	var principal auth.Principal
 	_ = json.Unmarshal(me.Body.Bytes(), &principal)
 	if principal.ID == 0 || strings.Contains(me.Body.String(), "role") {
-		t.Fatal("principal must carry id only")
+		t.Fatal("principal must carry id without role")
 	}
 
 	// 每个用户自动获得独立账本，数据与幂等键互不干扰。
@@ -112,7 +112,7 @@ func testWorkflow(t *testing.T, data store.Store, repo auth.Repository) {
 	otherEntry := fmt.Sprintf(`{"category_id":%d,"kind":"expense","amount_cent":1800,"occurred_at":"2026-10-13T12:00:00+08:00","client_request_id":"request-1"}`, otherCatID)
 	expect(call("POST", "/api/v1/entries", second, otherEntry), 201)
 	expect(call("POST", "/api/v1/entries", second, entry), 400)
-	if !strings.Contains(call("GET", "/api/v1/entries", second, "").Body.String(), `"total":1`) {
+	if !strings.Contains(call("GET", "/api/v1/entries?month=2026-10", second, "").Body.String(), `"total":1`) {
 		t.Fatal("second user must see only their own entry")
 	}
 
@@ -138,7 +138,7 @@ func TestAuthRoutesMethodAndExpiry(t *testing.T) {
 	expired := strings.Repeat("e", 64)
 	// Repository sessions store digests, never the raw bearer token.
 	// Resolve checks expiry independently of the client's expiry timestamp.
-	_, err := repo.Login(context.Background(), "test", expired, time.Now().Add(-time.Hour))
+	_, err := repo.Login(context.Background(), "test", "", expired, time.Now().Add(-time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}

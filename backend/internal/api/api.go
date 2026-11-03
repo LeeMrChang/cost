@@ -61,6 +61,7 @@ func newHandler(s store.Store, token string, service *auth.Service) http.Handler
 	mux.HandleFunc("GET /api/v1/budgets", a.budgets)
 	mux.HandleFunc("PUT /api/v1/budgets", a.setBudget)
 	mux.HandleFunc("GET /api/v1/ledgers/me", a.ledgerMe)
+	mux.HandleFunc("PATCH /api/v1/ledgers/me", a.updateLedger)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		defer func() { slog.Info("request", "method", r.Method, "path", r.URL.Path, "duration", time.Since(start)) }()
@@ -80,6 +81,11 @@ func newHandler(s store.Store, token string, service *auth.Service) http.Handler
 							status, code = 503, "authentication_unavailable"
 						}
 						respond(w, status, map[string]string{"error": code})
+						return
+					}
+					profileRoute := r.URL.Path == "/api/v1/auth/me" || r.URL.Path == "/api/v1/auth/logout"
+					if p.Nickname == "" && !profileRoute {
+						respond(w, 403, map[string]string{"error": "nickname_required"})
 						return
 					}
 					ledgerID, err := a.store.LedgerForUser(r.Context(), p.ID)

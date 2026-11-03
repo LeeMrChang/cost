@@ -21,6 +21,14 @@
 ## 接口
 
 - [2026-10-22：微信登录与家庭 API](api/2026-10-22-wechat-auth-and-family-api.md)
+- [2026-11-03：微信登录昵称 API](api/2026-11-03-wechat-nickname-api.md)
+- [2026-11-03：微信登录昵称记录设计](superpowers/specs/2026-11-03-wechat-nickname-design.md)
+- [2026-11-03：微信登录昵称实施计划](superpowers/plans/2026-11-03-wechat-nickname.md)
+- [2026-11-03：微信登录昵称验证与升级](ops/2026-11-03-wechat-nickname-validation.md)
+- [2026-11-03：账本资料编辑 API](api/2026-11-03-ledger-profile-api.md)
+- [2026-11-03：账本编辑与昵称复用设计](superpowers/specs/2026-11-03-ledger-profile-editing-design.md)
+- [2026-11-03：账本编辑实施计划](superpowers/plans/2026-11-03-ledger-profile-editing.md)
+- [2026-11-03：账本编辑验证记录](ops/2026-11-03-ledger-profile-validation.md)
 
 ## 运行与验证
 
