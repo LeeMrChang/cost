@@ -2,7 +2,7 @@
  <view wx:if="{{ledger}}" class="card">
   <view class="ledger-head" bindtap="editLedger">
    <text class="ledger-icon">{{ledger.icon}}</text>
-   <view class="ledger-info"><view class="ledger-name">{{ledger.name}}</view><view class="muted">{{user.nickname}} · 用户 {{user.id}}</view></view>
+   <view class="ledger-info"><view class="ledger-name">{{ledger.name}}</view><view class="muted">{{user.nickname}}</view></view>
    <text class="ledger-edit-link">编辑 ›</text>
   </view>
   <form wx:if="{{editingLedger}}" class="ledger-editor" bindsubmit="saveLedger">
