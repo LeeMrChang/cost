@@ -121,3 +121,35 @@ func TestLoadConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestRedisConfig(t *testing.T) {
+	for _, tt := range []struct {
+		name, addr, password string
+		migrate              bool
+		wantError            bool
+	}{
+		{name: "disabled"},
+		{name: "enabled", addr: "cost-redis:6379", password: "test-only-password"},
+		{name: "missing password", addr: "cost-redis:6379", wantError: true},
+		{name: "missing address", password: "test-only-password", wantError: true},
+		{name: "url instead of address", addr: "redis://cost-redis:6379", password: "test-only-password", wantError: true},
+		{name: "invalid port", addr: "cost-redis:abc", password: "test-only-password", wantError: true},
+		{name: "migration ignores cache", addr: "bad-address", migrate: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := loadConfig(lookup(map[string]string{"COST_AUTH_MODE": "development", "COST_REDIS_ADDR": tt.addr, "COST_REDIS_PASSWORD": tt.password}), tt.migrate)
+			if tt.wantError {
+				if err == nil || strings.Contains(err.Error(), "test-only-password") {
+					t.Fatalf("want safe Redis configuration error, got %v", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !tt.migrate && (cfg.redisAddr != tt.addr || cfg.redisPassword != tt.password) {
+				t.Fatal("redis configuration was not loaded")
+			}
+		})
+	}
+}

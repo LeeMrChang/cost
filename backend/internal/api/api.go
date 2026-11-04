@@ -17,17 +17,25 @@ import (
 )
 
 type API struct {
-	store store.Store
-	token string
+	store      store.Store
+	token      string
+	cache      ReferenceCache
+	generation referenceGeneration
 }
 
 // New enables the explicit local-development token used by existing tests.
-func New(s store.Store, token string) http.Handler { return newHandler(s, token, nil) }
-func NewWithAuth(s store.Store, service *auth.Service) http.Handler {
-	return newHandler(s, "", service)
+func New(s store.Store, token string, opts ...Option) http.Handler {
+	return newHandler(s, token, nil, opts...)
 }
-func newHandler(s store.Store, token string, service *auth.Service) http.Handler {
-	a := &API{s, token}
+func NewWithAuth(s store.Store, service *auth.Service, opts ...Option) http.Handler {
+	return newHandler(s, "", service, opts...)
+}
+func newHandler(s store.Store, token string, service *auth.Service, opts ...Option) http.Handler {
+	a := &API{store: s, token: token}
+	for _, opt := range opts {
+		opt(a)
+	}
+	a.initReferenceCache()
 	mux := http.NewServeMux()
 	if service != nil {
 		service.Register(mux)
@@ -153,12 +161,7 @@ func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	return true
 }
 func (a *API) categories(w http.ResponseWriter, r *http.Request) {
-	c, err := a.store.Categories(r.Context())
-	if err != nil {
-		fail(w, err)
-		return
-	}
-	respond(w, 200, c)
+	referenceRead(a, w, r, "categories", func() ([]domain.Category, error) { return a.store.Categories(r.Context()) })
 }
 func (a *API) valid(r *http.Request, e domain.Entry) error {
 	c, err := a.store.Categories(r.Context())
@@ -388,12 +391,7 @@ func (a *API) setBudget(w http.ResponseWriter, r *http.Request) {
 	respond(w, 200, row)
 }
 func (a *API) ledgerMe(w http.ResponseWriter, r *http.Request) {
-	l, err := a.store.Ledger(r.Context(), store.LedgerID(r.Context()))
-	if err != nil {
-		fail(w, err)
-		return
-	}
-	respond(w, 200, l)
+	referenceRead(a, w, r, "profile", func() (domain.Ledger, error) { return a.store.Ledger(r.Context(), store.LedgerID(r.Context())) })
 }
 
 func (a *API) entry(w http.ResponseWriter, r *http.Request) {

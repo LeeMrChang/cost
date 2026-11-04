@@ -1,0 +1,42 @@
+name: cost-cache
+services:
+  redis:
+    image: ${COST_REDIS_IMAGE:-redis:8.4.8-alpine}
+    restart: unless-stopped
+    user: redis
+    read_only: true
+    mem_limit: 256m
+    cpus: 0.5
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,mode=1777
+      - /data:rw,noexec,nosuid,size=1m,mode=1777
+    environment:
+      REDIS_PASSWORD: ${COST_REDIS_PASSWORD:?required}
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - |
+        case "$$REDIS_PASSWORD" in *[!0-9a-f]*|'') exit 1;; esac
+        [ "$${#REDIS_PASSWORD}" -eq 64 ]
+        umask 077
+        printf 'requirepass %s\n' "$$REDIS_PASSWORD" > /tmp/cost-redis.conf
+        exec redis-server /tmp/cost-redis.conf --bind 0.0.0.0 --port 6379 \
+          --protected-mode yes --save '' --appendonly no --dir /tmp \
+          --maxmemory 128mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli -h 127.0.0.1 ping | grep -qx PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+    networks:
+      cost:
+        aliases: [cost-redis]
+networks:
+  cost:
+    external: true
+    name: ${COST_REDIS_NETWORK:-cost-cloud_default}

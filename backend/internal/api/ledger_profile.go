@@ -21,6 +21,7 @@ func (a *API) updateLedger(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, err := a.store.PatchLedger(r.Context(), p)
+	a.invalidateReferences(err)
 	if errors.Is(err, domain.ErrInvalid) {
 		respond(w, 400, map[string]string{"error": "invalid_ledger"})
 		return
