@@ -4,28 +4,33 @@ import (
 	"context"
 	"cost/internal/api"
 	"cost/internal/auth"
+	"cost/internal/cache"
 	"cost/internal/store"
 	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 	_ "time/tzdata"
 )
 
 type config struct {
-	env       string
-	store     string
-	authMode  string
-	addr      string
-	dsn       string
-	devToken  string
-	appID     string
-	appSecret string
+	env           string
+	store         string
+	authMode      string
+	addr          string
+	dsn           string
+	devToken      string
+	appID         string
+	appSecret     string
+	redisAddr     string
+	redisPassword string
 }
 
 // loadConfig validates startup configuration before any connection is opened.
@@ -38,14 +43,16 @@ func loadConfig(getenv func(string) string, migrate bool) (config, error) {
 		return fallback
 	}
 	cfg := config{
-		env:       pick("COST_ENV", "development"),
-		store:     pick("COST_STORE", "memory"),
-		authMode:  pick("COST_AUTH_MODE", "wechat"),
-		addr:      pick("COST_ADDR", "0.0.0.0:8080"),
-		dsn:       getenv("COST_MYSQL_DSN"),
-		devToken:  pick("COST_DEV_TOKEN", "cost-local-dev"),
-		appID:     getenv("WECHAT_APP_ID"),
-		appSecret: getenv("WECHAT_APP_SECRET"),
+		env:           pick("COST_ENV", "development"),
+		store:         pick("COST_STORE", "memory"),
+		authMode:      pick("COST_AUTH_MODE", "wechat"),
+		addr:          pick("COST_ADDR", "0.0.0.0:8080"),
+		dsn:           getenv("COST_MYSQL_DSN"),
+		devToken:      pick("COST_DEV_TOKEN", "cost-local-dev"),
+		appID:         getenv("WECHAT_APP_ID"),
+		appSecret:     getenv("WECHAT_APP_SECRET"),
+		redisAddr:     getenv("COST_REDIS_ADDR"),
+		redisPassword: getenv("COST_REDIS_PASSWORD"),
 	}
 	if cfg.env != "development" && cfg.env != "production" {
 		return config{}, fmt.Errorf("COST_ENV must be development or production, got %q", cfg.env)
@@ -64,6 +71,16 @@ func loadConfig(getenv func(string) string, migrate bool) (config, error) {
 	}
 	if migrate {
 		return cfg, nil
+	}
+	if (cfg.redisAddr == "") != (cfg.redisPassword == "") {
+		return config{}, errors.New("COST_REDIS_ADDR and COST_REDIS_PASSWORD must both be set")
+	}
+	if cfg.redisAddr != "" {
+		host, port, err := net.SplitHostPort(cfg.redisAddr)
+		n, parseErr := strconv.Atoi(port)
+		if err != nil || host == "" || parseErr != nil || n < 1 || n > 65535 {
+			return config{}, errors.New("COST_REDIS_ADDR must be host:port")
+		}
 	}
 	switch cfg.authMode {
 	case "wechat":
@@ -120,15 +137,21 @@ func run() error {
 		}
 	}
 	defer s.Close()
+	var options []api.Option
+	if cfg.redisAddr != "" {
+		client := cache.NewRedis(cfg.redisAddr, cfg.redisPassword)
+		defer client.Close()
+		options = append(options, api.WithReferenceCache(client))
+	}
 	var handler http.Handler
 	switch cfg.authMode {
 	case "wechat":
-		handler = api.NewWithAuth(s, auth.New(identities, auth.WeChat{AppID: cfg.appID, Secret: cfg.appSecret}))
+		handler = api.NewWithAuth(s, auth.New(identities, auth.WeChat{AppID: cfg.appID, Secret: cfg.appSecret}), options...)
 	case "development":
-		handler = api.New(s, cfg.devToken)
+		handler = api.New(s, cfg.devToken, options...)
 	}
 	server := &http.Server{Addr: cfg.addr, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second}
-	slog.Info("starting cost", "env", cfg.env, "store", cfg.store, "auth_mode", cfg.authMode, "addr", server.Addr)
+	slog.Info("starting cost", "env", cfg.env, "store", cfg.store, "auth_mode", cfg.authMode, "addr", server.Addr, "reference_cache", cfg.redisAddr != "")
 	if cfg.authMode == "development" {
 		slog.Warn("development token authentication: local use only")
 	}

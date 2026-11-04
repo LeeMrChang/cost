@@ -32,6 +32,10 @@
 
 ## 运行与验证
 
+- [2026-11-04：Redis 资料缓存启用与验收](ops/2026-11-04-redis-reference-cache.md)
+- [2026-11-04：Redis 资料缓存设计](superpowers/specs/2026-11-04-redis-reference-cache-design.md)
+- [2026-11-04：Redis 资料缓存计划](superpowers/plans/2026-11-04-redis-reference-cache.md)
+
 - [2026-11-04：Redis 安装与记账返回首页耗时诊断](ops/2026-11-04-redis-homepage-diagnostics.md)
 - [2026-11-04：Redis 与首页诊断设计](superpowers/specs/2026-11-04-redis-homepage-diagnostics-design.md)
 - [2026-11-04：Redis 与首页诊断计划](superpowers/plans/2026-11-04-redis-homepage-diagnostics.md)

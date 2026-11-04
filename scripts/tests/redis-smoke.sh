@@ -44,4 +44,15 @@ docker exec cost-cache-redis-1 sh -ec '
   test "$(redis-cli --raw GET cost:ci:smoke)" = ok
   redis-cli DEL cost:ci:smoke >/dev/null
 '
+# The GitHub Linux host can reach its own bridge network without publishing Redis.
+redis_ip=$(docker inspect cost-cache-redis-1 --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+COST_TEST_REDIS_ADDR="$redis_ip:6379" python3 - "$target/.env" <<'PYTHON'
+import os
+from pathlib import Path
+import subprocess
+import sys
+values = dict(line.split('=', 1) for line in Path(sys.argv[1]).read_text().splitlines())
+env = dict(os.environ, COST_TEST_REDIS_PASSWORD=values['COST_REDIS_PASSWORD'])
+subprocess.run(['go', 'test', '-race', '-count=1', './internal/cache', './internal/api', '-run', 'TestRedisIntegration'], cwd='backend', env=env, check=True, timeout=120)
+PYTHON
 echo 'Redis Docker smoke test passed: authenticated cache, resource limits, no published port, repeatable setup.'

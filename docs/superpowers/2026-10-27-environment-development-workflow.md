@@ -53,6 +53,7 @@ GitHub 免费私有仓库不支持分支保护和规则集：对 `LeeMrChang/cos
 | `COST_AUTH_MODE` | `wechat` | 只能是 `wechat` 或 `development`；`production` 禁止 `development` |
 | `WECHAT_APP_ID` / `WECHAT_APP_SECRET` | 无 | `wechat` 认证时必填 |
 | `COST_ADDR` | `0.0.0.0:8080` | 监听地址，不填域名或 `https://` |
+| `COST_REDIS_ADDR` / `COST_REDIS_PASSWORD` | 同时为空禁用 | 可选分类/账本资料缓存；地址和密码必须成对，生产内部地址 `cost-redis:6379`，使用独立 Redis 已有密码；迁移忽略，故障回退数据库，见[启用步骤](../ops/2026-11-04-redis-reference-cache.md) |
 | `COST_DEV_TOKEN` | `cost-local-dev` | 仅 `development` 认证使用 |
 
 `-migrate` 只操作存储，跳过认证相关校验，但仍要求 `COST_ENV`、`COST_STORE` 和 DSN 合法。

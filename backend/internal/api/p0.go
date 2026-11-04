@@ -22,6 +22,7 @@ func (a *API) createCategory(w http.ResponseWriter, r *http.Request) {
 	c.ID = 0
 	c.Name = strings.TrimSpace(c.Name)
 	out, err := a.store.SaveCategory(r.Context(), c)
+	a.invalidateReferences(err)
 	if err != nil {
 		fail(w, err)
 		return
@@ -39,6 +40,7 @@ func (a *API) updateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, err := a.store.PatchCategory(r.Context(), n, p)
+	a.invalidateReferences(err)
 	if err != nil {
 		fail(w, err)
 		return

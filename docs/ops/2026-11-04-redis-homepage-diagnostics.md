@@ -1,5 +1,7 @@
 # Redis 安装与记账返回首页耗时诊断
 
+> 阶段记录：以下为最初的部署/诊断范围。用户随后明确以“使用 Redis”为目标，新增了分类/账本资料缓存；当前接入范围和状态见[资料缓存启用与验收](2026-11-04-redis-reference-cache.md)。
+
 2026-11-04。[设计](../superpowers/specs/2026-11-04-redis-homepage-diagnostics-design.md) / [计划](../superpowers/plans/2026-11-04-redis-homepage-diagnostics.md)。用户实际反馈是新增账单后返回首页慢，本轮提供 Redis 安装工具和只读请求耗时报告，尚未在 Go 后端启用数据缓存。
 
 ## Redis 工具包操作
