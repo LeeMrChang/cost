@@ -67,7 +67,7 @@
 
 ## 数据库表前缀与数据迁移
 
-- [2026-10-22：MySQL 前缀与注释设计](superpowers/specs/2026-10-22-mysql-table-prefix-comments-design.md)
+- [2026-10-22：MySQL 表说明、字段字典与前缀注释设计](superpowers/specs/2026-10-22-mysql-table-prefix-comments-design.md)（2026-11-04 补录：迁移至 008 的 9 张表、63 个字段及历史家庭表说明）
 - [2026-10-22：MySQL 前缀与迁移实施计划](superpowers/plans/2026-10-22-mysql-table-prefix-comments.md)
 - [2026-10-22：两端升级及本地数据合并云端记录](ops/2026-10-22-mysql-prefix-data-migration.md)
 
