@@ -32,6 +32,10 @@
 
 ## 运行与验证
 
+- [2026-11-04：首页头像优先展示设计](superpowers/specs/2026-11-04-ledger-header-avatar-design.md)
+- [2026-11-04：首页头像实施计划](superpowers/plans/2026-11-04-ledger-header-avatar.md)
+- [2026-11-04：首页头像验证](ops/2026-11-04-ledger-header-avatar-validation.md)
+
 - [2026-11-03：CI 字段数量断言修复](ops/2026-11-03-ci-schema-count-fix.md)
 - [2026-11-03：微信头像 API](api/2026-11-03-wechat-avatar-api.md)
 - [2026-11-03：微信头像设计](superpowers/specs/2026-11-03-wechat-avatar-design.md)

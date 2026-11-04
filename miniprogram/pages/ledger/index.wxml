@@ -3,7 +3,10 @@
 		<view class="nav" style="padding-right:{{navRight}}px">
 			<view class="nav-title" bindtap="goSettings">{{ledgerName}} <text class="nav-arrow">▾</text></view>
 			<view class="nav-right">
-				<view class="avatar" bindtap="goSettings">{{ledgerIcon}}</view>
+				<view class="avatar" bindtap="goSettings">
+					<image wx:if="{{avatarSrc}}" class="avatar-image" src="{{avatarSrc}}" data-src="{{avatarSrc}}" mode="aspectFill" binderror="onAvatarError" />
+					<text wx:else>{{ledgerIcon}}</text>
+				</view>
 				<view class="nav-menu" bindtap="goSettings">⋯</view>
 			</view>
 		</view>

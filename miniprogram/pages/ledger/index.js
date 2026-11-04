@@ -1,10 +1,11 @@
 const api = require('../../utils/api');
 const { displayMoney } = require('../../utils/money');
 const { emptyFilters, query, groups } = require('../../utils/ledger');
+const { avatarView } = require('../../utils/profile');
 
 Page({
 	data: {
-		ledgerName: '我的账本', ledgerIcon: '📒',
+		ledgerName: '我的账本', ledgerIcon: '📒', avatarSrc: '',
 		statusBarHeight: 20, navRight: 0,
 		month: new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 7),
 		ref: '', prevRef: '', nextRef: '',
@@ -32,8 +33,14 @@ Page({
 	onReachBottom() { this.loadMore(); },
 	async load() {
 		const version = this.loadVersion = (this.loadVersion || 0) + 1;
-		this.setData({loading: true, loadingMore: false, error: '', entries: [], groups: [], total: 0, page: 0, hasMore: false});
+		const current = api.session();
+		const cachedAvatarSrc = avatarView(current && current.user, api).avatarSrc;
+		this.setData({avatarSrc: cachedAvatarSrc, loading: true, loadingMore: false, error: '', entries: [], groups: [], total: 0, page: 0, hasMore: false});
 		try {
+			// Avatar refresh must not delay the ledger content or restore a hidden page's image.
+			api.me().then(user => {
+				if (version === this.loadVersion) this.setData({avatarSrc: avatarView(user, api).avatarSrc});
+			}).catch(() => {});
 			const ref = this.data.ref || this.data.month + '-01';
 			const [categories, stats, ledger, response] = await Promise.all([
 				api.request('/api/v1/categories'),
@@ -91,6 +98,9 @@ Page({
 			});
 		} catch (e) { if (version === this.loadVersion) this.setData({error: e.message}); }
 		finally { if (version === this.loadVersion) this.setData({loading: false}); }
+	},
+	onAvatarError(event) {
+		if (event.currentTarget.dataset.src === this.data.avatarSrc) this.setData({avatarSrc: ''});
 	},
 	async loadMore() {
 		if (this.data.loading || this.data.loadingMore || !this.data.hasMore) return;
