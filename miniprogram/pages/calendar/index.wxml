@@ -43,7 +43,7 @@
 				<view class="icon {{item.kind}}">{{item.category.icon}}</view>
 				<view class="entry-copy">
 					<view class="entry-name">{{item.category.name}}{{item.note ? ' ' + item.note : ''}}</view>
-					<view class="entry-time">{{item.time}}</view>
+					<view class="entry-time">{{item.time}}<text wx:if="{{item.account_id}}"> · {{item.accountName}}</text></view>
 				</view>
 				<view class="entry-amount {{item.kind}}">{{item.kind === 'expense' ? '-' : '+'}}¥{{item.display}}</view>
 			</view>

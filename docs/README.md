@@ -32,6 +32,9 @@
 
 ## 运行与验证
 
+- [2026-11-04：账单账户标签与搜索回归设计](superpowers/specs/2026-11-04-entry-account-and-search-design.md)
+- [2026-11-04：账单账户标签实施计划](superpowers/plans/2026-11-04-entry-account-and-search.md)
+- [2026-11-04：账单账户标签验证记录](ops/2026-11-04-entry-account-and-search-validation.md)
 - [2026-11-04：首页头像优先展示设计](superpowers/specs/2026-11-04-ledger-header-avatar-design.md)
 - [2026-11-04：首页头像实施计划](superpowers/plans/2026-11-04-ledger-header-avatar.md)
 - [2026-11-04：首页头像验证](ops/2026-11-04-ledger-header-avatar-validation.md)
@@ -67,7 +70,7 @@
 
 ## 数据库表前缀与数据迁移
 
-- [2026-10-22：MySQL 前缀与注释设计](superpowers/specs/2026-10-22-mysql-table-prefix-comments-design.md)
+- [2026-10-22：MySQL 表说明、字段字典与前缀注释设计](superpowers/specs/2026-10-22-mysql-table-prefix-comments-design.md)（2026-11-04 补录：迁移至 008 的 9 张表、63 个字段及历史家庭表说明）
 - [2026-10-22：MySQL 前缀与迁移实施计划](superpowers/plans/2026-10-22-mysql-table-prefix-comments.md)
 - [2026-10-22：两端升级及本地数据合并云端记录](ops/2026-10-22-mysql-prefix-data-migration.md)
 

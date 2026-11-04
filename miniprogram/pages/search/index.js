@@ -10,7 +10,7 @@ Page({
 	data: {
 		keyword: '', kind: '',
 		chips: CHIPS,
-		categories: [], entries: [], groups: [],
+		categories: [], entries: [], groups: [], accounts: [],
 		summary: {total: 0, income: '', expense: ''},
 		focus: true, loading: false, loadingMore: false, error: '',
 		total: 0, page: 0, hasMore: false, searched: false,
@@ -36,15 +36,17 @@ Page({
 		this.setData({loading: true, loadingMore:false, error: '', entries: [], groups: [], total: 0, page: 0, hasMore: false, searched: false});
 		try {
 			const filters = {q: this.data.keyword, kind: this.data.kind, ...ALL_TIME};
-			const [categories, response] = await Promise.all([
+			const [categories, accounts, response] = await Promise.all([
 				api.request('/api/v1/categories'),
+				api.request('/api/v1/accounts').catch(() => []),
 				api.request('/api/v1/entries?' + query(filters, '', 1)),
 			]);
 			if (version !== this.loadVersion) return;
 			const entries = response.items || [];
 			this.setData({
 				categories, entries,
-				groups: groups(entries, categories, []),
+				accounts: Array.isArray(accounts) ? accounts : [],
+				groups: groups(entries, categories, Array.isArray(accounts) ? accounts : []),
 				total: response.total, page: 1,
 				hasMore: entries.length < response.total,
 				searched: true,
@@ -67,7 +69,7 @@ Page({
 			if (version !== this.loadVersion) return;
 			const map = {}; this.data.entries.concat(response.items || []).forEach(e => {map[e.id] = e;});
 			const entries = Object.values(map).sort((a, b) => b.occurred_at.localeCompare(a.occurred_at) || b.id - a.id);
-			this.setData({entries, groups: groups(entries, this.data.categories, []), total: response.total, page: next, hasMore: entries.length < response.total});
+			this.setData({entries, groups: groups(entries, this.data.categories, this.data.accounts), total: response.total, page: next, hasMore: entries.length < response.total});
 		} catch (e) { if (version === this.loadVersion) this.setData({error: e.message}); }
 		finally { if (version === this.loadVersion) this.setData({loadingMore: false}); }
 	},

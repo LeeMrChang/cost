@@ -2,6 +2,11 @@
 
 .page.expense,.page.income{color:#1A1D21}
 
+/* 账户选择条：复用 chip 视觉，选中态与支出/收入切换一致。 */
+.account-bar{flex-shrink:0;white-space:nowrap;padding:4rpx 22rpx 0}
+.acc-chip{display:inline-block;background:#fff;border-radius:30rpx;padding:12rpx 20rpx;font-size:23rpx;color:#1A1D21;margin-right:10rpx;max-width:280rpx;overflow:hidden;text-overflow:ellipsis}
+.acc-chip.acc-on{background:#1C1E22;color:#fff;font-weight:650}
+
 /* 原生 button 有默认宽度；限制在网格单元内，避免操作键溢出。 */
 .pad button.key{width:100%;min-width:0;max-width:100%;box-sizing:border-box;text-align:center;white-space:nowrap;margin:0;padding:0}
 .pad button.key.again{background:#fff;color:#1A1D21}
