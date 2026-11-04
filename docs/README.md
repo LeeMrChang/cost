@@ -32,6 +32,9 @@
 
 ## 运行与验证
 
+- [2026-11-04：账单账户标签与搜索回归设计](superpowers/specs/2026-11-04-entry-account-and-search-design.md)
+- [2026-11-04：账单账户标签实施计划](superpowers/plans/2026-11-04-entry-account-and-search.md)
+- [2026-11-04：账单账户标签验证记录](ops/2026-11-04-entry-account-and-search-validation.md)
 - [2026-11-04：首页头像优先展示设计](superpowers/specs/2026-11-04-ledger-header-avatar-design.md)
 - [2026-11-04：首页头像实施计划](superpowers/plans/2026-11-04-ledger-header-avatar.md)
 - [2026-11-04：首页头像验证](ops/2026-11-04-ledger-header-avatar-validation.md)

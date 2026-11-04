@@ -34,7 +34,7 @@ Page({
 		weekdays: WEEKDAYS,
 		cells: [],
 		summary: {expense: '0.00', income: '0.00'},
-		categories: [], dayTotal:0, dayEntries:[],
+		categories: [], dayTotal:0, dayEntries:[], accounts: [],
 		selected: '', selectedDisplay: '',
 		dayGroups: [], dayLoading: false,
 		loading: true, error: '',
@@ -53,17 +53,20 @@ Page({
 		this.setData({loading: true, error: '', selected: '', selectedDisplay: '', dayGroups: []});
 		try {
 			const ref = this.data.month + '-01';
-			const [categories, stats] = await Promise.all([
+			const [categories, accounts, stats] = await Promise.all([
 				api.request('/api/v1/categories'),
+				api.request('/api/v1/accounts').catch(() => []),
 				api.request('/api/v1/stats?range=month&ref=' + ref),
 			]);
 			if (version !== this.loadVersion) return;
+			const accountList = Array.isArray(accounts) ? accounts : [];
 			const series = {};
 			(stats.series || []).forEach(p => {series[p.key] = p;});
 			const label = stats.label || this.data.month;
 			const s = stats.summary || {};
 			this.setData({
 				categories,
+				accounts: accountList,
 				label,
 				summary: {expense: displayMoney(s.expense_cent || 0), income: displayMoney(s.income_cent || 0)},
 				prevRef: stats.prev_ref || '', nextRef: stats.next_ref || '',
@@ -92,7 +95,7 @@ Page({
     items=items.concat(next.items);
    }
    response={...response,items};
-			this.setData({selectedDisplay: display, dayEntries:response.items||[],dayTotal:response.total||0,dayGroups: groups(response.items || [], this.data.categories, [])});
+			this.setData({selectedDisplay: display, dayEntries:response.items||[],dayTotal:response.total||0,dayGroups: groups(response.items || [], this.data.categories, this.data.accounts)});
 		} catch (e) { if (version === this.loadVersion && dayVersion === this.dayVersion) this.setData({error: e.message}); }
 		finally { if (version === this.loadVersion && dayVersion === this.dayVersion) this.setData({dayLoading: false}); }
 	},

@@ -15,7 +15,7 @@ Page({
 		budget: {remaining: '', total: '', daily: '', ratio: 0, barClass: '', dailyShown: false, remainingDays: 0},
 		groups: [], entries: [], categories: [],
 		loading: true, loadingMore: false, error: '', total: 0, page: 0, hasMore: false,
-		collapsed: {},
+		collapsed: {}, accounts: [],
 	},
 	onLoad() {
 		const data = {};
@@ -42,12 +42,14 @@ Page({
 				if (version === this.loadVersion) this.setData({avatarSrc: avatarView(user, api).avatarSrc});
 			}).catch(() => {});
 			const ref = this.data.ref || this.data.month + '-01';
-			const [categories, stats, ledger, response] = await Promise.all([
+			const [categories, stats, ledger, accounts, response] = await Promise.all([
 				api.request('/api/v1/categories'),
 				api.request('/api/v1/stats?range=month&ref=' + ref),
 				api.request('/api/v1/ledgers/me').catch(() => null),
+				api.request('/api/v1/accounts').catch(() => []),
 				api.request('/api/v1/entries?' + query(emptyFilters(), this.data.month, 1)),
 			]);
+			const accountList = Array.isArray(accounts) ? accounts : [];
 			if (version !== this.loadVersion) return;
 			const entries = response.items || [];
 			const b = stats.budget || {};
@@ -72,7 +74,8 @@ Page({
 			const ledgerIcon = (ledger && ledger.icon) || this.data.ledgerIcon;
 			this.setData({
 				categories, entries,
-				groups: groups(entries, categories, []),
+				accounts: accountList,
+				groups: groups(entries, categories, accountList),
 				total: response.total, page: 1,
 				hasMore: entries.length < response.total,
 				monthLabel: stats.label || (this.data.month.slice(0, 4) + '年' + Number(this.data.month.slice(5)) + '月'),
@@ -111,7 +114,7 @@ Page({
 			if (version !== this.loadVersion) return;
 			const map = {}; this.data.entries.concat(response.items || []).forEach(e => {map[e.id] = e;});
 			const entries = Object.values(map).sort((a, b) => b.occurred_at.localeCompare(a.occurred_at) || b.id - a.id);
-			this.setData({entries, groups: groups(entries, this.data.categories, []), total: response.total, page: next, hasMore: entries.length < response.total});
+			this.setData({entries, groups: groups(entries, this.data.categories, this.data.accounts), total: response.total, page: next, hasMore: entries.length < response.total});
 		} catch (e) { if (version === this.loadVersion) this.setData({error: e.message}); }
 		finally { if (version === this.loadVersion) this.setData({loadingMore: false}); }
 	},

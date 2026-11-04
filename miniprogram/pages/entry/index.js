@@ -1,7 +1,10 @@
 const api = require('../../utils/api');
 const { money } = require('../../utils/money');
 const { push, backspace, evaluate } = require('../../utils/calc');
-const { requestID, stamp } = require('../../utils/ledger');
+const { requestID, stamp, allowed } = require('../../utils/ledger');
+
+// 账户是用户自建的记账标签；图标映射与账户页保持一致。
+const ACCOUNT_TYPES = { cash: '💵', wechat: '💚', alipay: '💙', bank: '💳', other: '👛' };
 
 Page({
 	data: {
@@ -9,6 +12,7 @@ Page({
 		kind: 'expense',
 		expr: '', result: '0.00', resultCents: 0,
 		categories: [], grid: [], categoryID: 0,
+		accounts: [], accountID: 0,
 		date: stamp().date, time: stamp().time,
 		note: '', noteOpen: false,
 		keys: [
@@ -36,10 +40,13 @@ Page({
    catch(e){this.setData({loadingEntry:false,editError:e.message});return;}
   }
   this.originalCategoryID=pending.category_id;
-  this.setData({editID:pending.id,kind:pending.kind,expr:money(pending.amount_cent),result:money(pending.amount_cent),resultCents:pending.amount_cent,categoryID:pending.category_id,note:pending.note||'',loadingEntry:false,...stamp(pending.occurred_at)});
+  this.originalAccountID=pending.account_id||0;
+  this.setData({editID:pending.id,kind:pending.kind,expr:money(pending.amount_cent),result:money(pending.amount_cent),resultCents:pending.amount_cent,categoryID:pending.category_id,accountID:this.originalAccountID,note:pending.note||'',loadingEntry:false,...stamp(pending.occurred_at)});
+  this.accountSelectionInitialized=true;
+  this.syncAccount();
   if(this.data.categories.length) this.buildGrid();
  },
-	onShow() { this.loadCategories(); this.loadLedger(); },
+	onShow() { this.loadCategories(); this.loadLedger(); this.loadAccounts(); },
 	async loadLedger() {
 		try {
 			const l = await api.request('/api/v1/ledgers/me');
@@ -59,6 +66,28 @@ Page({
 			this.buildGrid();
 		} catch (e) { wx.showToast({title: e.message, icon: 'none'}); }
 	},
+	async loadAccounts() {
+		try {
+			const rows = await api.request('/api/v1/accounts');
+			this.accountRows = (Array.isArray(rows) ? rows : []).map(a => ({...a, icon: ACCOUNT_TYPES[a.type] || '👛'}));
+			this.syncAccount();
+		} catch (_) {}
+	},
+	syncAccount() {
+		// Keep the complete list until late edit details reveal the original account.
+		if (!this.accountRows || this.data.loadingEntry) return;
+		const accounts = allowed(this.accountRows, this.originalAccountID || 0);
+		let accountID = this.data.accountID || 0;
+		// Zero is a deliberate choice after initialization, not a missing default.
+		if (!this.accountSelectionInitialized && !this.data.editID && accountID === 0) {
+			const remembered = Number(wx.getStorageSync('cost_last_account'));
+			accountID = accounts.some(a => a.id === remembered) ? remembered : 0;
+		}
+		if (accountID && !accounts.some(a => a.id === accountID)) accountID = 0;
+		this.accountSelectionInitialized = true;
+		this.setData({accounts, accountID});
+	},
+	pickAccount(e) { this.accountSelectionInitialized = true; this.setData({accountID: Number(e.currentTarget.dataset.id) || 0}); },
 	buildGrid() {
 		const selected = this.data.categoryID;
 		const grid = this.data.categories
@@ -110,17 +139,21 @@ Page({
 			const data = {
 				category_id: this.data.categoryID, kind: this.data.kind,
 				amount_cent: this.data.resultCents,
+				account_id: this.data.accountID || 0,
 				occurred_at: this.data.date + 'T' + this.data.time + ':00+08:00',
 				note: this.data.note,
 				client_request_id: this.data.editID ? 'edit' : (this.requestID || (this.requestID = requestID())),
 			};
 			await api.request('/api/v1/entries' + (this.data.editID ? '/' + this.data.editID : ''), this.data.editID ? 'PATCH' : 'POST', data);
 			wx.setStorageSync('cost_last_category_' + this.data.kind, this.data.categoryID);
+			wx.setStorageSync('cost_last_account', this.data.accountID || 0);
 			wx.showToast({title: '已保存'});
 			if (keep) {
 				this.requestID = requestID();
 				this.originalCategoryID = null;
-				this.setData({editID: null, expr: '', result: '0.00', resultCents: 0, note: '', noteOpen: false, ...stamp()});
+				this.originalAccountID = null;
+				this.setData({editID: null, accountID: this.accountRows ? this.data.accountID : 0, expr: '', result: '0.00', resultCents: 0, note: '', noteOpen: false, ...stamp()});
+				this.syncAccount();
 				await this.loadCategories();
 			} else {
 				this.setData({saving: false});
