@@ -76,8 +76,8 @@ Redis 适合重复读取，但用户描述的“新增后返回”天然需要�
 
 ## 实际验证与未完成项
 
-- 本机 `python3 -m unittest discover -s scripts/tests -v` 共 **43/43** 通过，包括 9 项安装器测试、6 项日志解析/CLI 测试和既有部署/备份/打包测试。安装测试中的 Docker 为边界替身；并发互斥测试使用真实双进程和文件锁。
-- YAML 解析、无 ports/资源限制/只读参数及容器 shell 语法已检查；新增 CI `Redis container smoke test` 在隔离 GitHub runner 实际启动 Redis，检查认证、限额、缓存读写和重复安装。CI 结果以当前提交为准。
+- 本机 `python3 -m unittest discover -s scripts/tests -v` 共 **43 项通过、1 项跳过**（真实 Docker smoke 仅在 GitHub runner 运行），包括 9 项安装器测试、6 项日志解析/CLI 测试和既有部署/备份/打包测试。安装测试中的 Docker 为边界替身；并发互斥测试使用真实双进程和文件锁。
+- YAML 解析、无 ports/资源限制/只读参数及容器 shell 语法已检查；新增 `test_redis_smoke.py` 由现有 CI 的 unittest 自动发现，在隔离 GitHub runner 实际启动 Redis，检查认证、限额、缓存读写和重复安装。CI 结果以当前提交为准。
 - 独立审查发现并修复：其他目录同 Compose 项目的接管风险、不同安装目录并发绕过目录锁，以及端口查询失败被误报成功；均有失败回归后通过。安装使用主机固定锁 `/tmp/cost-cache-install.lock`，持锁完成归属检查和启动。
 - 当前直接 SSH 被执行环境拒绝，桌面会话工具不可用；本机无 Docker/Redis。**云端 Redis 创建、真实 PING/资源检查及首页耗时采集尚未执行**，不把替身测试或 GitHub runner 容器当成生产部署。
 - CI/CD 的生产打包白名单不包含这些新工具；合并 PR 不会自动在服务器创建 Redis。服务器部署工具必须通过上面的独立步骤执行。
