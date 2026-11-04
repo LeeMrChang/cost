@@ -32,6 +32,7 @@ type Store interface {
 	SetBudget(context.Context, domain.BudgetRow) error
 	LedgerForUser(context.Context, int64) (int64, error)
 	Ledger(context.Context, int64) (domain.Ledger, error)
+	PatchLedger(context.Context, domain.LedgerPatch) (domain.Ledger, error)
 	Close() error
 }
 

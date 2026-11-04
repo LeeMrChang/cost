@@ -1,5 +1,7 @@
 # 微信登录与家庭权限
 
+本文为 2026-10-22 历史接口说明，家庭模式已移除；当前账本行为见 [M1 API](2026-10-26-icost-realignment-api.md)，当前登录昵称字段及缺昵称限制见 [昵称 API](2026-11-03-wechat-nickname-api.md)。
+
 ## 登录流程
 
 小程序在用户点击登录时调用 `wx.login()`，把临时 code 发给后端 `POST /api/v1/auth/wechat`。后端通过 HTTPS 调用微信 `jscode2session` 校验身份，生成 32 字节随机会话令牌，有效期 7 天。客户端存原始令牌，服务端仅存 SHA-256 摘要。

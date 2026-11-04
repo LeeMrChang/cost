@@ -127,7 +127,13 @@ func (m *MySQL) Migrate(ctx context.Context) error {
 	if err := applyICostRealignment(ctx, conn); err != nil {
 		return err
 	}
-	return applyEntrySoftDelete(ctx, conn)
+	if err := applyEntrySoftDelete(ctx, conn); err != nil {
+		return err
+	}
+	if err := applyUserNickname(ctx, conn); err != nil {
+		return err
+	}
+	return applyUserAvatar(ctx, conn)
 }
 func (m *MySQL) DB() *sql.DB { return m.db }
 

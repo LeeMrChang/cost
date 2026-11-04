@@ -21,8 +21,26 @@
 ## 接口
 
 - [2026-10-22：微信登录与家庭 API](api/2026-10-22-wechat-auth-and-family-api.md)
+- [2026-11-03：微信登录昵称 API](api/2026-11-03-wechat-nickname-api.md)
+- [2026-11-03：微信登录昵称记录设计](superpowers/specs/2026-11-03-wechat-nickname-design.md)
+- [2026-11-03：微信登录昵称实施计划](superpowers/plans/2026-11-03-wechat-nickname.md)
+- [2026-11-03：微信登录昵称验证与升级](ops/2026-11-03-wechat-nickname-validation.md)
+- [2026-11-03：账本资料编辑 API](api/2026-11-03-ledger-profile-api.md)
+- [2026-11-03：账本编辑与昵称复用设计](superpowers/specs/2026-11-03-ledger-profile-editing-design.md)
+- [2026-11-03：账本编辑实施计划](superpowers/plans/2026-11-03-ledger-profile-editing.md)
+- [2026-11-03：账本编辑验证记录](ops/2026-11-03-ledger-profile-validation.md)
 
 ## 运行与验证
+
+- [2026-11-04：首页头像优先展示设计](superpowers/specs/2026-11-04-ledger-header-avatar-design.md)
+- [2026-11-04：首页头像实施计划](superpowers/plans/2026-11-04-ledger-header-avatar.md)
+- [2026-11-04：首页头像验证](ops/2026-11-04-ledger-header-avatar-validation.md)
+
+- [2026-11-03：CI 字段数量断言修复](ops/2026-11-03-ci-schema-count-fix.md)
+- [2026-11-03：微信头像 API](api/2026-11-03-wechat-avatar-api.md)
+- [2026-11-03：微信头像设计](superpowers/specs/2026-11-03-wechat-avatar-design.md)
+- [2026-11-03：微信头像实施计划](superpowers/plans/2026-11-03-wechat-avatar.md)
+- [2026-11-03：微信头像验证记录](ops/2026-11-03-wechat-avatar-validation.md)
 
 - [2026-10-22：微信小程序本地开发](ops/2026-10-22-miniprogram-local-development.md)
 - [2026-10-22：统一仓库与登录改造验证记录](ops/2026-10-22-monorepo-wechat-auth-validation.md)

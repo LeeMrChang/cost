@@ -42,7 +42,7 @@ func TestSessionLifecycle(t *testing.T) {
 	r := NewMemory()
 	ctx := context.Background()
 	now := time.Now()
-	p, err := r.Login(ctx, "wx-user", "s1", now.Add(time.Hour))
+	p, err := r.Login(ctx, "wx-user", "", "s1", now.Add(time.Hour))
 	if err != nil || p.ID == 0 {
 		t.Fatalf("login failed: %v %v", p, err)
 	}
@@ -59,7 +59,7 @@ func TestSessionLifecycle(t *testing.T) {
 	if _, err = r.Resolve(ctx, "s1", now); err != ErrUnauthorized {
 		t.Fatal("logged-out session accepted")
 	}
-	if again, err := r.Login(ctx, "wx-user", "s2", now.Add(time.Hour)); err != nil || again.ID != p.ID {
+	if again, err := r.Login(ctx, "wx-user", "", "s2", now.Add(time.Hour)); err != nil || again.ID != p.ID {
 		t.Fatalf("same openid must map to same user: %v %v", again, err)
 	}
 }

@@ -8,7 +8,7 @@ const accounts = [{id: 1, name: '现金', type: 'cash', opening_balance_cent: 0,
 const entry = {id: 1, category_id: 2, account_id: 2, kind: 'expense', amount_cent: 1234, note: '旧账', created_by: 1, occurred_at: '2026-10-23T02:00:00Z'};
 const response = {items: [entry], total: 51, page: 1, page_size: 50, summary: {income_cent: 20000, expense_cent: 1234, balance_cent: 18766}};
 const statsResponse = {range: 'month', label: '2026年10月', start: '2026-10-01', end: '2026-10-31', prev_ref: '2026-09-01', next_ref: '2026-11-01', summary: {income_cent: 20000, expense_cent: 1234, balance_cent: 18766, daily_avg_expense_cent: 45}, budget: {total_cent: 30000, remaining_cent: 28766, remaining_daily_cent: 1000}, series: [], categories: []};
-function load(name, handler, role = 'admin') {
+function load(name, handler, role = 'admin', overrides = {}) {
 	const file = path.resolve(__dirname, '../pages', name, 'index.js');
 	assert.ok(fs.existsSync(file), name + ' page must exist');
 	let page; const requests = [], toasts = [], navigations = [];
@@ -23,7 +23,7 @@ function load(name, handler, role = 'admin') {
 		if (args[0].startsWith('/api/v1/transfers?')) return {items: [], total: 0, page: 1, page_size: 50};
 		if (args[0].startsWith('/api/v1/stats?')) return statsResponse;
 		return {};
-	}};
+	}, ...overrides};
 	vm.runInNewContext(fs.readFileSync(file, 'utf8'), {Page: p => {page = p;}, require: id => id.endsWith('/utils/api') ? api : require(path.resolve(path.dirname(file), id)), wx: {showToast: v => toasts.push(v), showModal: opts => opts.success({confirm: true}), navigateTo: o => navigations.push(o.url), navigateBack: () => navigations.push('back'), reLaunch: o => navigations.push(o.url)}, getApp: () => app, getCurrentPages: () => [{route: 'pages/ledger/index'}], setTimeout, clearTimeout}, {filename: file});
 	page.data = JSON.parse(JSON.stringify(page.data)); page.setData = v => Object.assign(page.data, v);
 	return {page, requests, toasts, navigations, app};
@@ -140,7 +140,7 @@ test('ledger shows the ledger icon avatar and opens the calendar', async () => {
 	const {page, navigations} = load('ledger'); await page.load(); await flush();
 	assert.equal(page.data.ledgerIcon, '📒'); assert.equal(page.data.ledgerName, '我的账本');
 	page.openCalendar();
-	assert.deepEqual(navigations[navigations.length - 1], '/pages/calendar/index?month=2026-10');
+	assert.deepEqual(navigations[navigations.length - 1], '/pages/calendar/index?month=' + page.data.month);
 });
 test('calendar builds a sunday-start month grid with red expense and green income', async () => {
 	const {page} = load('calendar', url => url.startsWith('/api/v1/stats?') ? {...statsResponse, series: [{key: '2026-10-23', expense_cent: 1234, income_cent: 500}]} : undefined);
@@ -241,4 +241,69 @@ test('search resumes a query interrupted by hide before the first result',async(
  page.onHide();page.onShow();await flush();
  first(response);await pending;
  assert.equal(page.data.searched,true);assert.equal(page.data.loading,false);
+});
+
+// The ledger page refreshes its identity card when returning from settings.
+test('ledger onShow refreshes a renamed ledger and its icon', async () => {
+ let ledger = {id: 1, name: '我的账本', icon: '📒'};
+ const {page} = load('ledger', url => url === '/api/v1/ledgers/me' ? ledger : undefined);
+ page.onShow(); await flush();
+ assert.equal(page.data.ledgerName, '我的账本');
+ ledger = {id: 1, name: '旅行基金', icon: '✈️'};
+ page.onShow(); await flush();
+ assert.equal(page.data.ledgerName, '旅行基金'); assert.equal(page.data.ledgerIcon, '✈️');
+});
+
+test('ledger header prefers the saved user avatar and refreshes on return from settings', async () => {
+ let user = {id: 1, avatar_url: '/api/v1/avatars/first.jpg'};
+ const {page, navigations} = load('ledger', undefined, 'admin', {
+  config: () => ({baseURL: 'https://api.example.test'}), session: () => ({user}), me: async () => ({...user})
+ });
+ await page.load();
+ assert.equal(page.data.avatarSrc, 'https://api.example.test/api/v1/avatars/first.jpg');
+ user = {id: 1, avatar_url: '/api/v1/avatars/replaced.jpg'};
+ page.onShow(); await flush();
+ assert.equal(page.data.avatarSrc, 'https://api.example.test/api/v1/avatars/replaced.jpg');
+ page.goSettings(); assert.equal(navigations.at(-1), '/pages/settings/index');
+});
+test('ledger clears a previous avatar when the current user has none', async () => {
+ let cached = {id: 1, avatar_url: '/api/v1/avatars/cached.jpg'};
+ let current = {id: 1, avatar_url: ''};
+ const {page} = load('ledger', url => url === '/api/v1/ledgers/me' ? {name: '旅行基金',icon: '✈️'} : undefined, 'admin', {
+  config: () => ({baseURL: 'https://api.example.test'}), session: () => ({user: cached}), me: async () => current
+ });
+ await page.load();assert.equal(page.data.avatarSrc, '');assert.equal(page.data.ledgerIcon, '✈️');
+ current = cached;await page.load();assert.ok(page.data.avatarSrc);
+ cached = current = {id: 2, avatar_url: ''};
+ const loading = page.load();assert.equal(page.data.avatarSrc, '');await loading;
+ assert.equal(page.data.avatarSrc, '');
+});
+test('profile failure preserves only the current cached avatar and still loads ledger entries', async () => {
+ const {page} = load('ledger', undefined, 'admin', {
+  config: () => ({baseURL: 'https://api.example.test'}), session: () => ({user: {id:1,avatar_url:'/api/v1/avatars/cached.jpg'}}),
+  me: async () => {throw new Error('profile unavailable');}
+ });
+ await page.load();assert.equal(page.data.avatarSrc,'https://api.example.test/api/v1/avatars/cached.jpg');
+ assert.equal(page.data.entries.length,1);assert.equal(page.data.error,'');
+});
+test('slow avatar refresh does not delay ledger content and ignores results after leaving', async () => {
+ let finishProfile;
+ const {page} = load('ledger', undefined, 'admin', {
+  config: () => ({baseURL: 'https://api.example.test'}),
+  me: () => new Promise(resolve => {finishProfile = resolve;})
+ });
+ const loading = page.load();await flush();
+ assert.equal(page.data.loading,false);assert.equal(page.data.entries.length,1);
+ page.onHide();
+ finishProfile({id:1,avatar_url:'/api/v1/avatars/late.jpg'});
+ await loading;await flush();assert.equal(page.data.avatarSrc,'');
+});
+test('failed current header image falls back to the icon but stale failures do not clear a new avatar', async () => {
+ const {page} = load('ledger');await page.load();
+ page.setData({avatarSrc:'https://example.test/new.jpg'});
+ assert.equal(typeof page.onAvatarError, 'function');
+ page.onAvatarError({currentTarget:{dataset:{src:'https://example.test/old.jpg'}}});
+ assert.equal(page.data.avatarSrc,'https://example.test/new.jpg');
+ page.onAvatarError({currentTarget:{dataset:{src:'https://example.test/new.jpg'}}});
+ assert.equal(page.data.avatarSrc,'');assert.equal(page.data.ledgerIcon,'📒');
 });

@@ -5,7 +5,7 @@
 ## 身份与账本模型
 
 - 微信登录后用户自动持有自己的账本：认证通过后中间件执行 `LedgerForUser`，无账本则自动创建（名称「我的账本」）并种入 iCost 默认分类（支出 12 / 收入 12）。
-- 单用户单账本、单人全权：无角色、无家庭表、无邀请码。`/api/v1/auth/me` 只返回 `{id}`；`GET /api/v1/ledgers/me` 返回 `{id,name,icon,currency,timezone}`。
+- 单用户单账本、单人全权：无角色、无家庭表、无邀请码。`/api/v1/auth/me` 当前返回 `{id,nickname}`（见 [昵称 API](2026-11-03-wechat-nickname-api.md)）；`GET /api/v1/ledgers/me` 返回 `{id,name,icon,currency,timezone}`，可用 [PATCH 修改名称和图标](2026-11-03-ledger-profile-api.md)。
 - 每个请求按会话绑定账本，跨用户账本完全隔离；旧的 `ledger_id=1` 概念废止。
 - 创建者权限仍保留语义：账单、转账只允许创建者修改/删除；单人账本下即本人全权。
 
@@ -50,7 +50,7 @@
 - `t_budgets` 重建为 `(ledger_id, scope, period_key, category_id, amount_cent)`，旧月预算转为 `month` 行；
 - DROP `t_family_setup`、`t_family_members`、`t_family_invites` 三表。
 
-**真实库执行前必须备份**（见 [备份操作](2026-10-23-automatic-backups.md)）；迁移只通过 `./scripts/dev.sh -migrate` 显式执行，正常启动不改表。
+**真实库执行前必须备份**（见 [备份操作](../ops/2026-10-23-automatic-backups.md)）；迁移只通过 `./scripts/dev.sh -migrate` 显式执行，正常启动不改表。
 
 ## 主流程修复补充（006）
 

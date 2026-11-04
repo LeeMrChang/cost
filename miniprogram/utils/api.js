@@ -1,5 +1,6 @@
 const defaults = require('./config');
 let redirecting = false;
+let profileRevision = 0;
 function isDevelop() {
  try { return wx.getAccountInfoSync().miniProgram.envVersion === 'develop'; } catch (_) { return false; }
 }
@@ -20,6 +21,9 @@ function goLogin() {
 }
 const messages = {
  unauthorized: '登录已过期，请重新登录',
+ nickname_required: '请先填写昵称', invalid_nickname: '请输入 1–64 个字的昵称，不能包含换行或控制字符',
+ invalid_ledger: '账本名称或图标有误，请检查后重试',
+ invalid_avatar: '请选择 JPEG 或 PNG 头像，图片尺寸不能超过 2048 像素', avatar_too_large: '头像不能超过 2 MB，请选择较小的图片',
  wechat_not_configured: '服务端尚未配置微信登录', wechat_unavailable: '微信登录服务暂不可用，请稍后重试',
  invalid_wechat_code: '登录凭证已失效，请重新点击微信登录',
  invalid_json: '请求格式有误，请重试', invalid_entry: '记账内容有误，请检查后重试',
@@ -41,19 +45,62 @@ function request(path, method = 'GET', data, publicRequest = false, options = {}
    if (typeof body === 'string') { try { body = JSON.parse(body); } catch (_) { body = {}; } }
    const code = body && body.error;
    if (!publicRequest && res.statusCode === 401) { clearSession(); goLogin(); }
+   if (!publicRequest && res.statusCode === 403 && code === 'nickname_required') goLogin();
    reject(new Error(messages[code] || code || '请求失败'));
   },
   fail() { reject(new Error('无法连接服务，请检查网络和后端地址')); }
  }));
 }
-async function login() {
+async function login(nickname) {
  const result = await new Promise((resolve, reject) => wx.login({ success: resolve, fail: reject }));
  if (!result.code) throw new Error('未获取到微信登录凭证');
- const value = await request('/api/v1/auth/wechat', 'POST', { code: result.code }, true);
+ const value = await request('/api/v1/auth/wechat', 'POST', { code: result.code, nickname }, true);
  wx.setStorageSync('cost_session', value);
  return value.user;
 }
-async function me() { const user = await request('/api/v1/auth/me'); const s = session(); if (s) wx.setStorageSync('cost_session', { ...s, user }); return user; }
+async function me() {
+ const current = session(), revision = profileRevision;
+ const user = await request('/api/v1/auth/me');
+ const latest = session();
+ if (!current || !latest || current.token !== latest.token) throw new Error('登录状态已变化，请重试');
+ // A read started before a successful save must not restore the old nickname.
+ if (revision !== profileRevision) return latest.user;
+ wx.setStorageSync('cost_session', { ...latest, user });
+ return user;
+}
+async function updateNickname(nickname) {
+ const current = session();
+ const user = await request('/api/v1/auth/me', 'PATCH', { nickname });
+ const latest = session();
+ if (!current || !latest || current.token !== latest.token) throw new Error('登录状态已变化，请重试');
+ profileRevision++;
+ wx.setStorageSync('cost_session', { ...latest, user });
+ return user;
+}
+async function uploadAvatar(filePath) {
+ const current = session();
+ if (!current) { clearSession(); goLogin(); throw new Error('请先微信登录'); }
+ const user = await new Promise((resolve, reject) => wx.uploadFile({
+  url: config().baseURL + '/api/v1/auth/me/avatar', filePath, name: 'avatar',
+  header: { Authorization: 'Bearer ' + current.token }, timeout: 20000,
+  success(res) {
+   const latest = session();
+   if (!latest || latest.token !== current.token) { reject(new Error('登录状态已变化，请重试')); return; }
+   let value = res.data;
+   if (typeof value === 'string') { try { value = JSON.parse(value); } catch (_) { reject(new Error('头像上传返回格式有误，请重试')); return; } }
+   if (res.statusCode >= 200 && res.statusCode < 300) { resolve(value); return; }
+   if (res.statusCode === 401) { clearSession(); goLogin(); }
+   const code = value && value.error;
+   reject(new Error(messages[code] || '头像上传失败，请重试'));
+  },
+  fail() { reject(new Error('头像上传失败，请检查网络后重试')); }
+ }));
+ const latest = session();
+ if (!latest || latest.token !== current.token) throw new Error('登录状态已变化，请重试');
+ profileRevision++;
+ wx.setStorageSync('cost_session', { ...latest, user });
+ return user;
+}
 async function logout() { if (session()) await request('/api/v1/auth/logout', 'POST'); clearSession(); goLogin(); }
 async function exportCSV(query) {
  if (typeof wx.shareFileMessage !== 'function') throw new Error('请升级微信后使用 CSV 导出分享');
@@ -68,4 +115,4 @@ async function exportCSV(query) {
   await new Promise(resolve => fs.unlink({filePath, success: resolve, fail: resolve}));
  }
 }
-module.exports = { exportCSV, request, config, session, clearSession, login, logout, me, isDevelop, goLogin };
+module.exports = { exportCSV, request, config, session, clearSession, login, logout, me, updateNickname, uploadAvatar, isDevelop, goLogin };
