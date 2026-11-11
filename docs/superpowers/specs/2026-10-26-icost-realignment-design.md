@@ -1,5 +1,7 @@
 # Cost 重定位（iCost 对标）M1 设计
 
+> 2026-11-11 更新：账单 CSV 导出已移除，以下相关内容保留为历史设计或验证记录；当前范围见[移除设计](2026-11-11-remove-bill-export-design.md)。
+
 日期：2026-10-26
 依据：Master 提供的《cost-原型与需求说明-iCost对标-v2.1.md》与《cost_可交互原型_v4.html》（位于 ~/Documents/cost_need/），以及 22 张 iCost 实拍截图。
 状态：本设计替代此前以「家庭共享账本」为前提的设计（见 2026-10-22 monorepo-and-family-auth、2026-10-23 p0-ledger）。旧设计中的账户/转账（F03）保留为 P1，不再阻塞主线。

@@ -3,13 +3,11 @@ package api
 import (
 	"bytes"
 	"cost/internal/store"
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strings"
 	"testing"
 )
 
@@ -63,17 +61,6 @@ func testP0(t *testing.T, s store.Store) {
 	}
 	for _, bad := range []string{"page=0", "page_size=101", "min_amount_cent=-1", "min_amount_cent=20&max_amount_cent=10", "created_by=wat", "account_id=-1", "category_id=0", "kind=transfer", "start_date=2026-02-30", "start_date=2026-10-02&end_date=2026-10-01"} {
 		call("GET", "/api/v1/entries?"+bad, nil, 400)
-	}
-	w := call("GET", strings.Replace(q, "/entries?", "/entries/export?", 1), nil, 200)
-	if !strings.HasPrefix(w.Body.String(), "\ufeff") {
-		t.Fatal("CSV needs UTF-8 BOM")
-	}
-	rows, err := csv.NewReader(strings.NewReader(strings.TrimPrefix(w.Body.String(), "\ufeff"))).ReadAll()
-	if err != nil || len(rows) != 3 {
-		t.Fatalf("csv %v %v", rows, err)
-	}
-	if !strings.Contains(w.Body.String(), "'=1+2") {
-		t.Fatal("formula not neutralized")
 	}
 	transfer := map[string]any{"from_account_id": a["id"], "to_account_id": b["id"], "amount_cent": 1000, "occurred_at": "2026-10-01T12:00:00+08:00", "note": "转账", "client_request_id": "transfer-1"}
 	tr := map[string]any{}

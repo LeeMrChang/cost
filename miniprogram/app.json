@@ -13,7 +13,7 @@
     "pages/entry-detail/index"
   ],
   "window": {
-    "navigationBarTitleText": "Cost \u8bb0\u8d26",
+    "navigationBarTitleText": "Cost 记账",
     "navigationBarBackgroundColor": "#F4F5F7",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#F4F5F7"
@@ -25,17 +25,22 @@
     "list": [
       {
         "pagePath": "pages/ledger/index",
-        "text": "\u8d26\u672c"
+        "text": "账本",
+        "iconPath": "assets/tabbar/ledger.png",
+        "selectedIconPath": "assets/tabbar/ledger-selected.png"
       },
       {
         "pagePath": "pages/stats/index",
-        "text": "\u7edf\u8ba1"
+        "text": "统计",
+        "iconPath": "assets/tabbar/stats.png",
+        "selectedIconPath": "assets/tabbar/stats-selected.png"
       }
     ]
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json",
   "usingComponents": {
-    "undo-banner": "/components/undo-banner/index"
+    "undo-banner": "/components/undo-banner/index",
+    "category-icon": "/components/category-icon/index"
   }
 }

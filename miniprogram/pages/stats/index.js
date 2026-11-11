@@ -91,7 +91,7 @@ Page({
      height: Math.round(p.expense_cent / max * 100), hot: p.expense_cent > 0 && p.expense_cent === max,
     })),
     categories: s.categories.map(c => ({
-     ...c, name: catMap[c.category_id].name, icon: catMap[c.category_id].icon,
+     ...c, name: catMap[c.category_id].name, icon: catMap[c.category_id].icon, icon_key: catMap[c.category_id].icon_key || '',
      amount: displayMoney(c.amount_cent),
      percent: total ? (c.amount_cent / total * 100).toFixed(1) : '0.0',
      width: total ? Math.min(100, c.amount_cent / total * 100) : 0,

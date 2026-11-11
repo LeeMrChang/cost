@@ -19,3 +19,5 @@
 .actions button{margin:0;flex:1}
 
 .fill.warn{background:#F5A524}.fill.over{background:#E5484D}.budget-row .track{margin-top:14rpx}
+
+.cat-name{display:flex;align-items:center;gap:12rpx}

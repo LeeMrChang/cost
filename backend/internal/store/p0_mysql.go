@@ -91,7 +91,7 @@ func (m *MySQL) SaveCategory(ctx context.Context, c domain.Category) (domain.Cat
 		if err = tx.QueryRowContext(ctx, "SELECT COALESCE(MAX(id),0)+1 FROM t_categories").Scan(&c.ID); err != nil {
 			return c, err
 		}
-		_, err = tx.ExecContext(ctx, "INSERT INTO t_categories(id,ledger_id,name,kind,icon,sort_order,disabled) VALUES(?,?,?,?,?,?,?)", c.ID, ledgerID, c.Name, c.Kind, c.Icon, c.SortOrder, c.Disabled)
+		_, err = tx.ExecContext(ctx, "INSERT INTO t_categories(id,ledger_id,name,kind,icon,sort_order,disabled,icon_key) VALUES(?,?,?,?,?,?,?,NULLIF(?,''))", c.ID, ledgerID, c.Name, c.Kind, c.Icon, c.SortOrder, c.Disabled, c.IconKey)
 	} else {
 		var kind string
 		err = tx.QueryRowContext(ctx, "SELECT kind FROM t_categories WHERE ledger_id=? AND id=?", ledgerID, c.ID).Scan(&kind)
@@ -104,7 +104,7 @@ func (m *MySQL) SaveCategory(ctx context.Context, c domain.Category) (domain.Cat
 		if kind != c.Kind {
 			return c, domain.ErrInvalid
 		}
-		_, err = tx.ExecContext(ctx, "UPDATE t_categories SET name=?,icon=?,sort_order=?,disabled=? WHERE ledger_id=? AND id=?", c.Name, c.Icon, c.SortOrder, c.Disabled, ledgerID, c.ID)
+		_, err = tx.ExecContext(ctx, "UPDATE t_categories SET name=?,icon=?,sort_order=?,disabled=?,icon_key=NULLIF(?,'') WHERE ledger_id=? AND id=?", c.Name, c.Icon, c.SortOrder, c.Disabled, c.IconKey, ledgerID, c.ID)
 	}
 	if err != nil {
 		return c, err
@@ -379,7 +379,7 @@ func (m *MySQL) PatchCategory(ctx context.Context, id int64, p domain.CategoryPa
 	}
 	defer tx.Rollback()
 	ledgerID := LedgerID(ctx)
-	err = tx.QueryRowContext(ctx, "SELECT id,name,kind,icon,sort_order,disabled FROM t_categories WHERE ledger_id=? AND id=?", ledgerID, id).Scan(&c.ID, &c.Name, &c.Kind, &c.Icon, &c.SortOrder, &c.Disabled)
+	err = tx.QueryRowContext(ctx, "SELECT id,name,kind,icon,sort_order,disabled,COALESCE(icon_key,''),COALESCE(system_icon_key,'') FROM t_categories WHERE ledger_id=? AND id=?", ledgerID, id).Scan(&c.ID, &c.Name, &c.Kind, &c.Icon, &c.SortOrder, &c.Disabled, &c.IconKey, &c.SystemIconKey)
 	if errors.Is(err, sql.ErrNoRows) {
 		return c, domain.ErrNotFound
 	}
@@ -394,7 +394,7 @@ func (m *MySQL) PatchCategory(ctx context.Context, id int64, p domain.CategoryPa
 	if err = domain.ValidateCategory(c); err != nil {
 		return c, err
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE t_categories SET name=?,icon=?,sort_order=?,disabled=? WHERE ledger_id=? AND id=?", c.Name, c.Icon, c.SortOrder, c.Disabled, ledgerID, c.ID)
+	_, err = tx.ExecContext(ctx, "UPDATE t_categories SET name=?,icon=?,sort_order=?,disabled=?,icon_key=NULLIF(?,'') WHERE ledger_id=? AND id=?", c.Name, c.Icon, c.SortOrder, c.Disabled, c.IconKey, ledgerID, c.ID)
 	if err != nil {
 		return c, err
 	}

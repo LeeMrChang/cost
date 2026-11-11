@@ -8,12 +8,12 @@ const accounts = [{id: 1, name: '现金', type: 'cash', opening_balance_cent: 0,
 const entry = {id: 1, category_id: 2, account_id: 2, kind: 'expense', amount_cent: 1234, note: '旧账', created_by: 1, occurred_at: '2026-10-23T02:00:00Z'};
 const response = {items: [entry], total: 51, page: 1, page_size: 50, summary: {income_cent: 20000, expense_cent: 1234, balance_cent: 18766}};
 const statsResponse = {range: 'month', label: '2026年10月', start: '2026-10-01', end: '2026-10-31', prev_ref: '2026-09-01', next_ref: '2026-11-01', summary: {income_cent: 20000, expense_cent: 1234, balance_cent: 18766, daily_avg_expense_cent: 45}, budget: {total_cent: 30000, remaining_cent: 28766, remaining_daily_cent: 1000}, series: [], categories: []};
-function load(name, handler, role = 'admin', overrides = {}) {
+function load(name, handler, role = 'admin', overrides = {}, wxOverrides = {}) {
 	const file = path.resolve(__dirname, '../pages', name, 'index.js');
 	assert.ok(fs.existsSync(file), name + ' page must exist');
 	let page; const requests = [], toasts = [], navigations = [];
 	const app = {globalData: {pendingEdit: null}};
-	const api = {session: () => ({user: {id: 1, role}}), me: async () => ({id: 1, role}), exportCSV: async q => requests.push(['export', q]), request: async (...args) => {
+	const api = {session: () => ({user: {id: 1, role}}), me: async () => ({id: 1, role}), request: async (...args) => {
 		requests.push(args); if (handler) { const result = handler(...args); if (result !== undefined) return result; }
 		if (args[0] === '/api/v1/categories') return categories;
 		if (args[0] === '/api/v1/accounts') return accounts;
@@ -24,7 +24,7 @@ function load(name, handler, role = 'admin', overrides = {}) {
 		if (args[0].startsWith('/api/v1/stats?')) return statsResponse;
 		return {};
 	}, ...overrides};
-	vm.runInNewContext(fs.readFileSync(file, 'utf8'), {Page: p => {page = p;}, require: id => id.endsWith('/utils/api') ? api : require(path.resolve(path.dirname(file), id)), wx: {showToast: v => toasts.push(v), showModal: opts => opts.success({confirm: true}), navigateTo: o => navigations.push(o.url), navigateBack: () => navigations.push('back'), reLaunch: o => navigations.push(o.url)}, getApp: () => app, getCurrentPages: () => [{route: 'pages/ledger/index'}], setTimeout, clearTimeout}, {filename: file});
+	vm.runInNewContext(fs.readFileSync(file, 'utf8'), {Page: p => {page = p;}, require: id => id.endsWith('/utils/api') ? api : require(path.resolve(path.dirname(file), id)), wx: {showToast: v => toasts.push(v), showModal: opts => opts.success({confirm: true}), navigateTo: o => navigations.push(o.url), navigateBack: () => navigations.push('back'), reLaunch: o => navigations.push(o.url), ...wxOverrides}, getApp: () => app, getCurrentPages: () => [{route: 'pages/ledger/index'}], setTimeout, clearTimeout}, {filename: file});
 	page.data = JSON.parse(JSON.stringify(page.data)); page.setData = v => Object.assign(page.data, v);
 	return {page, requests, toasts, navigations, app};
 }
@@ -306,4 +306,55 @@ test('failed current header image falls back to the icon but stale failures do n
  assert.equal(page.data.avatarSrc,'https://example.test/new.jpg');
  page.onAvatarError({currentTarget:{dataset:{src:'https://example.test/new.jpg'}}});
  assert.equal(page.data.avatarSrc,'');assert.equal(page.data.ledgerIcon,'📒');
+});
+
+test('category editor includes candidate icons without duplicates and saves a selected icon', async () => {
+ const {page,requests}=load('categories');
+ await page.load();page.open();
+ const candidates=['🎫','🏥','🍼','🏆','🥇','💎','🌱','🛠️','📦','⏰','💪','🌃','🥐','🥞','🍞','🍛','🥘','🍲','🥗','🍽️','🍗','🍻','🥟','🛒','💳','🏬','🔖','🗂️','🍜','🚗','🚌','🚇','☕','🏠','💼','🏦','🧧','💻','📊','💸','🍀','💰'];
+ for(const icon of candidates) assert.ok(page.data.icons.includes(icon), 'missing candidate '+icon);
+ assert.equal(new Set(page.data.icons).size,page.data.icons.length);
+ page.pickIcon({currentTarget:{dataset:{icon:'🥐'}}});page.setData({name:'新早餐',order:'50'});
+ await page.save();
+ const sent=requests.find(r=>r[0]==='/api/v1/categories'&&r[1]==='POST');
+ assert.equal(sent[2].icon,'🥐');
+});
+
+test('category editor supports line icons and switches back to emoji', async () => {
+ const {page,requests}=load('categories');await page.load();page.open();
+ assert.equal(typeof page.pickSystemIcon,'function');
+ page.pickSystemIcon({currentTarget:{dataset:{key:'pet-paw'}}});page.setData({name:'宠物',order:'10'});
+ await page.save();assert.equal(requests.find(r=>r[1]==='POST')[2].icon_key,'pet-paw');
+ page.open();page.pickSystemIcon({currentTarget:{dataset:{key:'pet-paw'}}});page.pickIcon({currentTarget:{dataset:{icon:'🐱'}}});
+ assert.equal(page.data.iconKey,'');
+});
+
+
+test('system icon banner counts only builtins and remembers dismissal for the current user/version', async () => {
+ const rows=[{...categories[0],system_icon_key:'dining',icon_key:''},{...categories[1],system_icon_key:'transport',icon_key:'transport'},{...categories[2],system_icon_key:'',icon_key:''}];
+ const saved=new Map();
+ const wx={getStorageSync:k=>saved.get(k),setStorageSync:(k,v)=>saved.set(k,v),getAccountInfoSync:()=>({miniProgram:{version:'1.2'}})};
+ const first=load('categories',url=>url==='/api/v1/categories'?rows:undefined,'admin',{},wx);
+ await first.page.load();assert.equal(first.page.data.emojiCount,1);assert.equal(first.page.data.showIconBanner,true);
+ first.page.dismissIconBanner();
+ const again=load('categories',url=>url==='/api/v1/categories'?rows:undefined,'admin',{},wx);await again.page.load();assert.equal(again.page.data.showIconBanner,false);
+ const next=load('categories',url=>url==='/api/v1/categories'?rows:undefined,'admin',{}, {...wx,getAccountInfoSync:()=>({miniProgram:{version:'1.3'}})});await next.page.load();assert.equal(next.page.data.showIconBanner,true);
+});
+
+test('unifying system icons needs confirmation and prevents overlapping requests', async () => {
+ let modal,release;
+ const rows=[{...categories[0],system_icon_key:'dining',icon_key:''}];
+ const {page,requests}=load('categories',(url,method)=>url==='/api/v1/categories'?rows:url==='/api/v1/categories/system-icons'?new Promise(r=>{release=r;}):undefined,'admin',{}, {showModal:opts=>{modal=opts;}});
+ await page.load();page.unifySystemIcons();assert.equal(page.data.saving,true);
+ assert.match(modal.content,/包括你手动设置的 Emoji/);modal.success({confirm:false});await flush();
+ assert.equal(requests.some(r=>r[0].endsWith('/system-icons')),false);assert.equal(page.data.saving,false);
+ page.unifySystemIcons();const pending=modal.success({confirm:true});page.unifySystemIcons();
+ assert.equal(requests.filter(r=>r[0].endsWith('/system-icons')).length,1);release({updated:1});await pending;
+ assert.equal(page.data.saving,false);
+});
+
+test('saving an emoji category omits icon_key for legacy backend compatibility',async()=>{
+ const {page,requests}=load('categories');await page.load();page.open();
+ page.setData({name:'旅行',order:'10'});page.pickIcon({currentTarget:{dataset:{icon:'✈️'}}});await page.save();
+ const sent=requests.find(r=>r[0]==='/api/v1/categories'&&r[1]==='POST');assert.ok(sent);assert.equal('icon_key' in sent[2],false);assert.equal(sent[2].icon,'✈️');
 });

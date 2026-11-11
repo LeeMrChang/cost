@@ -50,6 +50,7 @@ func newHandler(s store.Store, token string, service *auth.Service, opts ...Opti
 	})
 	mux.HandleFunc("GET /api/v1/categories", a.categories)
 	mux.HandleFunc("POST /api/v1/categories", a.createCategory)
+	mux.HandleFunc("POST /api/v1/categories/system-icons", a.unifySystemIcons)
 	mux.HandleFunc("PATCH /api/v1/categories/{id}", a.updateCategory)
 	mux.HandleFunc("GET /api/v1/accounts", a.accounts)
 	mux.HandleFunc("POST /api/v1/accounts", a.createAccount)
@@ -58,7 +59,6 @@ func newHandler(s store.Store, token string, service *auth.Service, opts ...Opti
 	mux.HandleFunc("POST /api/v1/transfers", a.createTransfer)
 	mux.HandleFunc("DELETE /api/v1/transfers/{id}", a.deleteTransfer)
 	mux.HandleFunc("GET /api/v1/entry-authors", a.authors)
-	mux.HandleFunc("GET /api/v1/entries/export", a.exportEntries)
 	mux.HandleFunc("GET /api/v1/entries", a.filteredList)
 	mux.HandleFunc("POST /api/v1/entries", a.create)
 	mux.HandleFunc("GET /api/v1/entries/{id}", a.entry)
@@ -347,6 +347,7 @@ func (a *API) budgets(w http.ResponseWriter, r *http.Request) {
 		CategoryID int64  `json:"category_id"`
 		Name       string `json:"name"`
 		Icon       string `json:"icon"`
+		IconKey    string `json:"icon_key"`
 		Amount     int64  `json:"amount_cent"`
 		Spent      int64  `json:"spent_cent"`
 		IsSet      bool   `json:"is_set"`
@@ -371,7 +372,7 @@ func (a *API) budgets(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		amount, set := settings[c.ID]
-		out.Categories = append(out.Categories, categoryBudget{CategoryID: c.ID, Name: c.Name, Icon: c.Icon, Amount: amount, Spent: spent[c.ID], IsSet: set})
+		out.Categories = append(out.Categories, categoryBudget{CategoryID: c.ID, Name: c.Name, Icon: c.Icon, IconKey: c.IconKey, Amount: amount, Spent: spent[c.ID], IsSet: set})
 	}
 	respond(w, 200, out)
 }

@@ -2,7 +2,7 @@ const api = require('../../utils/api');
 const { displayMoney } = require('../../utils/money');
 const { stamp } = require('../../utils/ledger');
 Page({
- data: {id:0, entry:null, amount:'', categoryName:'', icon:'', accountName:'无', ledgerName:'', date:'', time:'', loading:true, saving:false, error:''},
+ data: {id:0, entry:null, amount:'', categoryName:'', icon:'', iconKey:'', accountName:'无', ledgerName:'', date:'', time:'', loading:true, saving:false, error:''},
  onLoad(options) {this.setData({id:Number(options.id)});},
  onShow() {return this.load();},
  onHide() {this.version=(this.version||0)+1;},
@@ -18,7 +18,7 @@ Page({
    if(version!==this.version)return;
    const category=categories.find(c=>c.id===entry.category_id)||{};
    const account=accounts.find(a=>a.id===entry.account_id);
-   this.setData({entry,amount:displayMoney(entry.amount_cent),categoryName:category.name||'历史分类',icon:category.icon||'📦',accountName:account?account.name:'无',ledgerName:ledger.name,...stamp(entry.occurred_at)});
+   this.setData({entry,amount:displayMoney(entry.amount_cent),categoryName:category.name||'历史分类',icon:category.icon||'📦',iconKey:category.icon_key||'',accountName:account?account.name:'无',ledgerName:ledger.name,...stamp(entry.occurred_at)});
   } catch(e) {if(version===this.version)this.setData({entry:null,error:e.message});}
   finally {if(version===this.version)this.setData({loading:false});}
  },

@@ -29,7 +29,7 @@ const messages = {
  invalid_json: '请求格式有误，请重试', invalid_entry: '记账内容有误，请检查后重试',
  not_found: '内容不存在或已被删除', request_conflict: '操作冲突，请刷新后重试',
  invalid_range: '日期范围无效，请重新选择', invalid_budget: '预算参数无效，请检查后重试',
- entry_permission_denied: '只能修改或删除自己记录的账单', export_too_large: '导出数据过多，请缩小日期或筛选范围', transfer_permission_denied: '只能删除自己记录的转账', category_disabled: '该分类已停用，请重新选择', account_disabled: '该账户已停用，请重新选择',
+ entry_permission_denied: '只能修改或删除自己记录的账单', transfer_permission_denied: '只能删除自己记录的转账', category_disabled: '该分类已停用，请重新选择', account_disabled: '该账户已停用，请重新选择',
  too_many_login_attempts: '操作太频繁，请稍后重试', authentication_unavailable: '登录验证暂不可用，请稍后重试'
 };
 function request(path, method = 'GET', data, publicRequest = false, options = {}) {
@@ -102,17 +102,4 @@ async function uploadAvatar(filePath) {
  return user;
 }
 async function logout() { if (session()) await request('/api/v1/auth/logout', 'POST'); clearSession(); goLogin(); }
-async function exportCSV(query) {
- if (typeof wx.shareFileMessage !== 'function') throw new Error('请升级微信后使用 CSV 导出分享');
- const csv = await request('/api/v1/entries/export?' + query, 'GET', undefined, false, {dataType: 'text', timeout: 60000});
- if (typeof csv !== 'string') throw new Error('导出内容格式异常，请重试');
- const fs = wx.getFileSystemManager();
- const filePath = wx.env.USER_DATA_PATH + '/cost-ledger-export.csv';
- try {
-  await new Promise((resolve, reject) => fs.writeFile({filePath, data: csv, encoding: 'utf8', success: resolve, fail: () => reject(new Error('保存导出文件失败，请检查剩余空间'))}));
-  await new Promise((resolve, reject) => wx.shareFileMessage({filePath, fileName: 'Cost账单.csv', success: resolve, fail: e => reject(new Error(/cancel/.test(e.errMsg || '') ? '已取消导出分享' : '文件分享失败，请重试'))}));
- } finally {
-  await new Promise(resolve => fs.unlink({filePath, success: resolve, fail: resolve}));
- }
-}
-module.exports = { exportCSV, request, config, session, clearSession, login, logout, me, updateNickname, uploadAvatar, isDevelop, goLogin };
+module.exports = { request, config, session, clearSession, login, logout, me, updateNickname, uploadAvatar, isDevelop, goLogin };

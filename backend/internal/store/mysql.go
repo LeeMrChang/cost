@@ -133,12 +133,18 @@ func (m *MySQL) Migrate(ctx context.Context) error {
 	if err := applyUserNickname(ctx, conn); err != nil {
 		return err
 	}
-	return applyUserAvatar(ctx, conn)
+	if err := applyUserAvatar(ctx, conn); err != nil {
+		return err
+	}
+	if err := applyCategoryIcons(ctx, conn); err != nil {
+		return err
+	}
+	return applyCategoryLineIcons(ctx, conn)
 }
 func (m *MySQL) DB() *sql.DB { return m.db }
 
 func (m *MySQL) Categories(ctx context.Context) ([]domain.Category, error) {
-	rows, err := m.db.QueryContext(ctx, "SELECT id,name,kind,icon,sort_order,disabled,COALESCE(parent_id,0) FROM t_categories WHERE ledger_id=? ORDER BY sort_order,id", LedgerID(ctx))
+	rows, err := m.db.QueryContext(ctx, "SELECT id,name,kind,icon,sort_order,disabled,COALESCE(parent_id,0),COALESCE(icon_key,''),COALESCE(system_icon_key,'') FROM t_categories WHERE ledger_id=? ORDER BY sort_order,id", LedgerID(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +152,7 @@ func (m *MySQL) Categories(ctx context.Context) ([]domain.Category, error) {
 	out := []domain.Category{}
 	for rows.Next() {
 		var c domain.Category
-		if err = rows.Scan(&c.ID, &c.Name, &c.Kind, &c.Icon, &c.SortOrder, &c.Disabled, &c.ParentID); err != nil {
+		if err = rows.Scan(&c.ID, &c.Name, &c.Kind, &c.Icon, &c.SortOrder, &c.Disabled, &c.ParentID, &c.IconKey, &c.SystemIconKey); err != nil {
 			return nil, err
 		}
 		out = append(out, c)
@@ -331,7 +337,7 @@ func (m *MySQL) LedgerForUser(ctx context.Context, userID int64) (int64, error) 
 		if err = tx.QueryRowContext(ctx, "SELECT COALESCE(MAX(id),0)+1 FROM t_categories").Scan(&next); err != nil {
 			return 0, err
 		}
-		if _, err = tx.ExecContext(ctx, "INSERT INTO t_categories(id,ledger_id,name,kind,icon,sort_order,disabled) VALUES(?,?,?,?,?,0,FALSE)", next, id, cat.Name, cat.Kind, cat.Icon); err != nil {
+		if _, err = tx.ExecContext(ctx, "INSERT INTO t_categories(id,ledger_id,name,kind,icon,icon_key,system_icon_key,sort_order,disabled) VALUES(?,?,?,?,?,?,?,0,FALSE)", next, id, cat.Name, cat.Kind, cat.Icon, cat.IconKey, cat.SystemIconKey); err != nil {
 			return 0, err
 		}
 	}

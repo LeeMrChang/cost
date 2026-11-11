@@ -1,17 +1,13 @@
 package api
 
 import (
-	"bytes"
 	"cost/internal/auth"
 	"cost/internal/domain"
-	"encoding/csv"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 )
 
 func (a *API) createCategory(w http.ResponseWriter, r *http.Request) {
@@ -20,6 +16,7 @@ func (a *API) createCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.ID = 0
+	c.SystemIconKey = ""
 	c.Name = strings.TrimSpace(c.Name)
 	out, err := a.store.SaveCategory(r.Context(), c)
 	a.invalidateReferences(err)
@@ -151,19 +148,16 @@ func (a *API) deleteTransfer(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(204)
 }
-func entryFilter(r *http.Request, export bool) (domain.EntryFilter, string, error) {
+func entryFilter(r *http.Request) (domain.EntryFilter, string, error) {
 	q := r.URL.Query()
 	f := domain.EntryFilter{Query: q.Get("q"), Kind: q.Get("kind")}
 	month := ""
 	var err error
-	if export {
-		f.Page, f.PageSize = 1, 50001
-	} else {
-		f.Page, f.PageSize, err = pagination(q)
-		if err != nil {
-			return f, month, err
-		}
+	f.Page, f.PageSize, err = pagination(q)
+	if err != nil {
+		return f, month, err
 	}
+
 	if len([]rune(f.Query)) > 500 || (f.Kind != "" && f.Kind != "income" && f.Kind != "expense") {
 		return f, month, domain.ErrInvalid
 	}
@@ -217,7 +211,7 @@ func entryFilter(r *http.Request, export bool) (domain.EntryFilter, string, erro
 	return f, month, nil
 }
 func (a *API) filteredList(w http.ResponseWriter, r *http.Request) {
-	f, month, err := entryFilter(r, false)
+	f, month, err := entryFilter(r)
 	if err != nil {
 		fail(w, err)
 		return
@@ -239,71 +233,12 @@ func (a *API) authors(w http.ResponseWriter, r *http.Request) {
 	respond(w, 200, out)
 }
 
-// Spreadsheet programs may trim whitespace before interpreting a formula.
-func csvText(s string) string {
-	trim := strings.TrimLeftFunc(s, unicode.IsSpace)
-	if trim != "" && strings.ContainsRune("=+-@", rune(trim[0])) {
-		return "'" + s
-	}
-	if strings.HasPrefix(s, "\t") || strings.HasPrefix(s, "\r") {
-		return "'" + s
-	}
-	return s
-}
-func (a *API) exportEntries(w http.ResponseWriter, r *http.Request) {
-	f, _, err := entryFilter(r, true)
+func (a *API) unifySystemIcons(w http.ResponseWriter, r *http.Request) {
+	n, err := a.store.UnifySystemIcons(r.Context())
+	a.invalidateReferences(err)
 	if err != nil {
 		fail(w, err)
 		return
 	}
-	page, err := a.store.Query(r.Context(), f)
-	if err != nil {
-		fail(w, err)
-		return
-	}
-	if page.Total > 50000 {
-		respond(w, 400, map[string]string{"error": "export_too_large"})
-		return
-	}
-	cats, err := a.store.Categories(r.Context())
-	if err != nil {
-		fail(w, err)
-		return
-	}
-	accounts, err := a.store.Accounts(r.Context())
-	if err != nil {
-		fail(w, err)
-		return
-	}
-	names := map[int64]string{}
-	for _, c := range cats {
-		names[c.ID] = c.Name
-	}
-	accountNames := map[int64]string{0: "未指定"}
-	for _, ac := range accounts {
-		accountNames[ac.ID] = ac.Name
-	}
-	var b bytes.Buffer
-	b.WriteString("\ufeff")
-	writer := csv.NewWriter(&b)
-	writer.UseCRLF = true
-	writer.Write([]string{"账单编号", "时间（北京时间）", "类型", "分类", "金额（元）", "账户", "记录人编号", "备注"})
-	loc, _ := time.LoadLocation("Asia/Shanghai")
-	for _, e := range page.Items {
-		kind := "支出"
-		if e.Kind == "income" {
-			kind = "收入"
-		}
-		writer.Write([]string{strconv.FormatInt(e.ID, 10), e.OccurredAt.In(loc).Format("2006-01-02 15:04:05"), kind, csvText(names[e.CategoryID]), fmt.Sprintf("%d.%02d", e.Amount/100, e.Amount%100), csvText(accountNames[e.AccountID]), strconv.FormatInt(e.CreatedBy, 10), csvText(e.Note)})
-	}
-	writer.Flush()
-	if err = writer.Error(); err != nil {
-		fail(w, err)
-		return
-	}
-	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
-	w.Header().Set("Content-Disposition", `attachment; filename="cost-entries.csv"`)
-	w.Header().Set("Cache-Control", "no-store")
-	w.WriteHeader(200)
-	w.Write(b.Bytes())
+	respond(w, 200, map[string]int{"updated": n})
 }

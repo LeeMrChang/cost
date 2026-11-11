@@ -22,6 +22,7 @@ python3 - "$archive" "$release" <<'PY'
 import pathlib, shutil, sys, tarfile
 archive, target = sys.argv[1:]
 fixed = {'backend/Dockerfile', 'backend/.dockerignore', 'backend/go.mod', 'backend/go.sum',
+         'backend/internal/domain/category_icon_catalog.json',
          'deploy/compose.cloud.yaml', 'deploy/.env.example', 'deploy/Caddyfile',
          'deploy/mysql/01-users.sh', 'docs/ops/2026-10-22-docker-cloud-deployment.md',
          'deploy/backup/common.sh', 'deploy/backup/backup.sh', 'deploy/backup/verify.sh'}

@@ -2,7 +2,7 @@
  <view wx:if="{{loading}}" class="empty">正在读取账单…</view>
  <view wx:if="{{error}}" class="error" bindtap="load">{{error}}（点击重试）</view>
  <block wx:if="{{entry}}">
-  <view class="bill-head"><view class="bill-amount {{entry.kind}}">{{entry.kind === 'expense' ? '-' : '+'}}¥{{amount}}</view><view>{{icon}} {{categoryName}}</view></view>
+  <view class="bill-head"><view class="bill-amount {{entry.kind}}">{{entry.kind === 'expense' ? '-' : '+'}}¥{{amount}}</view><view><category-icon icon-key="{{iconKey || ''}}" emoji="{{icon}}" size="{{32}}" /> {{categoryName}}</view></view>
   <view class="bill-actions card"><button disabled="{{saving}}" bindtap="edit">编辑</button><button disabled="{{saving}}" class="expense" bindtap="remove">删除</button><button bindtap="later">退款</button><button bindtap="later">存为模板</button></view>
   <view class="card details">
    <view class="field row"><text>类型</text><text>{{entry.kind === 'expense' ? '支出' : '收入'}}</text></view>

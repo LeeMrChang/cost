@@ -1,1 +1,7 @@
 @import "../../styles/manage.wxss";
+
+.icon-banner{background:#FFF0D5;color:#634100;border-radius:20rpx;padding:24rpx;margin-bottom:24rpx;font-size:26rpx}.icon-banner-actions{display:flex;align-items:center;gap:24rpx;margin-top:12rpx}.icon-banner-actions button{margin:0;padding:4rpx 20rpx;font-size:26rpx;background:#FFB020;color:#1A1D21}.icon-banner-actions text{padding:12rpx}.system-icon-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:20rpx 10rpx;margin:24rpx 0;}.system-icon-choice{display:flex;align-items:center;flex-direction:column;gap:8rpx;padding:6rpx 0}.system-icon-choice text{font-size:19rpx;color:#676B73;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.sheet{display:flex;flex-direction:column;overflow:hidden}.editor-content{height:68vh}
+
+.system-icon-scroll{height:440rpx}

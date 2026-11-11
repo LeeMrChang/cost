@@ -72,7 +72,7 @@ Page({
    const { year, month } = parseMonth(this.data.period);
    const rows = cats.filter(c => c.kind === 'expense').sort((a, b) => a.sort_order - b.sort_order || a.id - b.id).map(c => {
     const row = (b.categories || []).find(r => r.category_id === c.id);
-    return { id: c.id, name: c.name, icon: c.icon, set: !!row && row.is_set !== false, amount: row && row.is_set !== false ? money(row.amount_cent) : '', amountDisplay: row && row.is_set !== false ? displayMoney(row.amount_cent) : '', spent: row && row.spent_cent ? displayMoney(row.spent_cent) : '', progress: row && row.amount_cent>0?Math.min(100,Math.round(row.spent_cent/row.amount_cent*100)):0, warn:!!row && row.amount_cent>0 && row.spent_cent/row.amount_cent>0.8, overSpent: !!row && row.is_set!==false && row.spent_cent > row.amount_cent };
+    return { id: c.id, name: c.name, icon: c.icon, icon_key: c.icon_key || '', set: !!row && row.is_set !== false, amount: row && row.is_set !== false ? money(row.amount_cent) : '', amountDisplay: row && row.is_set !== false ? displayMoney(row.amount_cent) : '', spent: row && row.spent_cent ? displayMoney(row.spent_cent) : '', progress: row && row.amount_cent>0?Math.min(100,Math.round(row.spent_cent/row.amount_cent*100)):0, warn:!!row && row.amount_cent>0 && row.spent_cent/row.amount_cent>0.8, overSpent: !!row && row.is_set!==false && row.spent_cent > row.amount_cent };
    });
    const data = { label: year + '年' + month + '月', rows, totalCent: b.total_cent === null || b.total_cent === undefined ? null : b.total_cent };
    if (data.totalCent !== null) {

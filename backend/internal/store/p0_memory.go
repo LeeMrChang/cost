@@ -266,3 +266,20 @@ func (m *Memory) PatchAccount(ctx context.Context, id int64, p domain.AccountPat
 	a.Balance = m.balance(a)
 	return a, nil
 }
+
+func (m *Memory) UnifySystemIcons(ctx context.Context) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	n := 0
+	for id, c := range m.categories {
+		if m.categoryLedger[id] != LedgerID(ctx) || c.SystemIconKey == "" || !domain.ValidIconKey(c.SystemIconKey) {
+			continue
+		}
+		if c.IconKey != c.SystemIconKey {
+			c.IconKey = c.SystemIconKey
+			m.categories[id] = c
+			n++
+		}
+	}
+	return n, nil
+}

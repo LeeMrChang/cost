@@ -40,7 +40,7 @@
    <view class="section">支出分类</view>
    <view wx:if="{{!categories.length}}" class="empty">暂无支出</view>
    <view wx:for="{{categories}}" wx:key="category_id" class="category-row">
-    <view class="row"><text class="cat-name">{{item.icon}} {{item.name}}</text><text class="cat-amount">¥{{item.amount}}</text></view>
+    <view class="row"><view class="cat-name"><category-icon icon-key="{{item.icon_key || ''}}" emoji="{{item.icon}}" size="{{24}}" /> <text>{{item.name}}</text></view><text class="cat-amount">¥{{item.amount}}</text></view>
     <view class="row muted"><text>{{item.count}} 笔</text><text>{{item.percent}}%</text></view>
     <view class="track"><view class="fill" style="width:{{item.width}}%"></view></view>
    </view>

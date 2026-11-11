@@ -15,7 +15,6 @@ function load(name, handler, extra = {}) {
 		login: async nickname => { requests.push(['login', nickname]); return {id: 1, nickname: nickname || '小夏'}; },
 		logout: async () => { requests.push(['logout']); },
 		isDevelop: () => true, config: () => ({baseURL: 'https://example.test'}), clearSession: () => {},
-		exportCSV: async q => requests.push(['export', q]),
 		request: async (...args) => {
 			requests.push(args); if (handler) { const result = handler(...args); if (result !== undefined) return result; }
 			if (args[0] === '/api/v1/categories') return categories;
@@ -159,13 +158,11 @@ test('login restores a session and skips the login button', async () => {
 	await page.onShow(); await flush();
 	assert.deepEqual(navigations, ['/pages/ledger/index']);
 });
-test('settings shows my ledger, exports the current month CSV and signs out', async () => {
+test('settings shows my ledger without bill export and signs out', async () => {
 	const {page, requests} = load('settings');
 	await page.load(); await flush();
 	assert.equal(page.data.user.id, 1); assert.equal(page.data.ledger.name, '我的账本'); assert.equal(page.data.ledger.icon, '📒');
-	await page.exportCSV();
-	const exported = requests.find(r => r[0] === 'export');
-	assert.ok(exported); assert.ok(exported[1].startsWith('month=' + today().slice(0, 7)));
+	assert.equal(page.exportCSV, undefined);
 	await page.signOut();
 	assert.equal(page.data.user, null); assert.equal(page.data.ledger, null);
 	assert.ok(requests.some(r => r[0] === 'logout'));

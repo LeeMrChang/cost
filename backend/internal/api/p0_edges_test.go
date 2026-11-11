@@ -6,34 +6,14 @@ import (
 	"cost/internal/store"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"sync"
 	"testing"
 	"time"
 )
 
-func TestExportRejectsOversize(t *testing.T) {
-	s := store.NewMemory()
-	at := time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC)
-	for i := 0; i < 50001; i++ {
-		if _, _, err := s.Save(context.Background(), domain.Entry{CategoryID: 2, Kind: "expense", Amount: 1, OccurredAt: at, RequestID: fmt.Sprint(i)}); err != nil {
-			t.Fatal(err)
-		}
-	}
-	w := p0Call(t, New(s, "test"), "GET", "/api/v1/entries/export?month=2026-10", nil, 400)
-	if !strings.Contains(w.Body.String(), "export_too_large") {
-		t.Fatal(w.Body.String())
-	}
-}
-func TestCSVFormulaSafety(t *testing.T) {
-	for _, s := range []string{"=SUM(1)", "  +1", "\n@SUM(1)", "-1+1", "\ttext", "\rtext"} {
-		if !strings.HasPrefix(csvText(s), "'") {
-			t.Errorf("unsafe %q", s)
-		}
-	}
-	if csvText("晚餐") != "晚餐" {
-		t.Fatal("ordinary text changed")
-	}
+func TestBillExportRemoved(t *testing.T) {
+	// The removed path is handled as an invalid entry ID, never as a CSV export.
+	p0Call(t, New(store.NewMemory(), "test"), "GET", "/api/v1/entries/export?month=2026-10", nil, 400)
 }
 func testP0Concurrent(t *testing.T, s store.Store) {
 	ctx := context.Background()

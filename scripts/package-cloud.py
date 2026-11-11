@@ -8,6 +8,7 @@ import tarfile
 def build_archive(root: Path, output: Path) -> int:
     fixed = [
         'backend/Dockerfile', 'backend/.dockerignore', 'backend/go.mod', 'backend/go.sum',
+        'backend/internal/domain/category_icon_catalog.json',
         'deploy/compose.cloud.yaml', 'deploy/.env.example', 'deploy/Caddyfile',
         'deploy/mysql/01-users.sh',
         'deploy/backup/common.sh', 'deploy/backup/backup.sh', 'deploy/backup/verify.sh',

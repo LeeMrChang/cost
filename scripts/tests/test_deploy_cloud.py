@@ -66,7 +66,7 @@ class DeploymentTests(unittest.TestCase):
 
     def archive(self, member='backend/go.mod'):
         with tarfile.open(self.root / f'incoming/{RELEASE}.tar.gz', 'w:gz') as tf:
-            for name in [member, 'deploy/compose.cloud.yaml']:
+            for name in dict.fromkeys([member, 'backend/go.mod', 'deploy/compose.cloud.yaml']):
                 data = b'fixture\n'
                 info = tarfile.TarInfo(name)
                 info.size = len(data)
@@ -82,6 +82,12 @@ class DeploymentTests(unittest.TestCase):
 
     def calls(self):
         return [json.loads(s) for s in self.log.read_text().splitlines()] if self.log.exists() else []
+
+    def test_category_catalog_is_accepted_by_remote_archive_validation(self):
+        self.archive('backend/internal/domain/category_icon_catalog.json')
+        result = self.run_deploy()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.root / 'releases' / RELEASE / 'SUCCESS').exists())
 
     def test_success_preserves_env_and_publishes_after_migration(self):
         result = self.run_deploy()

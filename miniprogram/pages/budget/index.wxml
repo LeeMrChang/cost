@@ -31,7 +31,7 @@
    <view class="muted hint">点击分类设置预算，各分类支出均计入总预算，分类预算可独立设置</view>
    <view wx:for="{{rows}}" wx:key="id" class="budget-row {{editingID === item.id ? 'editing' : ''}}">
     <view wx:if="{{editingID !== item.id}}" data-id="{{item.id}}" bindtap="editRow">
-     <view class="row"><text class="cat-name">{{item.icon}} {{item.name}}</text><text class="cat-amount {{item.set ? '' : 'muted'}}">{{item.set ? '¥' + item.amountDisplay : '未设置'}}</text></view>
+     <view class="row"><view class="cat-name"><category-icon icon-key="{{item.icon_key || ''}}" emoji="{{item.icon}}" size="{{24}}" /> <text>{{item.name}}</text></view><text class="cat-amount {{item.set ? '' : 'muted'}}">{{item.set ? '¥' + item.amountDisplay : '未设置'}}</text></view>
      <view wx:if="{{item.spent}}" class="row muted"><text>已用 ¥{{item.spent}}</text><text>{{item.overSpent ? '已超支' : ''}}</text></view>
      <view wx:if="{{item.set}}" class="track"><view class="fill {{item.overSpent ? 'over' : item.warn ? 'warn' : ''}}" style="width:{{item.progress}}%"></view></view>
     </view>

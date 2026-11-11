@@ -6,7 +6,7 @@
  </view>
  <view wx:if="{{editID}}" class="edit-label">编辑账单</view>
  <view wx:if="{{loadingEntry || editError}}" class="edit-label">{{editError || '正在读取账单…'}}</view>
- <scroll-view scroll-y class="category-area"><view class="grid"><view wx:for="{{grid}}" wx:key="id" class="cell {{item.selected ? 'cell-on' : ''}}" bindtap="pickCategory" data-id="{{item.id}}" data-more="{{item.more}}"><view class="cell-icon">{{item.more ? '⚙' : item.icon}}</view><view class="cell-name">{{item.more ? '设置' : item.name}}</view></view></view></scroll-view>
+ <scroll-view scroll-y class="category-area"><view class="grid"><view wx:for="{{grid}}" wx:key="id" class="cell {{item.selected ? 'cell-on' : ''}}" bindtap="pickCategory" data-id="{{item.id}}" data-more="{{item.more}}"><view class="cell-icon"><text wx:if="{{item.more}}">⚙</text><category-icon wx:else icon-key="{{item.icon_key || ''}}" emoji="{{item.icon}}" size="{{44}}" selected="{{item.selected}}" /></view><view class="cell-name">{{item.more ? '设置' : item.name}}</view></view></view></scroll-view>
  <scroll-view scroll-x class="account-bar"><view class="acc-chip {{accountID === 0 ? 'acc-on' : ''}}" data-id="0" bindtap="pickAccount">不指定</view><view wx:for="{{accounts}}" wx:key="id" class="acc-chip {{accountID === item.id ? 'acc-on' : ''}}" data-id="{{item.id}}" bindtap="pickAccount">{{item.icon}} {{item.label}}</view></scroll-view>
  <view class="foot">
   <view class="chips"><view wx:if="{{kind === 'expense'}}" class="chip" bindtap="later">◯ 报销</view><view wx:if="{{kind === 'expense'}}" class="chip" bindtap="later">🎟 优惠</view><view class="chip" bindtap="later">▧ 图片</view><view class="chip" bindtap="later">♧ 标签</view><view class="chip" bindtap="later">⚑ 标记 ⚙</view></view>

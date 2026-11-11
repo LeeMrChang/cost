@@ -1,0 +1,455 @@
+[
+  {
+    "key": "dining",
+    "label": "餐饮",
+    "emoji": "🍜",
+    "old": [],
+    "codepoint": 57345,
+    "system_id": 1,
+    "kind": "expense"
+  },
+  {
+    "key": "transport",
+    "label": "交通",
+    "emoji": "🚗",
+    "old": [],
+    "codepoint": 57346,
+    "system_id": 2,
+    "kind": "expense"
+  },
+  {
+    "key": "late-snack",
+    "label": "夜宵",
+    "emoji": "🍗",
+    "old": [
+      "🍢"
+    ],
+    "codepoint": 57347,
+    "system_id": 3,
+    "kind": "expense"
+  },
+  {
+    "key": "bus",
+    "label": "公交",
+    "emoji": "🚌",
+    "old": [],
+    "codepoint": 57348,
+    "system_id": 4,
+    "kind": "expense"
+  },
+  {
+    "key": "metro",
+    "label": "地铁",
+    "emoji": "🚇",
+    "old": [],
+    "codepoint": 57349,
+    "system_id": 5,
+    "kind": "expense"
+  },
+  {
+    "key": "breakfast",
+    "label": "早餐",
+    "emoji": "🥐",
+    "old": [
+      "🍳"
+    ],
+    "codepoint": 57350,
+    "system_id": 6,
+    "kind": "expense"
+  },
+  {
+    "key": "lunch",
+    "label": "午餐",
+    "emoji": "🍛",
+    "old": [
+      "🍱"
+    ],
+    "codepoint": 57351,
+    "system_id": 7,
+    "kind": "expense"
+  },
+  {
+    "key": "dinner",
+    "label": "晚餐",
+    "emoji": "🍲",
+    "old": [
+      "🍚"
+    ],
+    "codepoint": 57352,
+    "system_id": 8,
+    "kind": "expense"
+  },
+  {
+    "key": "shopping",
+    "label": "消费",
+    "emoji": "🛒",
+    "old": [
+      "🛍️",
+      "🛍"
+    ],
+    "codepoint": 57353,
+    "system_id": 9,
+    "kind": "expense"
+  },
+  {
+    "key": "coffee",
+    "label": "饮料咖啡",
+    "emoji": "☕",
+    "old": [],
+    "codepoint": 57354,
+    "system_id": 10,
+    "kind": "expense"
+  },
+  {
+    "key": "housing",
+    "label": "住房",
+    "emoji": "🏠",
+    "old": [],
+    "codepoint": 57355,
+    "system_id": 11,
+    "kind": "expense"
+  },
+  {
+    "key": "expense-other",
+    "label": "其他",
+    "emoji": "📦",
+    "old": [
+      "🧾"
+    ],
+    "codepoint": 57356,
+    "system_id": 12,
+    "kind": "expense"
+  },
+  {
+    "key": "salary",
+    "label": "工资",
+    "emoji": "💼",
+    "old": [],
+    "codepoint": 57357,
+    "system_id": 13,
+    "kind": "income"
+  },
+  {
+    "key": "bonus",
+    "label": "奖金",
+    "emoji": "🏆",
+    "old": [
+      "🎁"
+    ],
+    "codepoint": 57358,
+    "system_id": 14,
+    "kind": "income"
+  },
+  {
+    "key": "overtime",
+    "label": "加班",
+    "emoji": "⏰",
+    "old": [
+      "🌙"
+    ],
+    "codepoint": 57359,
+    "system_id": 15,
+    "kind": "income"
+  },
+  {
+    "key": "benefits",
+    "label": "福利",
+    "emoji": "🎫",
+    "old": [
+      "🧧"
+    ],
+    "codepoint": 57360,
+    "system_id": 16,
+    "kind": "income"
+  },
+  {
+    "key": "housing-fund",
+    "label": "公积金",
+    "emoji": "🏦",
+    "old": [],
+    "codepoint": 57361,
+    "system_id": 17,
+    "kind": "income"
+  },
+  {
+    "key": "red-packet",
+    "label": "红包",
+    "emoji": "🧧",
+    "old": [],
+    "codepoint": 57362,
+    "system_id": 18,
+    "kind": "income"
+  },
+  {
+    "key": "part-time",
+    "label": "兼职",
+    "emoji": "💻",
+    "old": [],
+    "codepoint": 57363,
+    "system_id": 19,
+    "kind": "income"
+  },
+  {
+    "key": "side-business",
+    "label": "副业",
+    "emoji": "🌱",
+    "old": [
+      "📈"
+    ],
+    "codepoint": 57364,
+    "system_id": 20,
+    "kind": "income"
+  },
+  {
+    "key": "tax-refund",
+    "label": "退税",
+    "emoji": "💸",
+    "old": [],
+    "codepoint": 57365,
+    "system_id": 21,
+    "kind": "income"
+  },
+  {
+    "key": "investment",
+    "label": "投资",
+    "emoji": "📊",
+    "old": [],
+    "codepoint": 57366,
+    "system_id": 22,
+    "kind": "income"
+  },
+  {
+    "key": "windfall",
+    "label": "意外收入",
+    "emoji": "🍀",
+    "old": [],
+    "codepoint": 57367,
+    "system_id": 23,
+    "kind": "income"
+  },
+  {
+    "key": "income-other",
+    "label": "其他",
+    "emoji": "💰",
+    "old": [],
+    "codepoint": 57368,
+    "system_id": 24,
+    "kind": "income"
+  },
+  {
+    "key": "pet-paw",
+    "label": "宠物",
+    "emoji": "🐾",
+    "old": [],
+    "codepoint": 57369,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "pet-bone",
+    "label": "宠物用品",
+    "emoji": "🦴",
+    "old": [],
+    "codepoint": 57370,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "medical",
+    "label": "医疗",
+    "emoji": "🏥",
+    "old": [],
+    "codepoint": 57371,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "medicine",
+    "label": "药品",
+    "emoji": "💊",
+    "old": [],
+    "codepoint": 57372,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "education",
+    "label": "书籍",
+    "emoji": "📚",
+    "old": [],
+    "codepoint": 57373,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "graduation",
+    "label": "教育",
+    "emoji": "🎓",
+    "old": [],
+    "codepoint": 57374,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "gaming",
+    "label": "游戏",
+    "emoji": "🎮",
+    "old": [],
+    "codepoint": 57375,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "movies",
+    "label": "电影",
+    "emoji": "🎬",
+    "old": [],
+    "codepoint": 57376,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "flight",
+    "label": "航班",
+    "emoji": "✈️",
+    "old": [],
+    "codepoint": 57377,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "travel",
+    "label": "旅行",
+    "emoji": "🧳",
+    "old": [],
+    "codepoint": 57378,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "phone",
+    "label": "通讯",
+    "emoji": "📱",
+    "old": [],
+    "codepoint": 57379,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "internet",
+    "label": "网络",
+    "emoji": "📶",
+    "old": [],
+    "codepoint": 57380,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "clothing",
+    "label": "服饰",
+    "emoji": "👕",
+    "old": [],
+    "codepoint": 57381,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "shoes",
+    "label": "鞋履",
+    "emoji": "👟",
+    "old": [],
+    "codepoint": 57382,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "fitness",
+    "label": "健身",
+    "emoji": "🏋️",
+    "old": [],
+    "codepoint": 57383,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "sports",
+    "label": "运动",
+    "emoji": "🏃",
+    "old": [],
+    "codepoint": 57384,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "repayment",
+    "label": "还款",
+    "emoji": "💳",
+    "old": [],
+    "codepoint": 57385,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "scheduled-payment",
+    "label": "定期付款",
+    "emoji": "📅",
+    "old": [],
+    "codepoint": 57386,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "insurance",
+    "label": "保险",
+    "emoji": "🛡️",
+    "old": [],
+    "codepoint": 57387,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "protection",
+    "label": "保障",
+    "emoji": "☂️",
+    "old": [],
+    "codepoint": 57388,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "care",
+    "label": "护理",
+    "emoji": "🪮",
+    "old": [],
+    "codepoint": 57389,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "haircut",
+    "label": "理发",
+    "emoji": "✂️",
+    "old": [],
+    "codepoint": 57390,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "electricity",
+    "label": "电费",
+    "emoji": "💡",
+    "old": [],
+    "codepoint": 57391,
+    "system_id": 0,
+    "kind": ""
+  },
+  {
+    "key": "water",
+    "label": "水费",
+    "emoji": "💧",
+    "old": [],
+    "codepoint": 57392,
+    "system_id": 0,
+    "kind": ""
+  }
+]

@@ -99,3 +99,8 @@ git push origin feature/automatic-cicd:main
 新增“默认 socket 不存在仍完成备份与恢复”和“预检失败不停止 API”测试，修改前两项均失败；修复后总计 13 项部署测试通过。Bash 语法、差异检查通过。测试使用隔离 Docker 替身，本机没有 Docker，真实生产验证以修复合并后的新 Actions 运行为准；重跑旧提交不会加载本修复。
 
 连接行为参考：[MySQL 8.4 连接协议说明](https://dev.mysql.com/doc/refman/8.4/en/transport-protocols.html)。
+
+
+## 2026-11-11：图标迁移与发布资源
+
+正常发布流程已经包含备份、隔离恢复验证及显式migrate，010图标迁移随对应新版后端镜像执行。只重启API不迁移数据库。新增Go embed数据文件必须同时进入package-cloud.py与deploy-cloud.sh的精确白名单；当前category_icon_catalog.json已加入，打包与远端解包测试及发布包源码构建通过。该工作区变更尚未提交或发布，不代表云端当前已执行010。

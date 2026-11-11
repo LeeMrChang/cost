@@ -12,3 +12,5 @@
 .pad button.key.again{background:#fff;color:#1A1D21}
 .pad button.key.done{background:#E5484D;color:#fff}
 .income .pad button.key.done{background:#17A34A}
+
+.cell-icon,.expense .cell-on .cell-icon,.income .cell-on .cell-icon{background:transparent}

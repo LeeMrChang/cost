@@ -62,4 +62,4 @@
 
 ## 错误码
 
-`unauthorized`、`invalid_json`、`invalid_entry`、`not_found`、`request_conflict`（幂等冲突）、`invalid_range`、`invalid_budget`、`export_too_large`、`wechat_not_configured`、`wechat_unavailable`、`invalid_wechat_code`、`too_many_login_attempts`、`authentication_unavailable`、`internal_error`。
+`unauthorized`、`invalid_json`、`invalid_entry`、`not_found`、`request_conflict`（幂等冲突）、`invalid_range`、`invalid_budget`、`wechat_not_configured`、`wechat_unavailable`、`invalid_wechat_code`、`too_many_login_attempts`、`authentication_unavailable`、`internal_error`。

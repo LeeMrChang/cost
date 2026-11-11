@@ -33,7 +33,6 @@
   <view class="management-link row" bindtap="openBudget"><view><view>🎯 月预算</view><view class="muted">设置每月总预算与分类预算</view></view><text>›</text></view>
   <view class="management-link row" bindtap="openCategories"><view><view>🏷️ 分类管理</view><view class="muted">新增、排序和停用收支分类</view></view><text>›</text></view>
   <view class="management-link row" bindtap="openAccounts"><view><view>👛 账户与转账</view><view class="muted">查看余额，记录账户之间的资金流转</view></view><text>›</text></view>
-  <view class="management-link row" bindtap="exportCSV"><view><view>↗ 导出账单</view><view class="muted">导出本月账单为 CSV 文件并分享</view></view><text>›</text></view>
  </view>
  <view wx:if="{{user}}" class="card"><button bindtap="signOut" loading="{{busy}}" disabled="{{busy}}">退出登录</button></view>
  <view wx:if="{{error}}" class="error">{{error}}</view>

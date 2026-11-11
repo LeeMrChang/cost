@@ -1,7 +1,6 @@
 const api = require('../../utils/api');
 const nickname = require('../../utils/nickname');
 const profile = require('../../utils/profile');
-const { today } = require('../../utils/money');
 Page({
  data: {
   user: null, nickname: '', avatarSrc: '', ledger: null, error: '', busy: false,
@@ -63,12 +62,5 @@ Page({
   } catch (e) { this.setData({ error: e.message }); }
   finally { this.setData({ busy: false }); }
  },
- async signOut() { try { await api.logout(); this.setData({ user: null, nickname: '', avatarSrc: '', ledger: null }); } catch (e) { this.setData({ error: e.message }); } },
- async exportCSV() {
-  if (this.data.busy) return;
-  this.setData({ busy: true, error: '' });
-  try { await api.exportCSV('month=' + today().slice(0, 7)); }
-  catch (e) { this.setData({ error: e.message }); }
-  finally { this.setData({ busy: false }); }
- }
+ async signOut() { try { await api.logout(); this.setData({ user: null, nickname: '', avatarSrc: '', ledger: null }); } catch (e) { this.setData({ error: e.message }); } }
 });

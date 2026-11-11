@@ -11,6 +11,15 @@ packager = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(packager)
 
 class PackageTests(unittest.TestCase):
+    def test_embedded_category_catalog_ships_with_backend(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / 'release.tar.gz'
+            packager.build_archive(ROOT, archive)
+            with tarfile.open(archive) as tf:
+                names = set(tf.getnames())
+            self.assertIn('backend/internal/domain/category_icon_catalog.json', names)
+            self.assertFalse(any(n.endswith('.json') and n != 'backend/internal/domain/category_icon_catalog.json' for n in names))
+
     def test_backup_workers_ship_in_cloud_release(self):
         with tempfile.TemporaryDirectory() as directory:
             archive = Path(directory) / 'release.tar.gz'

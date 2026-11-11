@@ -32,6 +32,23 @@
 
 ## 运行与验证
 
+- [2026-11-11：分类线性图标与统一入口设计](superpowers/specs/2026-11-11-category-line-icons-design.md)
+- [2026-11-11：分类线性图标实施计划](superpowers/plans/2026-11-11-category-line-icons.md)
+- [2026-11-11：分类线性图标 API 与迁移](api/2026-11-11-category-line-icons-api.md)
+- [2026-11-11：分类线性图标验证](ops/2026-11-11-category-line-icons-validation.md)
+
+- [2026-11-11：分类候选图标接入设计](superpowers/specs/2026-11-11-category-icons-design.md)
+- [2026-11-11：分类候选图标接入计划](superpowers/plans/2026-11-11-category-icons.md)
+- [2026-11-11：分类图标迁移与验证](ops/2026-11-11-category-icons-validation.md)
+
+- [2026-11-11：底部导航图标设计](superpowers/specs/2026-11-11-tabbar-icons-design.md)（补录）
+- [2026-11-11：底部导航图标实施记录](superpowers/plans/2026-11-11-tabbar-icons.md)（补录）
+- [2026-11-11：底部导航图标验证](ops/2026-11-11-tabbar-icons-validation.md)
+
+- [2026-11-11：移除账单导出设计](superpowers/specs/2026-11-11-remove-bill-export-design.md)
+- [2026-11-11：移除账单导出实施计划](superpowers/plans/2026-11-11-remove-bill-export.md)
+- [2026-11-11：移除账单导出验证](ops/2026-11-11-remove-bill-export-validation.md)
+
 - [2026-11-04：Redis 资料缓存启用与验收](ops/2026-11-04-redis-reference-cache.md)
 - [2026-11-04：Redis 资料缓存设计](superpowers/specs/2026-11-04-redis-reference-cache-design.md)
 - [2026-11-04：Redis 资料缓存计划](superpowers/plans/2026-11-04-redis-reference-cache.md)
@@ -113,6 +130,6 @@
 
 - [F01–F04 设计](superpowers/specs/2026-10-23-p0-ledger-design.md)
 - [实施计划](superpowers/plans/2026-10-23-p0-ledger.md)
-- [搜索、分类、账户、转账与导出 API](api/2026-10-23-p0-ledger-api.md)
+- [搜索、分类、账户与转账 API](api/2026-10-23-p0-ledger-api.md)
 - [自动备份与恢复检查](ops/2026-10-23-automatic-backups.md)
 - [实现验证与发布检查](ops/2026-10-23-p0-ledger-validation.md)

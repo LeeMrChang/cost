@@ -10,6 +10,7 @@ import (
 )
 
 type Store interface {
+	UnifySystemIcons(context.Context) (int, error)
 	Query(context.Context, domain.EntryFilter) (domain.EntryPage, error)
 	Authors(context.Context) ([]domain.Author, error)
 	PatchCategory(context.Context, int64, domain.CategoryPatch) (domain.Category, error)

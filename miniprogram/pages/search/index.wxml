@@ -29,7 +29,7 @@
 		</view>
 		<view class="card entries">
 			<view wx:for="{{group.items}}" wx:key="id" class="entry" data-id="{{item.id}}" bindtap="edit">
-				<view class="icon {{item.kind}}">{{item.category.icon}}</view>
+				<view class="icon {{item.kind}}"><category-icon icon-key="{{item.category.icon_key || ''}}" emoji="{{item.category.icon}}" size="{{32}}" /></view>
 				<view class="entry-copy">
 					<view class="entry-name">{{item.category.name}}{{item.note ? ' ' + item.note : ''}}</view>
 					<view class="entry-time">{{item.dateShort}} {{item.time}}<text wx:if="{{item.account_id}}"> · {{item.accountName}}</text></view>

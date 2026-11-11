@@ -19,13 +19,15 @@ var ErrInvalid = errors.New("invalid entry")
 
 // Category 表示收入或支出的分类。
 type Category struct {
-	SortOrder int    `json:"sort_order"` // 展示排序值，非负整数。
-	Disabled  bool   `json:"disabled"`   // 是否停用；保留已有记录对分类的引用。
-	ID        int64  `json:"id"`
-	Name      string `json:"name"`
-	Kind      string `json:"kind"` // income 为收入，expense 为支出。
-	Icon      string `json:"icon"`
-	ParentID  int64  `json:"parent_id,omitempty"` // 二级分类预留；0 表示一级，暂不使用。
+	SortOrder     int    `json:"sort_order"` // 展示排序值，非负整数。
+	Disabled      bool   `json:"disabled"`   // 是否停用；保留已有记录对分类的引用。
+	ID            int64  `json:"id"`
+	Name          string `json:"name"`
+	Kind          string `json:"kind"` // income 为收入，expense 为支出。
+	Icon          string `json:"icon"`
+	IconKey       string `json:"icon_key"`
+	SystemIconKey string `json:"system_icon_key"`
+	ParentID      int64  `json:"parent_id,omitempty"` // 二级分类预留；0 表示一级，暂不使用。
 }
 
 // Entry 表示一笔收入或支出；账户间转账单独使用 Transfer。
@@ -38,12 +40,12 @@ type Entry struct {
 	Amount        int64     `json:"amount_cent"` // 金额，单位为分，必须为正数；收支方向由 Kind 决定。
 	OccurredAt    time.Time `json:"occurred_at"` // 业务发生时间；按北京时间归入统计日期和月份。
 	Note          string    `json:"note"`
-	RequestID     string    `json:"client_request_id"` // 客户端幂等键，用于识别重复创建请求。
-	RefundOfID    int64     `json:"refund_of_id,omitempty"`    // 退款关联的原账单 ID；P1。
-	Reimbursable  bool      `json:"reimbursable"`              // 是否标记可报销；P1。
-	ExcludeStats  bool      `json:"exclude_stats"`             // 不计收支；P2。
-	ExcludeBudget bool      `json:"exclude_budget"`            // 不计预算；P2。
-	Currency      string    `json:"currency,omitempty"`        // 币种代码，默认 CNY；P2。
+	RequestID     string    `json:"client_request_id"`      // 客户端幂等键，用于识别重复创建请求。
+	RefundOfID    int64     `json:"refund_of_id,omitempty"` // 退款关联的原账单 ID；P1。
+	Reimbursable  bool      `json:"reimbursable"`           // 是否标记可报销；P1。
+	ExcludeStats  bool      `json:"exclude_stats"`          // 不计收支；P2。
+	ExcludeBudget bool      `json:"exclude_budget"`         // 不计预算；P2。
+	Currency      string    `json:"currency,omitempty"`     // 币种代码，默认 CNY；P2。
 }
 
 // Validate 校验记账金额、发生时间、备注、幂等键及分类类型匹配。
@@ -74,20 +76,30 @@ func Validate(e Entry, categories []Category) error {
 // DefaultCategories 返回新账本初始化的默认收支分类：Master 在 iCost 实际使用的扁平分类集。
 // 支出 12 个（ID 1~12）、收入 12 个（ID 13~24）；已存在的账本通过迁移按名称补种，不覆盖自定义分类。
 func DefaultCategories() []Category {
-	return []Category{
+	out := []Category{
 		{ID: 1, Name: "餐饮", Kind: "expense", Icon: "🍜"}, {ID: 2, Name: "交通", Kind: "expense", Icon: "🚗"},
-		{ID: 3, Name: "夜宵", Kind: "expense", Icon: "🍢"}, {ID: 4, Name: "公交", Kind: "expense", Icon: "🚌"},
-		{ID: 5, Name: "地铁", Kind: "expense", Icon: "🚇"}, {ID: 6, Name: "早餐", Kind: "expense", Icon: "🍳"},
-		{ID: 7, Name: "午餐", Kind: "expense", Icon: "🍱"}, {ID: 8, Name: "晚餐", Kind: "expense", Icon: "🍚"},
-		{ID: 9, Name: "消费", Kind: "expense", Icon: "🛍️"}, {ID: 10, Name: "饮料咖啡", Kind: "expense", Icon: "☕"},
-		{ID: 11, Name: "住房", Kind: "expense", Icon: "🏠"}, {ID: 12, Name: "其他", Kind: "expense", Icon: "🧾"},
-		{ID: 13, Name: "工资", Kind: "income", Icon: "💼"}, {ID: 14, Name: "奖金", Kind: "income", Icon: "🎁"},
-		{ID: 15, Name: "加班", Kind: "income", Icon: "🌙"}, {ID: 16, Name: "福利", Kind: "income", Icon: "🧧"},
+		{ID: 3, Name: "夜宵", Kind: "expense", Icon: "🍗"}, {ID: 4, Name: "公交", Kind: "expense", Icon: "🚌"},
+		{ID: 5, Name: "地铁", Kind: "expense", Icon: "🚇"}, {ID: 6, Name: "早餐", Kind: "expense", Icon: "🥐"},
+		{ID: 7, Name: "午餐", Kind: "expense", Icon: "🍛"}, {ID: 8, Name: "晚餐", Kind: "expense", Icon: "🍲"},
+		{ID: 9, Name: "消费", Kind: "expense", Icon: "🛒"}, {ID: 10, Name: "饮料咖啡", Kind: "expense", Icon: "☕"},
+		{ID: 11, Name: "住房", Kind: "expense", Icon: "🏠"}, {ID: 12, Name: "其他", Kind: "expense", Icon: "📦"},
+		{ID: 13, Name: "工资", Kind: "income", Icon: "💼"}, {ID: 14, Name: "奖金", Kind: "income", Icon: "🏆"},
+		{ID: 15, Name: "加班", Kind: "income", Icon: "⏰"}, {ID: 16, Name: "福利", Kind: "income", Icon: "🎫"},
 		{ID: 17, Name: "公积金", Kind: "income", Icon: "🏦"}, {ID: 18, Name: "红包", Kind: "income", Icon: "🧧"},
-		{ID: 19, Name: "兼职", Kind: "income", Icon: "💻"}, {ID: 20, Name: "副业", Kind: "income", Icon: "📈"},
+		{ID: 19, Name: "兼职", Kind: "income", Icon: "💻"}, {ID: 20, Name: "副业", Kind: "income", Icon: "🌱"},
 		{ID: 21, Name: "退税", Kind: "income", Icon: "💸"}, {ID: 22, Name: "投资", Kind: "income", Icon: "📊"},
 		{ID: 23, Name: "意外收入", Kind: "income", Icon: "🍀"}, {ID: 24, Name: "其他", Kind: "income", Icon: "💰"},
 	}
+	for n := range out {
+		for _, icon := range categoryIconCatalog {
+			if icon.SystemID == out[n].ID {
+				out[n].IconKey = icon.Key
+				out[n].SystemIconKey = icon.Key
+				break
+			}
+		}
+	}
+	return out
 }
 
 // Bounds 将 YYYY-MM 月份转换为 Asia/Shanghai 时区的自然月范围。
@@ -229,6 +241,9 @@ type Author struct {
 
 // ValidateCategory 校验分类名称、图标长度、排序值和收支类型。
 func ValidateCategory(c Category) error {
+	if !ValidIconKey(c.IconKey) {
+		return ErrInvalid
+	}
 	if strings.TrimSpace(c.Name) == "" || len([]rune(c.Name)) > 100 || len([]rune(c.Icon)) > 32 || c.SortOrder < 0 || c.SortOrder > 1000000 || (c.Kind != "expense" && c.Kind != "income") {
 		return ErrInvalid
 	}
@@ -264,11 +279,12 @@ func (f EntryFilter) Match(e Entry) bool {
 // CategoryPatch 表示分类的部分更新，字段含义与 Category 一致。
 // nil 表示不修改（JSON 字段省略或为 null）；非 nil 的零值和 false 表示显式更新。
 type CategoryPatch struct {
-	Name      *string `json:"name"`
-	Kind      *string `json:"kind"`
-	Icon      *string `json:"icon"`
-	SortOrder *int    `json:"sort_order"`
-	Disabled  *bool   `json:"disabled"`
+	IconKey   IconKeyPatch `json:"icon_key"`
+	Name      *string      `json:"name"`
+	Kind      *string      `json:"kind"`
+	Icon      *string      `json:"icon"`
+	SortOrder *int         `json:"sort_order"`
+	Disabled  *bool        `json:"disabled"`
 }
 
 // Apply 将非 nil 字段应用到分类副本，并去除名称首尾空白；调用方负责校验结果。
@@ -281,6 +297,10 @@ func (p CategoryPatch) Apply(c Category) Category {
 	}
 	if p.Icon != nil {
 		c.Icon = *p.Icon
+		c.IconKey = ""
+	}
+	if p.IconKey.Set {
+		c.IconKey = p.IconKey.Value
 	}
 	if p.SortOrder != nil {
 		c.SortOrder = *p.SortOrder

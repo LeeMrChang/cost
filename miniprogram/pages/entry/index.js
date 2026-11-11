@@ -93,7 +93,7 @@ Page({
 		const grid = this.data.categories
 			.filter(c => c.kind === this.data.kind && (!c.disabled || c.id === this.originalCategoryID))
 			.sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
-			.map(c => ({id: c.id, name: c.name, icon: c.icon, selected: c.id === selected}));
+			.map(c => ({id: c.id, name: c.name, icon: c.icon, icon_key: c.icon_key || '', selected: c.id === selected}));
 		grid.push({id: -1, more: true});
 		this.setData({grid});
 	},
