@@ -32,6 +32,10 @@
 
 ## 运行与验证
 
+- [2026-11-13：审核登录生产接口修复设计](superpowers/specs/2026-11-13-review-production-backend-design.md)
+- [2026-11-13：审核登录修复计划](superpowers/plans/2026-11-13-review-production-backend.md)
+- [2026-11-13：审核登录修复验证与提审步骤](ops/2026-11-13-review-production-backend-validation.md)
+
 - [2026-11-11：分类线性图标与统一入口设计](superpowers/specs/2026-11-11-category-line-icons-design.md)
 - [2026-11-11：分类线性图标实施计划](superpowers/plans/2026-11-11-category-line-icons.md)
 - [2026-11-11：分类线性图标 API 与迁移](api/2026-11-11-category-line-icons-api.md)

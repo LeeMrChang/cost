@@ -51,7 +51,7 @@ Page({
   const value = this.data.baseURL.trim().replace(/\/+$/, '');
   if (!/^https?:\/\/[a-zA-Z0-9.-]+(?::\d+)?$/.test(value)) { this.setData({ error: '请输入正确的后端地址' }); return; }
   if (value !== api.config().baseURL) api.clearSession();
-  wx.setStorageSync('cost_base_url', value);
+  wx.setStorageSync('cost_devtools_base_url', value);
   this.setData({ user: null, nickname: '', avatarSrc: '', error: '' }); wx.showToast({ title: '调试地址已保存' });
  }
 });

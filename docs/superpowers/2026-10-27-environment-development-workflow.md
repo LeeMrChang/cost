@@ -8,12 +8,12 @@
 
 | 层 | 用途 | 后端 | 数据库 | 小程序 |
 |---|---|---|---|---|
-| 本地 development | 日常开发、联调 | `COST_ENV=development`，默认 `127.0.0.1:8080` | 本地 MySQL 或 memory | 开发者工具开发版，走本地地址 |
+| 本地 development | 日常开发、联调 | `COST_ENV=development`，默认 `127.0.0.1:8080` | 本地 MySQL 或 memory | 开发者工具开发版，显式设置后走本地地址 |
 | CI | 每次 PR / 合入验证 | 临时进程 | 隔离 MySQL 服务 | Node 测试与页面结构检查 |
 | 体验版 trial | 试用与验收 | `https://api.xiachen.xyz`（`COST_ENV=production`） | 生产库 | 体验版 |
 | 正式版 release | 线上使用 | 同上 | 生产库 | 正式版 |
 
-小程序按 `envVersion` 选择地址：`develop` 使用本地地址（允许登录页覆盖局域网 IP），`trial`、`release` 和无法识别的环境都使用生产地址。详见 [开发与发布环境配置](../ops/2026-10-27-environment-configuration.md)。
+2026-11-13 起，小程序开发者工具开发版默认本地，其余环境默认生产 HTTPS，仅 `develop` 且设备平台为 `devtools` 时可显式保存本地调试地址。真实手机忽略调试缓存，环境或设备不明时也走生产接口。详见 [开发与发布环境配置](../ops/2026-10-27-environment-configuration.md)。
 
 **当前事实：体验版与正式版共用同一套生产后端和数据库。** 体验版中的操作会写入真实账本。是否需要独立 staging 见第 9 节，尚未决策。
 

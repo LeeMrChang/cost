@@ -4,6 +4,7 @@ let handler, redirects = 0, requests = [];
 global.getCurrentPages = () => [];
 global.wx = {
  getAccountInfoSync: () => ({ miniProgram: { envVersion: 'develop' } }),
+ getDeviceInfo: () => ({ platform: 'devtools' }),
  getStorageSync: key => storage.get(key), setStorageSync: (key, value) => storage.set(key, value), removeStorageSync: key => storage.delete(key),
  reLaunch: options => { redirects++; options.complete(); },
  login: options => options.success({ code: 'one-time-code' }),
@@ -32,7 +33,7 @@ const api = require('../utils/api');
  const before = redirects;
  await assert.rejects(api.request('/api/v1/entries'), /昵称/);
  assert.equal(redirects, before+1); assert.equal(api.session().token, 'opaque-session');
- wx.setStorageSync('cost_base_url', 'http://192.168.1.2:8080');
+ wx.setStorageSync('cost_devtools_base_url', 'http://192.168.1.2:8080');
  assert.equal(api.config().baseURL, 'http://192.168.1.2:8080');
  wx.getAccountInfoSync = () => ({ miniProgram: { envVersion: 'release' } });
  assert.equal(api.config().baseURL, 'https://api.xiachen.xyz');

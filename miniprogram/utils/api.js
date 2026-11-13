@@ -2,11 +2,17 @@ const defaults = require('./config');
 let redirecting = false;
 let profileRevision = 0;
 function isDevelop() {
- try { return wx.getAccountInfoSync().miniProgram.envVersion === 'develop'; } catch (_) { return false; }
+ // A develop build can run on a real phone (including review/preview scenarios).
+ // Local overrides are a developer-tool capability, never a phone default.
+ try {
+  if (wx.getAccountInfoSync().miniProgram.envVersion !== 'develop') return false;
+  const device = typeof wx.getDeviceInfo === 'function' ? wx.getDeviceInfo() : wx.getSystemInfoSync();
+  return device.platform === 'devtools';
+ } catch (_) { return false; }
 }
 function config() {
  const baseURL = isDevelop()
-  ? wx.getStorageSync('cost_base_url') || defaults.developmentBaseURL
+  ? wx.getStorageSync('cost_devtools_base_url') || defaults.developmentBaseURL
   : defaults.baseURL;
  return { baseURL };
 }

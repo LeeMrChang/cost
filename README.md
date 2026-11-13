@@ -121,10 +121,11 @@ curl http://127.0.0.1:8080/health
 
 微信开发者工具导入 **miniprogram/**，不是 backend/ 或仓库根目录。AppID 需与后端一致，登录的微信需有相应开发者权限。
 
-- 模拟器：后端地址默认 `http://127.0.0.1:8080`。
-- 手机：在登录页“开发环境连接”填电脑的局域网 IP，例如 `http://192.168.1.10:8080`。手机的 127.0.0.1 指向手机自身。
-- 本地 HTTP 联调按工具要求使用开发调试设置，确保电脑和手机网络互通、防火墙允许 8080。
-- 体验/正式版固定使用 `https://api.xiachen.xyz`，忽略开发版保存的调试地址；无需发布前手动改代码。地址在 miniprogram/utils/config.js 维护，与服务器 `COST_DOMAIN=api.xiachen.xyz` 保持一致。
+- 开发者工具开发版默认使用本地 `http://127.0.0.1:8081`（对应当前 `COST_ADDR`）；手机预览、体验/正式版自动使用 `https://api.xiachen.xyz`，上传前不需要手动修改地址。
+- 仅微信开发者工具的开发版显示“开发环境连接”。需要自定义端口或在工具中连接云端时，可手动改地址并保存。
+- 手机端不显示调试入口，不读取本地或局域网调试地址；旧 `cost_base_url` 缓存已停用。新版开发工具显式设置保存在 `cost_devtools_base_url`，不随代码包上传。
+- 本地 HTTP 联调可按开发者工具要求调整域名校验，但提审验收必须开启域名与证书校验。手机预览与体验版连接生产环境，新增/修改会影响真实账本；本地联调使用开发者工具。
+- 公开地址在 miniprogram/utils/config.js 维护，与服务器 `COST_DOMAIN=api.xiachen.xyz` 保持一致；网络与真机验收见 [审核登录修复验证](docs/ops/2026-11-13-review-production-backend-validation.md)。
 - 后端本地 `.env` 使用 `COST_ENV=development`、监听 `0.0.0.0:8080`；云端 Compose 使用 `COST_ENV=production`，由 Caddy 转发 HTTPS 到内部 `api:8080`。完整对应关系与上线步骤见 [开发与发布环境配置](docs/ops/2026-10-27-environment-configuration.md)。
 
 ### 5. 登录并开始记账
