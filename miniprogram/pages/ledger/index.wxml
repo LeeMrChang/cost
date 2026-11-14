@@ -12,6 +12,10 @@
 		</view>
 	</view>
 	<view class="content">
+		<view wx:if="{{guest}}" class="guest-banner" bindtap="goLogin">
+			<text class="guest-badge">游客</text>
+			<text class="guest-text">当前记录只存本机{{guestPending ? '（' + guestPending + ' 条）' : ''}}，点此微信登录并同步</text>
+		</view>
 		<view class="search-bar" bindtap="openSearch">
 			<text class="search-icon">🔍</text>
 			<text class="search-placeholder">搜索备注 / 分类名</text>
@@ -38,7 +42,7 @@
 				<view class="sum-v"><text wx:if="{{summary.balanceNegative}}">-</text>¥{{summary.balance}}</view>
 			</view>
 		</view>
-		<view class="budget-card" bindtap="openBudget">
+		<view wx:if="{{!guest}}" class="budget-card" bindtap="openBudget">
 			<view class="budget-top">
 				<text class="budget-label">剩余月预算</text>
 				<text wx:if="{{overspent}}" class="over-badge">超支</text>

@@ -31,6 +31,10 @@ function list() {
 	return CATEGORIES.map(item => ({ ...item }));
 }
 
+function findByName(name, kind) {
+	return CATEGORIES.find(item => item.name === name && item.kind === kind) || null;
+}
+
 function findLocal(id) {
 	return CATEGORIES.find(item => item.id === Number(id)) || null;
 }
@@ -44,4 +48,4 @@ function match(serverCategories, guestCategory) {
 	return rows.length ? rows[0] : null;
 }
 
-module.exports = { list, findLocal, match, CATEGORIES };
+module.exports = { list, findLocal, findByName, match, CATEGORIES };

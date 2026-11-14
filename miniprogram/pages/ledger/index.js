@@ -1,7 +1,17 @@
 const api = require('../../utils/api');
+const guestStore = require('../../utils/guest-store');
+const guestCategories = require('../../utils/guest-categories');
 const { displayMoney } = require('../../utils/money');
-const { emptyFilters, query, groups } = require('../../utils/ledger');
+const { emptyFilters, query, groups, stamp } = require('../../utils/ledger');
 const { avatarView } = require('../../utils/profile');
+
+// 兼容测试替身：只注入 session 的 api mock 也能判断登录态；
+// 两者都没声明时按已登录处理（旧测试替身语义）。
+function isLoggedIn() {
+	if (typeof api.isAuthenticated === 'function') return api.isAuthenticated();
+	if (typeof api.session === 'function') return Boolean(api.session());
+	return true;
+}
 
 Page({
 	data: {
@@ -16,6 +26,7 @@ Page({
 		groups: [], entries: [], categories: [],
 		loading: true, loadingMore: false, error: '', total: 0, page: 0, hasMore: false,
 		collapsed: {}, accounts: [],
+		guest: false, guestPending: 0,
 	},
 	onLoad() {
 		const data = {};
@@ -32,6 +43,9 @@ Page({
 	onUnload() { this.onHide(); },
 	onReachBottom() { this.loadMore(); },
 	async load() {
+		// 游客模式：未登录时只读本机记录，不触达任何接口。
+		if (!isLoggedIn()) { this.setData({ guest: true }); return this.loadGuest(); }
+		this.setData({ guest: false });
 		const version = this.loadVersion = (this.loadVersion || 0) + 1;
 		const current = api.session();
 		const cachedAvatarSrc = avatarView(current && current.user, api).avatarSrc;
@@ -102,6 +116,39 @@ Page({
 		} catch (e) { if (version === this.loadVersion) this.setData({error: e.message}); }
 		finally { if (version === this.loadVersion) this.setData({loading: false}); }
 	},
+	// 游客态：本地记录按当前月份过滤，预算与账户在后端才有，这里不展示。
+	loadGuest() {
+		const version = this.loadVersion = (this.loadVersion || 0) + 1;
+		const month = this.data.month;
+		const categories = guestCategories.list();
+		const entries = guestStore.read()
+			.filter(item => stamp(item.occurred_at).date.slice(0, 7) === month)
+			.sort((a, b) => b.occurred_at.localeCompare(a.occurred_at) || b.local_id - a.local_id);
+		let expense = 0, income = 0;
+		entries.forEach(item => { if (item.kind === 'income') income += item.amount_cent; else expense += item.amount_cent; });
+		const [year, mon] = month.split('-').map(Number);
+		const prev = mon === 1 ? (year - 1) + '-12' : year + '-' + String(mon - 1).padStart(2, '0');
+		const next = mon === 12 ? (year + 1) + '-01' : year + '-' + String(mon + 1).padStart(2, '0');
+		if (version !== this.loadVersion) return;
+		this.setData({
+			guest: true, guestPending: guestStore.pending(),
+			entries, categories, accounts: [],
+			groups: groups(entries, categories, []),
+			total: entries.length, page: 1, hasMore: false,
+			monthLabel: year + '年' + mon + '月',
+			prevRef: prev + '-01', nextRef: next + '-01',
+			summary: {
+				expense: displayMoney(expense),
+				income: displayMoney(income),
+				balance: displayMoney(Math.abs(income - expense)),
+				balanceNegative: income - expense < 0,
+			},
+			budgetSet: false, overspent: false,
+			avatarSrc: '', ledgerName: '我的账本', ledgerIcon: '📒',
+			error: '', loading: false,
+		});
+	},
+	goLogin() { wx.navigateTo({ url: '/pages/login/index' }); },
 	onAvatarError(event) {
 		if (event.currentTarget.dataset.src === this.data.avatarSrc) this.setData({avatarSrc: ''});
 	},

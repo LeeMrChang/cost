@@ -1,10 +1,20 @@
 const api = require('../../utils/api');
+const guestStore = require('../../utils/guest-store');
+const guestCategories = require('../../utils/guest-categories');
 const { money } = require('../../utils/money');
 const { push, backspace, evaluate } = require('../../utils/calc');
 const { requestID, stamp, allowed } = require('../../utils/ledger');
 
 // 账户是用户自建的记账标签；图标映射与账户页保持一致。
 const ACCOUNT_TYPES = { cash: '💵', wechat: '💚', alipay: '💙', bank: '💳', other: '👛' };
+
+// 兼容测试替身：只注入 session 的 api mock 也能判断登录态；
+// 两者都没声明时按已登录处理（旧测试替身语义）。
+function isLoggedIn() {
+	if (typeof api.isAuthenticated === 'function') return api.isAuthenticated();
+	if (typeof api.session === 'function') return Boolean(api.session());
+	return true;
+}
 
 Page({
 	data: {
@@ -23,12 +33,26 @@ Page({
  ],
  statusBarHeight:20, loadingEntry:false, editError:'',
 
-		saving: false, editID: null,
+		saving: false, editID: null, guest: false, localEdit: null,
 	},
 	async onLoad(options) {
   this.setData({...stamp()});
   if(wx.getWindowInfo)this.setData({statusBarHeight:wx.getWindowInfo().statusBarHeight||20});
+  if (!isLoggedIn()) this.setData({guest: true, ledgerName: '我的账本'});
+  // 游客记录用本地 id 编辑，不经过服务端。
+  if (options && options.localEdit) {
+   const localID = Number(options.localEdit);
+   const record = guestStore.read().find(item => item.local_id === localID);
+   if (!record) { this.setData({editError: '本地记录不存在'}); return; }
+   const category = guestCategories.findByName(record.category_key, record.kind);
+   this.originalCategoryID = category ? category.id : null;
+   this.originalAccountID = 0;
+   this.accountSelectionInitialized = true;
+   this.setData({guest: true, localEdit: record.local_id, kind: record.kind, expr: money(record.amount_cent), result: money(record.amount_cent), resultCents: record.amount_cent, categoryID: this.originalCategoryID || 0, accountID: 0, note: record.note || '', ...stamp(record.occurred_at)});
+   return;
+  }
   if (!options || !options.editID)return;
+  if (!isLoggedIn()) return;
   const id=Number(options.editID);
   const app=getApp();
   let pending=app.globalData && app.globalData.pendingEdit;
@@ -46,7 +70,21 @@ Page({
   this.syncAccount();
   if(this.data.categories.length) this.buildGrid();
  },
-	onShow() { this.loadCategories(); this.loadLedger(); this.loadAccounts(); },
+	onShow() {
+		if (!isLoggedIn()) { this.setData({ guest: true }); this.loadGuestCategories(); return; }
+		this.loadCategories(); this.loadLedger(); this.loadAccounts();
+	},
+	loadGuestCategories() {
+		const categories = guestCategories.list();
+		const visible = categories.filter(c => c.kind === this.data.kind && (!c.disabled || c.id === this.originalCategoryID));
+		const remembered = Number(wx.getStorageSync('cost_guest_last_category_' + this.data.kind));
+		let categoryID = this.data.categoryID;
+		if (!visible.some(c => c.id === categoryID)) {
+			categoryID = visible.some(c => c.id === remembered) ? remembered : (visible.length ? visible[0].id : 0);
+		}
+		this.setData({categories, categoryID});
+		this.buildGrid();
+	},
 	async loadLedger() {
 		try {
 			const l = await api.request('/api/v1/ledgers/me');
@@ -107,7 +145,10 @@ Page({
 		this.buildGrid();
 	},
 	pickCategory(e) {
-		if (e.currentTarget.dataset.more) { wx.navigateTo({url: '/pages/categories/index'}); return; }
+		if (e.currentTarget.dataset.more) {
+			if (this.data.guest) { wx.showToast({title: '登录后可管理分类', icon: 'none'}); return; }
+			wx.navigateTo({url: '/pages/categories/index'}); return;
+		}
 		this.setData({categoryID: Number(e.currentTarget.dataset.id)});
 		this.buildGrid();
 	},
@@ -134,6 +175,7 @@ Page({
 		if (this.data.saving || this.data.loadingEntry || this.data.editError) return;
 		if (this.data.resultCents <= 0) { wx.showToast({title: '请输入大于零的金额', icon: 'none'}); return; }
 		if (!this.data.categoryID) { wx.showToast({title: '请选择分类', icon: 'none'}); return; }
+		if (this.data.guest) return this.saveGuest(keep);
 		this.setData({saving: true});
 		try {
 			const data = {
@@ -161,5 +203,31 @@ Page({
 			}
 		} catch (e) { wx.showToast({title: e.message, icon: 'none'}); }
 		finally { this.setData({saving: false}); }
+	},
+	// 游客记账只写本机，登录后由账本页统一合并。
+	saveGuest(keep) {
+		const category = guestCategories.findLocal(this.data.categoryID);
+		const record = {
+			category_key: category ? category.name : '',
+			kind: this.data.kind,
+			amount_cent: this.data.resultCents,
+			account_id: 0,
+			occurred_at: this.data.date + 'T' + this.data.time + ':00+08:00',
+			note: this.data.note,
+		};
+		this.setData({saving: true});
+		try {
+			if (this.data.localEdit) guestStore.update(this.data.localEdit, record);
+			else guestStore.add(record);
+			wx.setStorageSync('cost_guest_last_category_' + this.data.kind, this.data.categoryID);
+			wx.showToast({title: '已保存到本机'});
+			if (keep) {
+				this.setData({localEdit: null, expr: '', result: '0.00', resultCents: 0, note: '', noteOpen: false, ...stamp()});
+				this.loadGuestCategories();
+			} else {
+				this.setData({saving: false});
+				this.close();
+			}
+		} finally { this.setData({saving: false}); }
 	},
 });

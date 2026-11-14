@@ -45,3 +45,23 @@
 .error{background:#FDECEC;color:#E5484D;border-radius:18rpx;padding:24rpx;margin:20rpx 0;font-size:25rpx}
 
 .sum-card{display:flex;background:#fff;border-radius:24rpx;padding:24rpx 16rpx;margin-bottom:20rpx}.sum-col{flex:1;text-align:center;min-width:0}.sum-k{color:#8B9199;font-size:22rpx}.sum-v{font-size:32rpx;font-weight:700;margin-top:8rpx;overflow:hidden;text-overflow:ellipsis}.budget-bar{height:14rpx;background:#ECEEF1;border-radius:8rpx;overflow:hidden;margin:16rpx 0}.budget-bar-in{height:100%;background:#3B82F6}.budget-bar-in.warn{background:#F5A524}.budget-bar-in.over{background:#E5484D}.budget-value.over{color:#E5484D}.budget-none{font-size:36rpx;color:#8B9199}
+
+/* 游客模式提示条：不弹窗、不跳转，点击才去登录 */
+.guest-banner {
+	display: flex;
+	align-items: center;
+	gap: 12rpx;
+	margin: 0 0 16rpx;
+	padding: 16rpx 20rpx;
+	background: #EEF4FF;
+	border-radius: 16rpx;
+}
+.guest-badge {
+	flex: none;
+	padding: 2rpx 12rpx;
+	border-radius: 8rpx;
+	background: #3B82F6;
+	color: #fff;
+	font-size: 22rpx;
+}
+.guest-text { color: #3B5B8C; font-size: 24rpx; }
