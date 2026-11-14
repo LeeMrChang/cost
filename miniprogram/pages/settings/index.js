@@ -1,16 +1,35 @@
 const api = require('../../utils/api');
+const guestStore = require('../../utils/guest-store');
 const nickname = require('../../utils/nickname');
 const profile = require('../../utils/profile');
+function isLoggedIn() {
+ if (typeof api.isAuthenticated === 'function') return api.isAuthenticated();
+ if (typeof api.session === 'function') return Boolean(api.session());
+ return true;
+}
+
 Page({
  data: {
-  user: null, nickname: '', avatarSrc: '', ledger: null, error: '', busy: false,
+  user: null, nickname: '', avatarSrc: '', ledger: null, error: '', busy: false, guest: false, guestPending: 0,
   editingLedger: false, ledgerDraftName: '', ledgerDraftIcon: '', ledgerError: '',
   ledgerIcons: ['📒', '🏠', '✈️', '🍜', '💰', '🎯', '🎓', '🎁']
  },
- onShow() { this.load(); },
- openCategories() { wx.navigateTo({ url: '/pages/categories/index' }); },
- openAccounts() { wx.navigateTo({ url: '/pages/accounts/index' }); },
- openBudget() { wx.navigateTo({ url: '/pages/budget/index' }); },
+ onShow() {
+  if (!isLoggedIn()) {
+   this.setData({ guest: true, guestPending: guestStore.pending(), user: null, ledger: null, nickname: '', avatarSrc: '', error: '' });
+   return;
+  }
+  this.setData({ guest: false });
+  this.load();
+ },
+ goLogin() { wx.navigateTo({ url: '/pages/login/index' }); },
+ openCategories() { this.openProtected('/pages/categories/index'); },
+ openAccounts() { this.openProtected('/pages/accounts/index'); },
+ openBudget() { this.openProtected('/pages/budget/index'); },
+ openProtected(url) {
+  if (!isLoggedIn()) { wx.showToast({ title: '登录后可用', icon: 'none' }); return; }
+  wx.navigateTo({ url });
+ },
  async load() {
   // Clear data from a previously logged-in account before fetching new permissions.
   this.setData({ user: null, nickname: '', avatarSrc: '', ledger: null, error: '', editingLedger: false, ledgerDraftName: '', ledgerDraftIcon: '', ledgerError: '' });

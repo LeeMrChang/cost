@@ -1,4 +1,9 @@
 <view class="container"><view class="title">设置</view>
+ <view wx:if="{{guest}}" class="card">
+  <view class="section">游客模式</view>
+  <view class="muted">当前未登录。游客期间的记录只保存在本机（{{guestPending}} 条），微信登录后会同步到你的账本。</view>
+  <button class="button" bindtap="goLogin">微信登录并同步</button>
+ </view>
  <view wx:if="{{ledger}}" class="card">
   <view class="ledger-head" bindtap="editLedger">
    <text class="ledger-icon">{{ledger.icon}}</text>

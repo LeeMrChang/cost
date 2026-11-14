@@ -1,6 +1,8 @@
 const api = require('../../utils/api');
+const guestStore = require('../../utils/guest-store');
+const guestCategories = require('../../utils/guest-categories');
 const { displayMoney } = require('../../utils/money');
-const { query, groups } = require('../../utils/ledger');
+const { query, groups, stamp } = require('../../utils/ledger');
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -27,6 +29,13 @@ function buildGrid(month, series) {
 	return cells;
 }
 
+
+function isLoggedIn() {
+ if (typeof api.isAuthenticated === 'function') return api.isAuthenticated();
+ if (typeof api.session === 'function') return Boolean(api.session());
+ return true;
+}
+
 Page({
 	data: {
 		month: '', label: '',
@@ -49,6 +58,7 @@ Page({
  openEntry(e) {wx.navigateTo({url:'/pages/entry-detail/index?id='+e.currentTarget.dataset.id});},
  onLoad(options) { this.setData({month: (options && options.month) || todayKey().slice(0, 7)}); return this.load(); },
 	async load() {
+		if (!isLoggedIn()) return this.loadGuest();
 		const version = this.loadVersion = (this.loadVersion || 0) + 1;
 		this.setData({loading: true, error: '', selected: '', selectedDisplay: '', dayGroups: []});
 		try {
@@ -75,11 +85,41 @@ Page({
 		} catch (e) { if (version === this.loadVersion) this.setData({error: e.message}); }
 		finally { if (version === this.loadVersion) this.setData({loading: false}); }
 	},
+	loadGuest() {
+		const version = this.loadVersion = (this.loadVersion || 0) + 1;
+		const month = this.data.month;
+		const categories = guestCategories.list();
+		const rows = guestStore.read().filter(item => stamp(item.occurred_at).date.slice(0, 7) === month);
+		const series = {};
+		let expense = 0, income = 0;
+		rows.forEach(item => {
+			const key = stamp(item.occurred_at).date;
+			if (!series[key]) series[key] = { key, expense_cent: 0, income_cent: 0 };
+			if (item.kind === 'income') { series[key].income_cent += item.amount_cent; income += item.amount_cent; }
+			else { series[key].expense_cent += item.amount_cent; expense += item.amount_cent; }
+		});
+		if (version !== this.loadVersion) return;
+		this.dayRows = rows.map(item => Object.assign({}, item, { id: item.local_id, account_id: 0 }));
+		this.setData({
+			categories, accounts: [], loading: false, error: '',
+			label: month.slice(0, 4) + '年' + Number(month.slice(5)) + '月',
+			summary: { expense: displayMoney(expense), income: displayMoney(income) },
+			prevRef: '', nextRef: '',
+			cells: buildGrid(month, series),
+		});
+	},
 	prevMonth() { if (this.data.prevRef) this.setData({month: this.data.prevRef.slice(0, 7)}); this.load(); },
 	nextMonth() { if (this.data.nextRef) this.setData({month: this.data.nextRef.slice(0, 7)}); this.load(); },
 	async tapDay(e) {
 		const key = e.currentTarget.dataset.key;
 		if (!key) return;
+		if (!isLoggedIn()) {
+			const rows = (this.dayRows || []).filter(item => stamp(item.occurred_at).date === key);
+			const d = new Date(key + 'T00:00:00Z');
+			const display = (d.getUTCMonth() + 1) + '月' + d.getUTCDate() + '日 星期' + WEEKDAYS[d.getUTCDay()];
+			this.setData({ selected: key, selectedDisplay: display, dayEntries: rows, dayTotal: rows.length, dayGroups: groups(rows, this.data.categories, []), dayLoading: false });
+			return;
+		}
 		const version = this.loadVersion, dayVersion=this.dayVersion=(this.dayVersion||0)+1;
 		this.setData({selected: key, dayGroups: [], dayLoading: true});
 		const d = new Date(key + 'T00:00:00Z');

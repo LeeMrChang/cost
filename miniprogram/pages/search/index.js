@@ -1,10 +1,19 @@
 const api = require('../../utils/api');
+const guestStore = require('../../utils/guest-store');
+const guestCategories = require('../../utils/guest-categories');
 const { displayMoney } = require('../../utils/money');
 const { query, groups } = require('../../utils/ledger');
 
 const ALL_TIME = { start_date: '2000-01-01', end_date: '9999-12-30' };
 const CHIPS = [{label: '全部', value: ''}, {label: '仅支出', value: 'expense'}, {label: '仅收入', value: 'income'}];
 CHIPS.push(...[{label:'报销',value:'reimbursement'},{label:'退款',value:'refund'},{label:'优惠',value:'discount'},{label:'不计收支',value:'exclude_stats'},{label:'不计预算',value:'exclude_budget'},{label:'包含图片',value:'image'},{label:'不包含图片',value:'no_image'}].map(c=>({...c,pending:true})));
+
+
+function isLoggedIn() {
+ if (typeof api.isAuthenticated === 'function') return api.isAuthenticated();
+ if (typeof api.session === 'function') return Boolean(api.session());
+ return true;
+}
 
 Page({
 	data: {
@@ -32,6 +41,7 @@ Page({
 	clearInput() { clearTimeout(this.timer);this.timer=null;this.resumeQuery=false; this.loadVersion=(this.loadVersion||0)+1; this.setData({keyword:'', kind:'',focus:true,searched:false,loading:false,loadingMore:false,error:'',entries:[],groups:[],total:0,page:0,hasMore:false}); },
 	setKind(e) { const value=e.currentTarget.dataset.value; if (!['','expense','income'].includes(value)) {wx.showToast({title:'\u540e\u7eed\u7248\u672c\u652f\u6301',icon:'none'});return;} this.setData({kind:value}); this.submit(); },
 	async load() {
+		if (!isLoggedIn()) return this.loadGuest();
 		const version = this.loadVersion = (this.loadVersion || 0) + 1;
 		this.setData({loading: true, loadingMore:false, error: '', entries: [], groups: [], total: 0, page: 0, hasMore: false, searched: false});
 		try {
@@ -59,6 +69,32 @@ Page({
 		} catch (e) { if (version === this.loadVersion) this.setData({error: e.message}); }
 		finally { if (version === this.loadVersion) this.setData({loading: false}); }
 	},
+	loadGuest() {
+		const version = this.loadVersion = (this.loadVersion || 0) + 1;
+		const keyword = this.data.keyword.trim();
+		const categories = guestCategories.list();
+		const catName = {};
+		categories.forEach(c => { catName[c.name + '/' + c.kind] = c; });
+		const rows = guestStore.read()
+			.filter(item => !this.data.kind || item.kind === this.data.kind)
+			.filter(item => {
+				if (!keyword) return true;
+				const category = guestCategories.findByName(item.category_key, item.kind);
+				return (item.note || '').includes(keyword) || (category && category.name.includes(keyword));
+			})
+			.map(item => Object.assign({}, item, { id: item.local_id, account_id: 0 }))
+			.sort((a, b) => b.occurred_at.localeCompare(a.occurred_at) || b.local_id - a.local_id);
+		let expense = 0, income = 0;
+		rows.forEach(item => { if (item.kind === 'income') income += item.amount_cent; else expense += item.amount_cent; });
+		if (version !== this.loadVersion) return;
+		this.setData({
+			categories, entries: rows, accounts: [],
+			groups: groups(rows, categories, []),
+			total: rows.length, page: 1, hasMore: false, searched: true, loading: false,
+			error: '',
+			summary: { total: rows.length, expense: displayMoney(expense), income: displayMoney(income) },
+		});
+	},
 	async loadMore() {
 		if (this.data.loading || this.data.loadingMore || !this.data.hasMore) return;
 		const version = this.loadVersion, next = this.data.page + 1;
@@ -77,6 +113,7 @@ Page({
 		const id = Number(e.currentTarget.dataset.id);
 		const item = this.data.entries.find(x => x.id === id);
 		if (!item) return;
+		if (!isLoggedIn()) { wx.navigateTo({url: '/pages/entry-detail/index?id=' + id + '&local=1'}); return; }
 		wx.navigateTo({url: '/pages/entry-detail/index?id=' + id});
 	},
 	goBack() { wx.navigateBack(); },

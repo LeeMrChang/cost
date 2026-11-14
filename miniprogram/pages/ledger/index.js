@@ -1,5 +1,6 @@
 const api = require('../../utils/api');
 const guestStore = require('../../utils/guest-store');
+const guestMerge = require('../../utils/guest-merge');
 const guestCategories = require('../../utils/guest-categories');
 const { displayMoney } = require('../../utils/money');
 const { emptyFilters, query, groups, stamp } = require('../../utils/ledger');
@@ -38,7 +39,20 @@ Page({
 		}
 		this.setData(data);
 	},
-	onShow() { this.setData({groups: [], entries: []}); this.load(); },
+	onShow() {
+		this.setData({groups: [], entries: []});
+		this.load();
+		this.syncGuest();
+	},
+	// 登录后自动把游客记录合并进账本；失败保留本地，下次进入再试。
+	async syncGuest() {
+		if (!isLoggedIn() || guestStore.pending() === 0) return;
+		try {
+			const result = await guestMerge.merge(api);
+			if (result.synced) this.load();
+			if (result.failed) wx.showToast({ title: result.failed + ' 条未同步，下次进入账本重试', icon: 'none' });
+		} catch (_) { /* 合并失败不影响浏览 */ }
+	},
 	onHide() { this.loadVersion = (this.loadVersion || 0) + 1; },
 	onUnload() { this.onHide(); },
 	onReachBottom() { this.loadMore(); },
@@ -180,6 +194,7 @@ Page({
 	openBudget() { wx.navigateTo({url: '/pages/budget/index?scope=month&period=' + this.data.month}); },
 	edit(e) {
 		const id = Number(e.currentTarget.dataset.id);
+		if (this.data.guest) { wx.navigateTo({url: '/pages/entry-detail/index?id=' + id + '&local=1'}); return; }
 		wx.navigateTo({url: '/pages/entry-detail/index?id=' + id});
 	},
 	add() { getApp().globalData.pendingEdit = null; wx.navigateTo({url: '/pages/entry/index'}); },

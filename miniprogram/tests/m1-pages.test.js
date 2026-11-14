@@ -11,7 +11,7 @@ function load(name, handler, extra = {}) {
 	assert.ok(fs.existsSync(file), name + ' page must exist');
 	let page; const requests = [], toasts = [], navigations = [];
 	const api = {
-		session: () => null, me: async () => ({id: 1, nickname: '小夏'}),
+		session: () => null, isAuthenticated: () => true, me: async () => ({id: 1, nickname: '小夏'}),
 		login: async nickname => { requests.push(['login', nickname]); return {id: 1, nickname: nickname || '小夏'}; },
 		logout: async () => { requests.push(['logout']); },
 		isDevelop: () => true, config: () => ({baseURL: 'https://example.test'}), clearSession: () => {},
