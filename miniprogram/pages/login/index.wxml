@@ -2,21 +2,24 @@
  <view class="title">Cost 记账</view>
  <view class="card">
   <view class="section">简单记账，为生活留痕</view>
-  <view class="muted">微信登录用于识别你的账本账号，不获取手机号。昵称用于识别使用者，账单数据仅属于你自己。</view>
-  <button wx:if="{{!user}}" class="button" loading="{{busy}}" disabled="{{busy}}" bindtap="signIn">微信登录</button>
+  <view class="muted">微信登录只用于识别你的账本账号，不获取手机号。不登录也可以先体验记账，登录后数据会同步到你的账本。</view>
+  <form wx:if="{{!user}}" bindsubmit="signIn">
+   <input type="nickname" name="nickname" value="{{nickname}}" data-field="nickname" bindinput="input" bindblur="input" maxlength="128" placeholder="昵称（可选，默认微信用户）" disabled="{{busy}}" />
+   <view class="muted nickname-hint">昵称可以之后在设置里修改。</view>
+   <button class="button" loading="{{busy}}" disabled="{{busy}}" form-type="submit">微信登录并进入</button>
+  </form>
   <form wx:else bindsubmit="signIn">
    <button class="avatar-picker" open-type="chooseAvatar" bindchooseavatar="chooseAvatar" disabled="{{busy}}">
     <image wx:if="{{avatarSrc}}" class="profile-avatar" src="{{avatarSrc}}" mode="aspectFill" />
     <view wx:else class="profile-avatar profile-avatar-placeholder">👤</view>
     <text>{{avatarSrc ? '更换微信头像' : '选择微信头像（可选）'}}</text>
    </button>
-   <view class="nickname-label">补充昵称</view>
-   <input type="nickname" name="nickname" value="{{nickname}}" data-field="nickname" bindinput="input" bindblur="input" maxlength="128" placeholder="点击选择微信昵称或填写昵称" disabled="{{busy}}" />
-   <view class="muted nickname-hint">请填写昵称后继续，可使用微信昵称。</view>
-   <button class="button" loading="{{busy}}" disabled="{{busy}}" form-type="submit">保存昵称并进入</button>
+   <view class="nickname-label">昵称（可选）</view>
+   <input type="nickname" name="nickname" value="{{nickname}}" data-field="nickname" bindinput="input" bindblur="input" maxlength="128" placeholder="默认微信用户" disabled="{{busy}}" />
+   <button class="button" loading="{{busy}}" disabled="{{busy}}" form-type="submit">保存并进入账本</button>
   </form>
   <view wx:if="{{user}}">
-   <view class="muted">已登录 · {{user.nickname || '待补充昵称'}}</view>
+   <view class="muted">已登录 · {{user.nickname || '微信用户'}}</view>
    <button bindtap="signOut" disabled="{{busy}}">退出登录</button>
   </view>
   <view wx:if="{{error}}" class="error">{{error}}</view>

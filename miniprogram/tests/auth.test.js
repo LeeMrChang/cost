@@ -13,7 +13,12 @@ global.wx = {
 const api = require('../utils/api');
 (async () => {
  await assert.rejects(api.request('/api/v1/entries'), /请先微信登录/);
- assert.equal(redirects, 1); assert.equal(requests.length, 0);
+ // 游客模式：没有会话不再强制跳登录页，交给页面展示引导。
+ assert.equal(redirects, 0); assert.equal(requests.length, 0);
+ assert.equal(api.isAuthenticated(), false);
+ handler = options => options.success({ statusCode: 200, data: { token: 'guest-check', expires_at: new Date(Date.now()+3600000).toISOString(), user: { id: 9, nickname: '微信用户' } } });
+ // 登录不传昵称时提交默认昵称，昵称不再是进入门槛。
+ assert.equal(api.DEFAULT_NICKNAME, '微信用户');
  handler = options => {
   assert.equal(options.data.code, 'one-time-code'); assert.equal(options.header.Authorization, undefined);
   assert.equal(options.data.nickname, '小夏🐱');
@@ -32,13 +37,15 @@ const api = require('../utils/api');
  handler = options => options.success({statusCode:403,data:{error:'nickname_required'}});
  const before = redirects;
  await assert.rejects(api.request('/api/v1/entries'), /昵称/);
- assert.equal(redirects, before+1); assert.equal(api.session().token, 'opaque-session');
+ assert.equal(redirects, before); assert.equal(api.session().token, 'opaque-session');
  wx.setStorageSync('cost_devtools_base_url', 'http://192.168.1.2:8080');
  assert.equal(api.config().baseURL, 'http://192.168.1.2:8080');
  wx.getAccountInfoSync = () => ({ miniProgram: { envVersion: 'release' } });
  assert.equal(api.config().baseURL, 'https://api.xiachen.xyz');
  handler = options => options.success({ statusCode: 401, data: { error: 'unauthorized' } });
+ const before401 = redirects;
  await assert.rejects(api.request('/api/v1/entries'), /登录已过期/); assert.equal(api.session(), null);
+ assert.equal(redirects, before401);
  wx.setStorageSync('cost_session', { token: 'expired', expires_at: '2020-01-01' });
  assert.equal(api.session(), null);
  wx.setStorageSync('cost_session', { token: 'session', expires_at: new Date(Date.now()+3600000).toISOString() });

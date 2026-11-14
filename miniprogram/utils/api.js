@@ -1,4 +1,5 @@
 const defaults = require('./config');
+const DEFAULT_NICKNAME = '微信用户';
 let redirecting = false;
 let profileRevision = 0;
 function isDevelop() {
@@ -17,6 +18,7 @@ function config() {
  return { baseURL };
 }
 function clearSession() { wx.removeStorageSync('cost_session'); }
+function isAuthenticated() { return session() !== null; }
 function session() { const value = wx.getStorageSync('cost_session'); return value && value.token && Date.parse(value.expires_at) > Date.now() ? value : null; }
 function goLogin() {
  if (redirecting) return;
@@ -40,7 +42,12 @@ const messages = {
 };
 function request(path, method = 'GET', data, publicRequest = false, options = {}) {
  const current = session();
- if (!publicRequest && !current) { clearSession(); goLogin(); return Promise.reject(new Error('请先微信登录')); }
+ // 游客模式：没有会话不再强制跳登录页，由调用方决定展示登录引导。
+ if (!publicRequest && !current) {
+  const error = new Error('请先微信登录');
+  error.code = 'unauthorized';
+  return Promise.reject(error);
+ }
  const header = { 'Content-Type': 'application/json' };
  if (current && !publicRequest) header.Authorization = 'Bearer ' + current.token;
  return new Promise((resolve, reject) => wx.request({
@@ -50,9 +57,12 @@ function request(path, method = 'GET', data, publicRequest = false, options = {}
    let body = res.data;
    if (typeof body === 'string') { try { body = JSON.parse(body); } catch (_) { body = {}; } }
    const code = body && body.error;
-   if (!publicRequest && res.statusCode === 401) { clearSession(); goLogin(); }
-   if (!publicRequest && res.statusCode === 403 && code === 'nickname_required') goLogin();
-   reject(new Error(messages[code] || code || '请求失败'));
+   if (!publicRequest && res.statusCode === 401) clearSession();
+   if (options.redirectOnAuth && !publicRequest && (res.statusCode === 401 || (res.statusCode === 403 && code === 'nickname_required'))) goLogin();
+   const error = new Error(messages[code] || code || '请求失败');
+   error.code = code || (res.statusCode === 401 ? 'unauthorized' : 'request_failed');
+   error.status = res.statusCode;
+   reject(error);
   },
   fail() { reject(new Error('无法连接服务，请检查网络和后端地址')); }
  }));
@@ -108,4 +118,4 @@ async function uploadAvatar(filePath) {
  return user;
 }
 async function logout() { if (session()) await request('/api/v1/auth/logout', 'POST'); clearSession(); goLogin(); }
-module.exports = { request, config, session, clearSession, login, logout, me, updateNickname, uploadAvatar, isDevelop, goLogin };
+module.exports = { request, config, session, clearSession, isAuthenticated, login, logout, me, updateNickname, uploadAvatar, isDevelop, goLogin, DEFAULT_NICKNAME };
