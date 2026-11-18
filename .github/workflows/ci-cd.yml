@@ -6,11 +6,37 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      full:
+        description: 'Explicitly allow a full production deployment after checks'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
+  plan:
+    name: Detect deployment changes
+    runs-on: ubuntu-24.04
+    outputs:
+      deployment_required: ${{ steps.plan.outputs.deployment_required }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          BASE_REF: ${{ github.base_ref }}
+          FULL: ${{ inputs.full || false }}
+        run: |
+          args=()
+          if [[ "$FULL" == true ]]; then args+=(--full); fi
+          python3 scripts/plan-ci.py --event "$EVENT" --before "$BEFORE" --base-ref "$BASE_REF" "${args[@]}"
+
   checks:
     name: Tests and checks
     runs-on: ubuntu-24.04
@@ -64,8 +90,8 @@ jobs:
 
   deploy:
     name: Deploy production
-    needs: checks
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [checks, plan]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.plan.outputs.deployment_required == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     concurrency:

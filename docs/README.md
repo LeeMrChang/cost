@@ -32,6 +32,9 @@
 
 ## 运行与验证
 
+- [仅测试与文档变更不部署：设计（补录）](superpowers/specs/2026-11-17-check-only-ci-design.md)
+- [仅测试与文档变更不部署：实施记录（补录）](superpowers/plans/2026-11-17-check-only-ci.md)
+
 - [2026-11-13：审核登录生产接口修复设计](superpowers/specs/2026-11-13-review-production-backend-design.md)
 - [2026-11-13：审核登录修复计划](superpowers/plans/2026-11-13-review-production-backend.md)
 - [2026-11-13：审核登录修复验证与提审步骤](ops/2026-11-13-review-production-backend-validation.md)
