@@ -1,5 +1,7 @@
 # Docker 云端部署与运维
 
+> 公开文档脱敏说明（2026-11-18）：个人路径、部署标识及真实账本数据已省略或改为占位示例。历史验证结论保留，不代表使用占位示例重新执行。示例路径使用前须替换；部署脚本的内置默认路径以源码为准，本次未调整脚本。
+
 日期：2026-10-22。适用：Ubuntu、linux/amd64、空账本。首次数据库不导入 Mac 的用户、账单、会话或预算。
 
 ## 首次上传的具体操作（新环境）
@@ -9,20 +11,20 @@
 Mac 终端：
 
 ```sh
-cd /Users/silent/Documents/work/private/cost
+cd /path/to/cost
 archive_file="/tmp/cost-cloud-$(date +%Y%m%d%H%M%S).tar.gz"
 python3 scripts/package-cloud.py --output "$archive_file"
-scp "$archive_file" ubuntu@服务器公网IP:/home/ubuntu/cost-cloud-source.tar.gz
+scp "$archive_file" ubuntu@服务器公网IP:/path/to/server-user/cost-cloud-source.tar.gz
 ```
 
 服务器终端：
 
 ```sh
-mkdir -p /home/ubuntu/cost
-chmod 700 /home/ubuntu/cost
-tar -tzf /home/ubuntu/cost-cloud-source.tar.gz
-tar -xzf /home/ubuntu/cost-cloud-source.tar.gz -C /home/ubuntu/cost
-cd /home/ubuntu/cost/deploy
+mkdir -p /path/to/server-user/cost
+chmod 700 /path/to/server-user/cost
+tar -tzf /path/to/server-user/cost-cloud-source.tar.gz
+tar -xzf /path/to/server-user/cost-cloud-source.tar.gz -C /path/to/server-user/cost
+cd /path/to/server-user/cost/deploy
 ```
 
 先确认 `.env` 不存在，才从示例创建；存在时保留它并检查是否已有部署：
@@ -39,7 +41,7 @@ openssl rand -hex 32
 
 ## 配置和顺序
 
-部署目录 /home/ubuntu/cost；命令默认在其 deploy/ 中执行。私有 .env 仅放服务器，chmod 600。三个数据库密码分别使用 openssl rand -hex 32 生成，必须为 64 位十六进制，不复用。填写小程序 AppID/AppSecret 及初始化密钥；后端镜像构建不读取 .env。
+部署目录 /path/to/server-user/cost；命令默认在其 deploy/ 中执行。私有 .env 仅放服务器，chmod 600。三个数据库密码分别使用 openssl rand -hex 32 生成，必须为 64 位十六进制，不复用。填写小程序 AppID/AppSecret 及初始化密钥；后端镜像构建不读取 .env。
 
 Mac 打包：`python3 scripts/package-cloud.py --output /tmp/cost-cloud.tar.gz`。只包含后端构建源码、云端配置和本说明，不包含小程序、本地秘密或账单。通过 scp 上传，服务器先检查归档再解包。已有部署更新前先备份目录与数据库，不覆盖既有 .env。
 

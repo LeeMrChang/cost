@@ -1,5 +1,7 @@
 # iCost 重定位 M1 验证记录
 
+> 公开文档脱敏说明（2026-11-18）：个人路径、部署标识及真实账本数据已省略或改为占位示例。历史验证结论保留，不代表使用占位示例重新执行。示例路径使用前须替换；部署脚本的内置默认路径以源码为准，本次未调整脚本。
+
 日期：2026-10-26
 实施计划：[2026-10-26-icost-realignment](../superpowers/plans/2026-10-26-icost-realignment.md)
 接口约定：[2026-10-26-icost-realignment-api](../api/2026-10-26-icost-realignment-api.md)
@@ -76,7 +78,7 @@
 `Error 1054: Unknown column 'owner_id'`、前端明细页显示 internal_error。本次补做：
 
 1. **备份**：`mysqldump` 导出 `cost` 库至 `backups/cost-pre005-20261026-165655.sql.gz`
-   （12 张表、21 笔账单、1 用户、1 预算、11 分类；仓库 `backups/` 已 gitignore）。
+   （12 张表；真实账单、用户、预算和分类数量省略；仓库 `backups/` 已 gitignore）。
 2. **迁移**：`./scripts/dev.sh -migrate` 以应用账号 `cost_app` 执行时报
    `DROP command denied`——本地未建服务端同款 `cost_migrator` 账号。改用
    `COST_STORE=mysql COST_MYSQL_DSN='root@unix(/tmp/mysql.sock)/cost?...' go run ./cmd/api -migrate`
@@ -84,7 +86,7 @@
    具备 DDL 权限的账号跑）。
 3. **迁移结果**：005 落库；家庭三表删除；`t_ledgers` 增加 `icon`/`owner_id`（uk 唯一）；
    `t_budgets` 重建为 `(ledger_id, scope, period_key, category_id, amount_cent)`，
-   旧月预算 300000 分转为 `month/2026-10`；分类补种为 13 支出 + 12 收入；21 笔账单无损。
+   旧月预算金额不变并转为对应月份的 month 总预算；分类补种为 13 支出 + 12 收入；账单无损（真实金额和数量省略）。
 4. **接口实测**（development 鉴权实例，端口 8081，`X-Dev-Token`）：
    `ledgers/me`、`categories`、`entries`、`stats`（month/week/自定义 ref）、
    `budgets` GET/PUT 全部 200；周预算写入→读取→删除往返一致；`range=bad` 返回 400
@@ -93,15 +95,12 @@
    已在新库直接验证返回账本 1；用户 8080 端口 wechat 模式服务无需重启，重试即可恢复。
 6. **搜索联调（2026-10-26 17:30 补做）**：关键词 q 由「仅备注」扩展为「备注或分类名」
    （MySQL `LOCATE(BINARY ?,BINARY note)` OR 分类名子查询；内存店同规则）。开发鉴权实例对真实本地库
-   实测：全时间范围（`start_date=2000-01-01&end_date=9999-12-30`）21 笔；`q=早餐` 命中分类 6 笔、
-   `q=快餐` 命中备注 1 笔、`q=工资&kind=income` 组合 1 笔、`q=早餐&kind=income` 0 笔、分页一致。
-   注意：本地库无「餐饮」分类（005 补种为 早餐/午餐/晚餐/夜宵），以 `q=餐饮` 验证必为 0 属正常。
+   实测覆盖全时间范围、分类关键词、备注关键词、收入类型组合及分页一致性；具体查询命中数量与个人收支关键词省略。
 7. **头像与收支日历联调（2026-10-26 18:00 补做）**：明细页改自定义导航栏（右上账本图标头像 +
    ⋯ 菜单），「收支日历」替换原设置入口；新增 `pages/calendar`（S20：周日开头月历、红出绿入、
    今天描边、点日展开当日明细、月份切换）。真实本地库实测：`ledgers/me` 返回 `icon:📒`；
-   `stats?range=month&ref=2026-10-01` series 含当月 31 天逐日收支（10-22 支出 3590 分）；
-   `entries?start_date=2026-10-22&end_date=2026-10-22` 精确返回当日 3 笔（23.00/6.90/6.00），
-   与 S03 截图 10/22 分组数据一致。
+   `stats?range=month&ref=2026-10-01` series 含当月 31 天逐日收支；
+   按日查询返回的明细与 S03 截图分组数据一致（具体日期、金额及笔数省略）。
 8. **原型 v4 / 文档 v2.1 对齐（2026-10-27 上午补做）**：以 Master 更新的 `cost_可交互原型_v4.html`
    与 `cost-原型与需求说明-iCost对标-v2.1.md`（2026-10-26 17:19/17:22）为准回改三页——
    - 明细页：账本名左置（▾ 进设置）、月份标题与「收支日历」双入口（移除 calendar-popup 月历弹层）、
@@ -117,10 +116,7 @@
      9 张表，gzip 校验通过）。
    - 验证：`node --test 'tests/*.test.js'` 69/69 通过、`tests/validate.js` 通过；
      后端 `go test -count=1 ./...` 全绿；development 鉴权实例（8080，`X-Dev-Token`）对真实本地库实测：
-     `ledgers/me`（我的账本/📒）、`stats?range=month&ref=2026-10-01`（label=2026年10月、
-     支出 271.90、收入 14956.08、预算 3000.00/剩余 2728.10/剩余日均 545.62、series 31 天）、
-     `entries?q=早餐&start_date=2000-01-01&end_date=9999-12-30`（6 笔、合计 41.80）、
-     `entries?start_date=2026-10-22&end_date=2026-10-22`（3 笔）、`entries?month=2026-10`（21 笔）全部 200。
+     `ledgers/me`、月度统计、分类搜索、按日及按月查询全部返回 200；汇总、预算、剩余日均与明细核对一致（个人收支、预算和命中数量省略）。
 
 ## 6. 未覆盖与遗留
 

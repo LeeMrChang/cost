@@ -1,5 +1,7 @@
 # Redis 资料缓存启用与验收
 
+> 公开文档脱敏说明（2026-11-18）：个人路径、部署标识及真实账本数据已省略或改为占位示例。历史验证结论保留，不代表使用占位示例重新执行。示例路径使用前须替换；部署脚本的内置默认路径以源码为准，本次未调整脚本。
+
 2026-11-04。[设计](../superpowers/specs/2026-11-04-redis-reference-cache-design.md) / [计划](../superpowers/plans/2026-11-04-redis-reference-cache.md)。用户明确不再以卡顿为前提，目标是让 Cost 实际使用 Redis。
 
 ## 当前状态与缓存范围
@@ -10,13 +12,13 @@
 
 ## 上线顺序：先配置，再 review/合并后端
 
-Redis 已创建，不需要再次运行安装器。本次新增 `scripts/configure-cost-redis.py`，请上传该脚本到服务器 `/home/ubuntu/configure-cost-redis.py`。它只修改现有 API 环境文件，不重启服务，也不输出密码：
+Redis 已创建，不需要再次运行安装器。本次新增 `scripts/configure-cost-redis.py`，请上传该脚本到服务器 `/path/to/server-user/configure-cost-redis.py`。它只修改现有 API 环境文件，不重启服务，也不输出密码：
 
 ```sh
-python3 /home/ubuntu/configure-cost-redis.py
+python3 /path/to/server-user/configure-cost-redis.py
 ```
 
-默认读取 `/home/ubuntu/cost/redis/.env`，向 `/home/ubuntu/cost/deploy/.env` 写入：
+路径示例（实际读取位置以脚本配置为准）：从 `/path/to/server-user/cost/redis/.env` 读取，向 `/path/to/server-user/cost/deploy/.env` 写入：
 
 - `COST_REDIS_ADDR=cost-redis:6379`
 - `COST_REDIS_PASSWORD=服务器已有的随机密码`

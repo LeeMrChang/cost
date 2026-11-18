@@ -1,19 +1,21 @@
 # Redis 安装与记账返回首页耗时诊断
 
+> 公开文档脱敏说明（2026-11-18）：个人路径、部署标识及真实账本数据已省略或改为占位示例。历史验证结论保留，不代表使用占位示例重新执行。示例路径使用前须替换；部署脚本的内置默认路径以源码为准，本次未调整脚本。
+
 > 阶段记录：以下为最初的部署/诊断范围。用户随后明确以“使用 Redis”为目标，新增了分类/账本资料缓存；当前接入范围和状态见[资料缓存启用与验收](2026-11-04-redis-reference-cache.md)。
 
 2026-11-04。[设计](../superpowers/specs/2026-11-04-redis-homepage-diagnostics-design.md) / [计划](../superpowers/plans/2026-11-04-redis-homepage-diagnostics.md)。用户实际反馈是新增账单后返回首页慢，本轮提供 Redis 安装工具和只读请求耗时报告，尚未在 Go 后端启用数据缓存。
 
 ## Redis 工具包操作
 
-工具包仅包含 `deploy/redis/compose.yaml`、`scripts/setup-cost-redis.sh`、`scripts/profile-cost-home.py`，以及设计、计划、本说明共 6 份文件，不含 .env、密码、数据库或用户数据。通过服务器文件管理将工具包上传至 `/home/ubuntu/cost-redis-bootstrap-20261104.tar.gz`。
+工具包仅包含 `deploy/redis/compose.yaml`、`scripts/setup-cost-redis.sh`、`scripts/profile-cost-home.py`，以及设计、计划、本说明共 6 份文件，不含 .env、密码、数据库或用户数据。通过服务器文件管理将工具包上传至 `/path/to/server-user/cost-redis-bootstrap-20261104.tar.gz`。
 
 在服务器执行（如果解压目录已存在，先检查旧目录，不直接覆盖）：
 
 ```sh
-mkdir -m 700 /home/ubuntu/cost-redis-tools-20261104
-tar -xzf /home/ubuntu/cost-redis-bootstrap-20261104.tar.gz -C /home/ubuntu/cost-redis-tools-20261104
-cd /home/ubuntu/cost-redis-tools-20261104
+mkdir -m 700 /path/to/server-user/cost-redis-tools-20261104
+tar -xzf /path/to/server-user/cost-redis-bootstrap-20261104.tar.gz -C /path/to/server-user/cost-redis-tools-20261104
+cd /path/to/server-user/cost-redis-tools-20261104
 bash scripts/setup-cost-redis.sh
 ```
 
@@ -23,7 +25,7 @@ bash scripts/setup-cost-redis.sh
 COST_REDIS_IMAGE=mirror.ccs.tencentyun.com/library/redis:8.4.8-alpine bash scripts/setup-cost-redis.sh
 ```
 
-腾讯云镜像源是否已同步该标签需以实际拉取为准。如果首次拉取失败，已生成的配置仍保存在 `/home/ubuntu/cost/redis/`；仅编辑 `.env` 中的 `COST_REDIS_IMAGE` 更换可用镜像源，保留其余值，然后重跑。脚本不会覆盖已有密码或自动升级不同的 Compose 配置。
+腾讯云镜像源是否已同步该标签需以实际拉取为准。如果首次拉取失败，已生成的配置仍保存在 `/path/to/server-user/cost/redis/`；仅编辑 `.env` 中的 `COST_REDIS_IMAGE` 更换可用镜像源，保留其余值，然后重跑。脚本不会覆盖已有密码或自动升级不同的 Compose 配置。
 
 安装要求：Ubuntu/Linux、Bash、Python 3、OpenSSL、flock、Docker Compose v2 和 Docker 权限；无普通用户 Docker 权限时尝试已有 `sudo -n docker`。前提是 Cost 已有 `cost-cloud_default` 网络；若网络名不同，先用 `docker network ls` 核对，在首次安装通过 `COST_REDIS_NETWORK=实际网络名` 指定。不要凭猜测连接其他项目的网络。
 
@@ -35,14 +37,14 @@ docker port cost-cache-redis-1
 docker stats --no-stream cost-cache-redis-1
 ```
 
-`docker port` 应没有输出；内部别名为 `cost-redis:6379`，与现有 Cost 网络中的 API 可互通。密码只保存在服务器权限 600 的 `/home/ubuntu/cost/redis/.env`，不在终端输出，也不要把文件内容提交 Git 或贴到聊天。
+`docker port` 应没有输出；内部别名为 `cost-redis:6379`，与现有 Cost 网络中的 API 可互通。密码只保存在服务器权限 600 的 `/path/to/server-user/cost/redis/.env`，不在终端输出，也不要把文件内容提交 Git 或贴到聊天。
 
 Redis 使用非 root 用户、只读根文件系统、128 MiB 数据上限、256 MiB 容器上限、0.5 CPU 及 `allkeys-lru`。RDB/AOF 均关闭；它是可重建缓存，不代替 MySQL 持久存储。本工具不重启现有 API/MySQL/Resume，不修改业务环境变量。当前 Go API 尚未配置 Redis 客户端，因此容器启动不代表首页已经命中缓存。
 
 需要停止时，仅操作这个项目：
 
 ```sh
-docker compose --project-name cost-cache --env-file /home/ubuntu/cost/redis/.env -f /home/ubuntu/cost/redis/compose.yaml stop redis
+docker compose --project-name cost-cache --env-file /path/to/server-user/cost/redis/.env -f /path/to/server-user/cost/redis/compose.yaml stop redis
 ```
 
 ## 采集新增账单后返回首页的耗时

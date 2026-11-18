@@ -1,5 +1,7 @@
 # Docker 空账本部署设计
 
+> 公开文档脱敏说明（2026-11-18）：个人路径、部署标识及真实账本数据已省略或改为占位示例。历史验证结论保留，不代表使用占位示例重新执行。示例路径使用前须替换；部署脚本的内置默认路径以源码为准，本次未调整脚本。
+
 日期：2026-10-22。状态：容器空账本已部署并验证；域名/HTTPS、首次管理员绑定与真实云端微信联调仍待完成。
 
 ## 目标与已确认条件
@@ -22,7 +24,7 @@ API 与 MySQL 设置 restart:unless-stopped，日志限额 max-size=10m、max-fi
 
 ## 配置与权限
 
-云端目录为 /home/ubuntu/cost，部署命令从其中的 deploy/ 执行。Compose 文件名 compose.cloud.yaml，示例配置 .env.example，真实配置 .env 权限 600。部署包排除真实 .env、本机二进制、Git 元数据、数据库备份和小程序代码。
+云端目录为 /path/to/server-user/cost，部署命令从其中的 deploy/ 执行。Compose 文件名 compose.cloud.yaml，示例配置 .env.example，真实配置 .env 权限 600。部署包排除真实 .env、本机二进制、Git 元数据、数据库备份和小程序代码。
 
 云端使用全新随机 MySQL root 与业务密码及初始化密钥，推荐 openssl rand -hex 32 生成，避免 DSN 特殊字符编码问题。微信 AppID 使用现有小程序，AppSecret 只在云端配置。production 模式强制 mysql 与 wechat。
 
@@ -32,7 +34,7 @@ API 与 MySQL 设置 restart:unless-stopped，日志限额 max-size=10m、max-fi
 
 ## 上传与无域名联调
 
-本地生成最小部署包，通过 scp 上传到 ubuntu@公网IP:/home/ubuntu/cost/。不依赖 GitHub 推送；本机尚未审阅的更改不被自动提交或上传。
+本地生成最小部署包，通过 scp 上传到 ubuntu@公网IP:/path/to/server-user/cost/。不依赖 GitHub 推送；本机尚未审阅的更改不被自动提交或上传。
 
 服务器安装 Docker 后按文档顺序完成：解包、填写私有配置、构建镜像、启动数据库并等待健康、运行显式迁移、启动 API、检查日志及健康、验证重启后数据保留。
 

@@ -1,5 +1,7 @@
 # 自动 CI/CD
 
+> 公开文档脱敏说明（2026-11-18）：个人路径、部署标识及真实账本数据已省略或改为占位示例。历史验证结论保留，不代表使用占位示例重新执行。示例路径使用前须替换；部署脚本的内置默认路径以源码为准，本次未调整脚本。
+
 日期：2026-10-23。入口：`.github/workflows/ci-cd.yml`。本地文件完成不代表服务器接入或首轮自动部署成功，实际验证状态见末尾。
 
 ## 日常使用
@@ -10,12 +12,12 @@ Mac 修改代码并 push main 后，GitHub Actions 先检查 Go race/vet/build�
 
 ## 一次性初始化
 
-现有部署位置 `/home/ubuntu/cost`，服务器 `175.178.194.116`；用户名默认为既有文档中的 `ubuntu`，可用第二个参数替换。Mac 需要 `gh`、Python 3、SSH；账号必须能管理本仓库 Secrets。请在 Mac 终端执行，不把密码粘贴到源码：
+部署地址和账号使用自己的环境配置；下文 `192.0.2.10` 为文档专用示例 IP，`deploy-user` 为占位账号，不能直接用于连接。路径示例为 `/path/to/server-user/cost`；初始化脚本的固定路径须先与实际环境核对。Mac 需要 `gh`、Python 3、SSH；账号必须能管理本仓库 Secrets。请在 Mac 终端执行，不把密码粘贴到源码：
 
 ```sh
-cd /Users/silent/Documents/work/private/cost
+cd /path/to/cost
 gh auth login --hostname github.com --git-protocol ssh --scopes workflow
-bash scripts/setup-cicd.sh 175.178.194.116 ubuntu
+bash scripts/setup-cicd.sh 192.0.2.10 deploy-user
 ```
 
 脚本读取 Mac 已核验的 known_hosts，检查现有生产 `.env`、Docker Compose、免交互 Docker 权限，然后生成专用 Ed25519 密钥，把公钥加入服务器 authorized_keys、私钥写入仓库 Secrets；临时本地私钥在退出时删除，不复用 Mac 个人私钥。SSH 需要密码时仅在 SSH 提示中输入。服务器账号需要 Docker 或免密 `sudo -n docker`，Ubuntu 常见初始账号已具备；脚本不会自动修改 sudoers、SSH 密码或数据库配置。
@@ -63,13 +65,13 @@ gh run list --repo LeeMrChang/cost --workflow ci-cd.yml --limit 5
 首次自动部署成功后，手动运维应使用 current 指向的 Compose 文件和记录的镜像标签，避免旧目录 `.env` 中 `COST_IMAGE_TAG=local` 启动旧版本。服务器上：
 
 ```sh
-cd /home/ubuntu/cost
+cd /path/to/server-user/cost
 set -a
 . current/image.env
 set +a
 sudo --preserve-env=COST_IMAGE_TAG docker compose --project-name cost-cloud \
-  --env-file /home/ubuntu/cost/deploy/.env \
-  -f /home/ubuntu/cost/current/deploy/compose.cloud.yaml ps
+  --env-file /path/to/server-user/cost/deploy/.env \
+  -f /path/to/server-user/cost/current/deploy/compose.cloud.yaml ps
 ```
 
 若 sudo 策略不允许 preserve-env，可改为 `sudo env COST_IMAGE_TAG="$COST_IMAGE_TAG" docker compose ...`。`logs --tail 80 api` 可查看服务日志，勿输出完整环境配置。只有确认数据库兼容才可手动选择历史镜像；结构回退和备份恢复需单独安排。MySQL 镜像、初始化账号和 Caddy 配置的升级另按运维流程处理。

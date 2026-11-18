@@ -1,5 +1,7 @@
 # 小程序游客模式验证记录
 
+> 公开文档脱敏说明（2026-11-18）：个人路径、部署标识及真实账本数据已省略或改为占位示例。历史验证结论保留，不代表使用占位示例重新执行。示例路径使用前须替换；部署脚本的内置默认路径以源码为准，本次未调整脚本。
+
 日期：2026-11-14
 设计：[游客模式设计](../superpowers/specs/2026-11-14-miniprogram-guest-mode-design.md)
 计划：[实施计划](../superpowers/plans/2026-11-14-miniprogram-guest-mode.md)
@@ -31,7 +33,7 @@
 
 ## 自动化验证
 
-执行时间：2026-11-14，工作目录 `/Users/silent/Developer/personal/cost`。
+执行时间：2026-11-14，工作目录 `/path/to/cost`。
 
 ```sh
 node --test miniprogram/tests/*.test.js

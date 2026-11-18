@@ -1,5 +1,7 @@
 # 自动备份与隔离恢复验证
 
+> 公开文档脱敏说明（2026-11-18）：个人路径、部署标识及真实账本数据已省略或改为占位示例。历史验证结论保留，不代表使用占位示例重新执行。示例路径使用前须替换；部署脚本的内置默认路径以源码为准，本次未调整脚本。
+
 对应 F04。代码提供自动运行能力；本次没有部署、读取或恢复真实业务库。首次部署前应在测试服务器验证完整 Compose 服务。
 
 ## 服务与默认策略
@@ -55,11 +57,11 @@ Compose 为两个服务配置了健康检查和日志轮转。健康检查只报
 手动部署时，在选定的发布目录执行（沿用服务器上的真实 `.env` 路径）：
 
 ```sh
-docker compose --project-name cost-cloud --env-file /home/ubuntu/cost/deploy/.env \
+docker compose --project-name cost-cloud --env-file /path/to/server-user/cost/deploy/.env \
   -f deploy/compose.cloud.yaml up -d backup backup-verify
-docker compose --project-name cost-cloud --env-file /home/ubuntu/cost/deploy/.env \
+docker compose --project-name cost-cloud --env-file /path/to/server-user/cost/deploy/.env \
   -f deploy/compose.cloud.yaml ps backup backup-verify
-docker compose --project-name cost-cloud --env-file /home/ubuntu/cost/deploy/.env \
+docker compose --project-name cost-cloud --env-file /path/to/server-user/cost/deploy/.env \
   -f deploy/compose.cloud.yaml logs --tail 50 backup backup-verify
 ```
 
@@ -67,18 +69,18 @@ docker compose --project-name cost-cloud --env-file /home/ubuntu/cost/deploy/.en
 
 ```sh
 # 先执行一次备份；确认命令成功后再做恢复验证。
-docker compose --project-name cost-cloud --env-file /home/ubuntu/cost/deploy/.env \
+docker compose --project-name cost-cloud --env-file /path/to/server-user/cost/deploy/.env \
   -f deploy/compose.cloud.yaml stop backup
-docker compose --project-name cost-cloud --env-file /home/ubuntu/cost/deploy/.env \
+docker compose --project-name cost-cloud --env-file /path/to/server-user/cost/deploy/.env \
   -f deploy/compose.cloud.yaml run --rm --no-deps backup once
-docker compose --project-name cost-cloud --env-file /home/ubuntu/cost/deploy/.env \
+docker compose --project-name cost-cloud --env-file /path/to/server-user/cost/deploy/.env \
   -f deploy/compose.cloud.yaml up -d backup
 
-docker compose --project-name cost-cloud --env-file /home/ubuntu/cost/deploy/.env \
+docker compose --project-name cost-cloud --env-file /path/to/server-user/cost/deploy/.env \
   -f deploy/compose.cloud.yaml stop backup-verify
-docker compose --project-name cost-cloud --env-file /home/ubuntu/cost/deploy/.env \
+docker compose --project-name cost-cloud --env-file /path/to/server-user/cost/deploy/.env \
   -f deploy/compose.cloud.yaml run --rm --no-deps backup-verify once
-docker compose --project-name cost-cloud --env-file /home/ubuntu/cost/deploy/.env \
+docker compose --project-name cost-cloud --env-file /path/to/server-user/cost/deploy/.env \
   -f deploy/compose.cloud.yaml up -d backup-verify
 ```
 

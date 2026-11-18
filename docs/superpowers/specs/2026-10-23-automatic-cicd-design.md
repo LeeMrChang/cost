@@ -1,5 +1,7 @@
 # 自动 CI/CD 设计
 
+> 公开文档脱敏说明（2026-11-18）：个人路径、部署标识及真实账本数据已省略或改为占位示例。历史验证结论保留，不代表使用占位示例重新执行。示例路径使用前须替换；部署脚本的内置默认路径以源码为准，本次未调整脚本。
+
 日期：2026-10-23。依据：用户在了解 GitHub Actions 自动测试及云端部署流程后要求配置“自动 CI/CD”。
 
 ## 范围与选择
@@ -12,7 +14,7 @@ Go race、vet、build，使用独立 MySQL 8.4 service 运行全部数据库集�
 
 ## 部署
 
-固定生产目录 /home/ubuntu/cost、Compose 项目 cost-cloud。每次使用 SHA-run_id-run_attempt 标识不可变 release 和镜像。服务器既有 deploy/.env 保留，数据库密码及微信秘密不上传 GitHub。
+固定生产目录以脚本配置为准（公开路径示例：/path/to/server-user/cost）、Compose 项目 cost-cloud。每次使用 SHA-run_id-run_attempt 标识不可变 release 和镜像。服务器既有 deploy/.env 保留，数据库密码及微信秘密不上传 GitHub。
 
 部署串行且不因新 push 取消进行中的部署，服务器另用 flock 互斥。先检查已有 MySQL/API 和生产配置，再构建镜像；停止 API 后备份数据库，恢复到无网络临时 MySQL，核对数据摘要；验证成功后显式 migrate，最后只重建 API，等待 health 通过。不重建生产 MySQL、删除卷或自动导入账单。
 

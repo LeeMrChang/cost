@@ -1,5 +1,7 @@
 # 字形毛刺真机测试安排（⑨）
 
+> 公开文档脱敏说明（2026-11-18）：个人路径、部署标识及真实账本数据已省略或改为占位示例。历史验证结论保留，不代表使用占位示例重新执行。示例路径使用前须替换；部署脚本的内置默认路径以源码为准，本次未调整脚本。
+
 分支 `fix/ui-defects-2`。目标：确认左侧边缘的字形碎片（⑨）是否只在微信开发者工具模拟器出现，还是真机同样存在；本文是测试安排，**尚未在真机执行**。
 
 ## 已知事实（2026-10-27，开发者工具模拟器 iPhone）
@@ -18,7 +20,7 @@
 
 ```bash
 /Applications/wechatwebdevtools.app/Contents/MacOS/cli preview \
-  --project /Users/silent/Documents/work/private/cost/miniprogram \
+  --project /path/to/cost/miniprogram \
   --port 55169 -f image \
   -o /tmp/cost-e2e/preview-glyph.png \
   -i /tmp/cost-e2e/preview-glyph.json
