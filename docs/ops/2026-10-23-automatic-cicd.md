@@ -8,7 +8,7 @@
 
 Mac 修改代码并 push main 后，GitHub Actions 先检查 Go race/vet/build、独立 MySQL 8.4 集成测试、小程序测试、部署故障测试和 workflow 语法，再自动部署后端。PR 只检查，不读取生产 Secrets 或执行部署。小程序仍须在微信开发者工具上传、审核和发布。
 
-在仓库 [Actions](https://github.com/LeeMrChang/cost/actions/workflows/ci-cd.yml) 查看结果。支持 main 的 Run workflow。部署串行，不因新提交取消已经开始的发布；排队中的旧提交会在执行前检查 main，过期则跳过。只有全部检查通过才进入部署。
+在仓库 [Actions](https://github.com/leech-io/cost/actions/workflows/ci-cd.yml) 查看结果。支持 main 的 Run workflow。部署串行，不因新提交取消已经开始的发布；排队中的旧提交会在执行前检查 main，过期则跳过。只有全部检查通过才进入部署。
 
 ## 一次性初始化
 
@@ -37,8 +37,8 @@ bash scripts/setup-cicd.sh 192.0.2.10 deploy-user
 工作流进入 main 且 Secrets 设置成功后，首次可手动触发，无需创建空提交：
 
 ```sh
-gh workflow run ci-cd.yml --repo LeeMrChang/cost --ref main
-gh run list --repo LeeMrChang/cost --workflow ci-cd.yml --limit 5
+gh workflow run ci-cd.yml --repo leech-io/cost --ref main
+gh run list --repo leech-io/cost --workflow ci-cd.yml --limit 5
 ```
 
 云防火墙需允许 GitHub 托管 runner 的 SSH 连接；若当前 22 端口仅允许固定个人 IP，需先设计适当的网络接入策略。运行时会严格验证服务器 host key。
@@ -94,7 +94,7 @@ git push origin feature/automatic-cicd:main
 
 ## 首轮云端运行：默认 socket 连接失败
 
-2026-10-23 手动运行 [39909557544](https://github.com/LeeMrChang/cost/actions/runs/39909557544)：CI、SSH、镜像构建成功；停止 API 后，mysqldump 报错 2002，无法连接 `/var/run/mysqld/mysqld.sock`。失败发生在备份阶段，尚未迁移；失败处理已请求重启原 API，实际健康状态仍需服务器检查。
+2026-10-23 手动运行 [39909557544](https://github.com/leech-io/cost/actions/runs/39909557544)：CI、SSH、镜像构建成功；停止 API 后，mysqldump 报错 2002，无法连接 `/var/run/mysqld/mysqld.sock`。失败发生在备份阶段，尚未迁移；失败处理已请求重启原 API，实际健康状态仍需服务器检查。
 
 原因：部署脚本的客户端省略 host/protocol，默认查找 Unix socket；既有 MySQL healthcheck 使用 TCP，健康检查通过并不能保证客户端默认 socket 可用。修复将生产和临时恢复容器的 mysql/mysqldump 统一指定 `--protocol=tcp -h127.0.0.1`。临时容器的 TCP 就绪检查也避免误连初始化期间的临时 socket 服务。停止 API 前增加 root TCP 查询预检，连接或认证失败即退出，不进入停服阶段。
 

@@ -5,7 +5,7 @@ umask 077
 host=${1:-175.178.194.116}
 user=${2:-ubuntu}
 port=${3:-22}
-repo=LeeMrChang/cost
+repo=leech-io/cost
 [[ "$host" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*$ ]] || exit 1
 [[ "$user" =~ ^[a-z_][a-z0-9_-]*$ ]] || exit 1
 [[ "$port" =~ ^[0-9]{1,5}$ ]] && ((10#$port > 0 && 10#$port <= 65535)) || exit 1

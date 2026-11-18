@@ -27,7 +27,7 @@
 
 ### main 保护现状
 
-GitHub 免费私有仓库不支持分支保护和规则集：对 `LeeMrChang/cost` 调用保护 API 返回 403 `Upgrade to GitHub Pro or make this repository public`。因此当前采用两层替代措施：
+GitHub 免费私有仓库不支持分支保护和规则集：对 `leech-io/cost` 调用保护 API 返回 403 `Upgrade to GitHub Pro or make this repository public`。因此当前采用两层替代措施：
 
 1. 本地 `.githooks/pre-push` 阻止直接推送 `main`。每个克隆需要执行一次：
 

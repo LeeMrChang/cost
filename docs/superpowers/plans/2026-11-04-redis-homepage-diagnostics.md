@@ -37,5 +37,5 @@
 ## Task 3：交付与实测
 
 - [x] 运行 scripts Python 全套（43 项通过、1 项仅 GitHub runner 执行的 Docker smoke 跳过）、相关语法/链接/差异检查，独立审查并处理重要发现。增加 GitHub runner 真实 Redis smoke，不将其等同生产验收。
-- [x] 提交新分支 `infra/redis-homepage-diagnostics` 及 [PR #15](https://github.com/LeeMrChang/cost/pull/15)；现有自动部署白名单不包含新工具，不把合并 PR 等同 Redis 已启动。
+- [x] 提交新分支 `infra/redis-homepage-diagnostics` 及 [PR #15](https://github.com/leech-io/cost/pull/15)；现有自动部署白名单不包含新工具，不把合并 PR 等同 Redis 已启动。
 - [ ] 取得服务器执行通道后创建 Redis、检查健康与资源限制、复现写账返回慢并采集耗时；不能执行时明确保留为待完成。

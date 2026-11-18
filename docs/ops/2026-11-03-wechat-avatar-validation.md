@@ -4,7 +4,7 @@
 
 ## CI 原因与修复
 
-从真实 Actions 日志定位到前缀测试硬编码旧结构 60 列，但新增 nickname 后已有 61 列。修正为至少包含原结构列且所有列有注释，不跳过任何测试。远端提交 `b7c5a1c9` 的 [Tests and checks](https://github.com/LeeMrChang/cost/actions/runs/41619774232/job/125862250258) 已成功，包含隔离 MySQL 8.4、Go/Node、部署故障检查和 workflow lint。PR 的生产部署 skipped 为预期行为。
+从真实 Actions 日志定位到前缀测试硬编码旧结构 60 列，但新增 nickname 后已有 61 列。修正为至少包含原结构列且所有列有注释，不跳过任何测试。远端提交 `b7c5a1c9` 的 [Tests and checks](https://github.com/leech-io/cost/actions/runs/41619774232/job/125862250258) 已成功，包含隔离 MySQL 8.4、Go/Node、部署故障检查和 workflow lint。PR 的生产部署 skipped 为预期行为。
 
 该成功早于头像提交，不能作为 008 迁移已通过的证据。头像提交后的完整 CI 结果在下方另记。
 
@@ -24,4 +24,4 @@
 
 ## 最终检查
 
-头像提交后的隔离 MySQL、008 迁移与完整检查由 [PR #13 的当前提交检查](https://github.com/LeeMrChang/cost/pull/13/checks) 验证；最终远端结果同步在 PR 说明中，不能用上文旧提交的成功替代当前提交验证。
+头像提交后的隔离 MySQL、008 迁移与完整检查由 [PR #13 的当前提交检查](https://github.com/leech-io/cost/pull/13/checks) 验证；最终远端结果同步在 PR 说明中，不能用上文旧提交的成功替代当前提交验证。
